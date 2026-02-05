@@ -26,7 +26,7 @@ class PasswordHasherTest {
             val hashedPassword = PasswordHasher.hash(password)
             result = PasswordHasher.verify(password, hashedPassword)
         }
-        assertTrue(time <= 600, "Hashing took longer than 600ms: ${time}ms")
+        assertTrue(time <= 600, "Hashing and verification took longer than 600ms: ${time}ms")
         assertTrue(result, "Password and hash did not match when they should have.")
     }
 
