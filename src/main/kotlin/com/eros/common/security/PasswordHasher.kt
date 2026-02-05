@@ -1,4 +1,4 @@
-package com.eros.com.eros.common.security
+package com.eros.common.security
 
 import org.mindrot.jbcrypt.BCrypt
 
