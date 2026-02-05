@@ -8,3 +8,12 @@ jwt:
   domain: "https://jwt-provider-domain/"
   audience: "jwt-audience"
   realm: "ktor sample app"
+database:
+  host: ${DB_HOST:localhost}
+  port: ${DB_PORT:5432}
+  name: ${DB_NAME:eros}
+  user: ${DB_USER:postgres}
+  password: ${DB_PASSWORD:postgres}
+  poolSize: ${DB_POOL_SIZE:10}
+  maxLifetime: ${DB_MAX_LIFETIME:600000}
+  connectionTimeout: ${DB_CONNECTION_TIMEOUT:30000}

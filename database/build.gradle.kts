@@ -7,8 +7,9 @@ dependencies {
     // Common module
     implementation(project(":common"))
 
-    // Kotlin serialization
+    // Ktor dependencies
     implementation(libs.ktor.serialization.kotlinx.json)
+    implementation(libs.ktor.server.config.yaml)
 
     // Database dependencies
     implementation(libs.exposed.core)
@@ -23,4 +24,5 @@ dependencies {
 
     // Testing
     testImplementation(libs.kotlin.test.junit)
+    testImplementation(libs.ktor.server.test.host)
 }
