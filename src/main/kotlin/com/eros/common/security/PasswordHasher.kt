@@ -30,6 +30,11 @@ object PasswordHasher {
      * @return `true` if the password matches the hash otherwise `false`.
      */
     fun verify(password: String, hashedPassword: String): Boolean {
-        return BCrypt.checkpw(password, hashedPassword)
+        return try {
+            BCrypt.checkpw(password, hashedPassword)
+        } catch (e: IllegalArgumentException) {
+            false
+        }
+    }
     }
 }
