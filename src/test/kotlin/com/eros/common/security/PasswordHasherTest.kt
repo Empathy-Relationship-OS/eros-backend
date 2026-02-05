@@ -1,10 +1,8 @@
-package com.eros.com.eros.common.security
+package com.eros.common.security
 
-import com.eros.com.eros.common.security.PasswordHasher
 import kotlin.system.measureTimeMillis
 
 import kotlin.test.Test
-import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 import kotlin.test.assertFalse
 
