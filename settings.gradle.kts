@@ -1,8 +1,13 @@
 rootProject.name = "eros-backend"
 
-dependencyResolutionManagement {
-    repositories {
-        mavenCentral()
-        maven("https://packages.confluent.io/maven/")
-    }
-}
+include(
+    "app",
+    "auth",
+    "common",
+    "database",
+    "dates",
+    "matching",
+    "notifications",
+    "users",
+    "wallet"
+)
