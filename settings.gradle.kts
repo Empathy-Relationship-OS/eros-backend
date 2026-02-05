@@ -1,5 +1,7 @@
 rootProject.name = "eros-backend"
 
+include("common")
+
 dependencyResolutionManagement {
     repositories {
         mavenCentral()

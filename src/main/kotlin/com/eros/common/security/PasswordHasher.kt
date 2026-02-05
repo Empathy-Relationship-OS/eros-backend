@@ -32,9 +32,8 @@ object PasswordHasher {
     fun verify(password: String, hashedPassword: String): Boolean {
         return try {
             BCrypt.checkpw(password, hashedPassword)
-        } catch (e: IllegalArgumentException) {
+        } catch (_: IllegalArgumentException) {
             false
         }
-    }
     }
 }
