@@ -35,4 +35,11 @@ dependencies {
     implementation(libs.ktor.server.config.yaml)
     testImplementation(libs.ktor.server.test.host)
     testImplementation(libs.kotlin.test.junit)
+
+    // Required for .env
+    implementation("io.github.cdimascio:dotenv-kotlin:6.4.1")
+
+    // Required for hashing passwords using Bcrypt.
+    implementation("org.mindrot:jbcrypt:0.4")
+
 }
