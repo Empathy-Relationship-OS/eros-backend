@@ -100,13 +100,7 @@ The application uses PostgreSQL with Exposed ORM and Flyway migrations.
 - Default configuration for local development (localhost:5432)
 
 **Database Query Helper**:
-```kotlin
-import com.eros.database.dbQuery
 
-suspend fun getUser(id: UUID): User? = dbQuery {
-    Users.select { Users.id eq id }.singleOrNull()?.toUser()
-}
-```
 
 **Migration Files**: Located in `database/src/main/resources/db/migration/`
 - Follow naming convention: `V{version}__{description}.sql`
