@@ -46,6 +46,9 @@ object FlywayConfig {
      * @param dataSource HikariCP DataSource for database connection
      */
     fun clean(dataSource: DataSource) {
+        val env = System.getenv("ENVIRONMENT") ?: "development"
+        require(env != "production") { "Flyway clean is not allowed in production environment" }
+
         val flyway = Flyway.configure()
             .dataSource(dataSource)
             .locations(MIGRATION_LOCATION)
