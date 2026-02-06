@@ -39,8 +39,6 @@ data class DatabaseConfig(
 
     /**
      * Computed JDBC URL for PostgreSQL connection.
-    /**
-     * Computed JDBC URL for PostgreSQL connection.
      *
      * **What**: Generates the JDBC connection string in PostgreSQL format.
      *
