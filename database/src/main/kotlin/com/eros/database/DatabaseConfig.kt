@@ -34,6 +34,11 @@ data class DatabaseConfig(
     val maxLifetime: Long,
     val connectionTimeout: Long
 ) {
+    override fun toString(): String =
+        "DatabaseConfig(host=$host, port=$port, name=$name, user=$user, password=***, poolSize=$poolSize, maxLifetime=$maxLifetime, connectionTimeout=$connectionTimeout)"
+
+    /**
+     * Computed JDBC URL for PostgreSQL connection.
     /**
      * Computed JDBC URL for PostgreSQL connection.
      *
