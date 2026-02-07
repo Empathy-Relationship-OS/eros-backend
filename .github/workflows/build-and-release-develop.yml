@@ -52,7 +52,7 @@ jobs:
           echo "Version: $VERSION"
 
       - name: Rename JAR for release
-        run: cp ./app/build/libs/eros-backend-all.jar ./eros-backend-develop-${{ steps.version.outputs.version }}.jar
+        run: cp ./app/build/libs/app-all.jar ./eros-backend-develop-${{ steps.version.outputs.version }}.jar
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
