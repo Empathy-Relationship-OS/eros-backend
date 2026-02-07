@@ -5,6 +5,9 @@ on:
     branches:
       - develop
 
+permissions:
+    contents: write  # Needed to create releases and tags
+
 jobs:
   build-test-and-release:
     name: Build, Test, and Release
