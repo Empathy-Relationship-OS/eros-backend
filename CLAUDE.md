@@ -35,6 +35,7 @@ The application follows Ktor's module-based configuration pattern:
 
 1. **Entry Point**: `Application.kt:main()` starts the Netty engine
 2. **Module Loading**: `Application.kt:module()` orchestrates plugin configuration in this order:
+   - `configureDatabase()` - Database connectivity, Exposed ORM, Flyway migrations
    - `configureSerialization()` - Content negotiation with JSON
    - `configureAdministration()` - Rate limiting
    - `configureHTTP()` - CORS and default headers
@@ -42,20 +43,25 @@ The application follows Ktor's module-based configuration pattern:
    - `configureSecurity()` - Authentication (OAuth + JWT)
    - `configureRouting()` - Routes and request validation
 
-**Important**: Plugin installation order matters in Ktor. Security and serialization must be configured before routing.
+**Important**: Plugin installation order matters in Ktor. Database must be configured first, then security and serialization before routing.
 
 ### Configuration Files
 
-- `src/main/resources/application.yaml` - Server and JWT configuration
+- `app/src/main/resources/application.yaml` - Server, database, and JWT configuration
   - Module loading: `com.eros.ApplicationKt.module`
   - Port configuration
+  - Database settings (host, port, name, credentials, connection pool)
   - JWT settings (domain, audience, realm)
-- `src/main/resources/logback.xml` - Logging configuration
+- `app/src/main/resources/logback.xml` - Logging configuration
 
 ### Modular Plugin Structure
 
 Each configuration function lives in its own file:
 
+- **Database.kt** - Database connectivity with PostgreSQL, Exposed ORM, and Flyway migrations
+  - HikariCP connection pooling
+  - Automatic schema migrations on startup
+  - Configured via `database` section in application.yaml
 - **Serialization.kt** - kotlinx.serialization JSON support via ContentNegotiation
 - **Administration.kt** - Rate limiting with TokenBucket (100 capacity, 10s refill)
 - **HTTP.kt** - CORS (currently `anyHost()` - needs production restriction) and custom headers
@@ -80,6 +86,42 @@ The Security module sets up two authentication schemes:
    - Checks audience and issuer claims
    - Configuration pulled from `application.yaml` (partially hardcoded)
 
+### Database Module
+
+The application uses PostgreSQL with Exposed ORM and Flyway migrations.
+
+**Components**:
+- **HikariCP**: High-performance connection pooling
+- **Exposed ORM**: Type-safe database access for Kotlin
+- **Flyway**: Versioned database migrations
+
+**Configuration**: Database settings in `application.yaml` under `database:` section
+- Supports environment variables (e.g., `${DB_HOST:localhost}`)
+- Default configuration for local development (localhost:5432)
+
+**Database Query Helper**:
+
+```kotlin
+import com.eros.database.dbQuery
+
+suspend fun getUser(id: UUID): User? = dbQuery {
+    Users.select { Users.id eq id }.singleOrNull()?.toUser()
+}
+```
+
+**Migration Files**: Located in `database/src/main/resources/db/migration/`
+- Follow naming convention: `V{version}__{description}.sql`
+- Example: `V1__auth_tables.sql`, `V2__user_profiles.sql`
+- Migrations run automatically on application startup
+- Status tracked in `flyway_schema_history` table
+
+**Environment Variables**:
+- `DB_HOST` - Database hostname (default: localhost)
+- `DB_PORT` - Database port (default: 5432)
+- `DB_NAME` - Database name (default: eros)
+- `DB_USER` - Database username (default: postgres)
+- `DB_PASSWORD` - Database password (default: postgres)
+
 ### Request Validation
 
 Global validation is configured in `Routing.kt`:
@@ -93,8 +135,9 @@ Status pages are configured to catch all `Throwable` and return 500 with error d
 ## Project Structure
 
 ```
-src/main/kotlin/
+app/src/main/kotlin/
   ├── Application.kt      - Entry point and module orchestration
+  ├── Database.kt         - Database plugin configuration
   ├── Serialization.kt    - JSON content negotiation
   ├── Administration.kt   - Rate limiting
   ├── HTTP.kt            - CORS and headers
@@ -102,11 +145,21 @@ src/main/kotlin/
   ├── Security.kt        - OAuth + JWT authentication
   └── Routing.kt         - Routes and validation
 
-src/main/resources/
-  ├── application.yaml   - Ktor and JWT config
+app/src/main/resources/
+  ├── application.yaml   - Ktor, database, and JWT config
   └── logback.xml       - Logging config
 
-src/test/kotlin/
+database/src/main/kotlin/com/eros/database/
+  ├── DatabasePlugin.kt  - Ktor plugin for database lifecycle
+  ├── DatabaseConfig.kt  - Database configuration data class
+  ├── DatabaseFactory.kt - HikariCP DataSource factory
+  └── FlywayConfig.kt   - Flyway migration management
+
+database/src/main/resources/db/migration/
+  ├── V0__init.sql      - Baseline migration
+  └── V1__*.sql         - Feature migrations
+
+app/src/test/kotlin/
   └── ApplicationTest.kt - Test suite
 ```
 
