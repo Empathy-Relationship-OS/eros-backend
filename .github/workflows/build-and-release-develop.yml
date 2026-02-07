@@ -53,9 +53,9 @@ jobs:
 
       - name: Rename JAR for release
         run: |
-          FAT_JAR=$(find ./app/build/libs -name "app-*-all.jar" -type f | head -n 1)
+          FAT_JAR=$(find ./app/build/libs -name "*-all.jar" -type f | head -n 1)
           if [ -z "$FAT_JAR" ]; then
-            echo "Error: No Fat JAR matching pattern 'app-*-all.jar' found in ./app/build/libs"
+            echo "Error: No Fat JAR matching pattern '*-all.jar' found in ./app/build/libs"
             exit 1
           fi
           echo "Found Fat JAR: $FAT_JAR"
