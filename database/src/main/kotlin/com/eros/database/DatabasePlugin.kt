@@ -3,8 +3,9 @@ package com.eros.database
 import io.ktor.server.application.*
 import io.ktor.util.*
 import kotlinx.coroutines.Dispatchers
-import org.jetbrains.exposed.sql.Database
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import kotlinx.coroutines.withContext
+import org.jetbrains.exposed.v1.jdbc.Database
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import javax.sql.DataSource
 
 /**
@@ -85,8 +86,10 @@ class DatabasePlugin(private val config: DatabaseConfig) {
  * }
  * ```
  *
- * @param block Suspending lambda containing database operations
+ * @param block Lambda containing database operations
  * @return Result of the database operation
  */
-suspend fun <T> dbQuery(block: suspend () -> T): T =
-    newSuspendedTransaction(Dispatchers.IO) { block() }
+suspend fun <T> dbQuery(block: () -> T): T =
+    withContext(Dispatchers.IO) {
+        transaction { block() }
+    }
