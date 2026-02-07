@@ -29,11 +29,8 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build with Gradle
+      - name: Build and test with Gradle
         run: ./gradlew build --no-daemon
-
-      - name: Run tests
-        run: ./gradlew test --no-daemon
 
       - name: Build Fat JAR
         run: ./gradlew buildFatJar --no-daemon
@@ -54,14 +51,16 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Version: $VERSION"
 
+      - name: Rename JAR for release
+        run: cp ./app/build/libs/eros-backend-all.jar ./eros-backend-develop-${{ steps.version.outputs.version }}.jar
+
       - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
+        uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: develop-${{ github.sha }}
-          release_name: Develop Build - ${{ steps.version.outputs.version }}
+          name: Develop Build - ${{ steps.version.outputs.version }}
           body: |
             Automated development build from develop branch
 
@@ -73,13 +72,4 @@ jobs:
             ${{ github.event.head_commit.message }}
           draft: false
           prerelease: true
-
-      - name: Upload Fat JAR to Release
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./app/build/libs/eros-backend-all.jar
-          asset_name: eros-backend-develop-${{ steps.version.outputs.version }}.jar
-          asset_content_type: application/java-archive
+          files: ./eros-backend-develop-${{ steps.version.outputs.version }}.jar
