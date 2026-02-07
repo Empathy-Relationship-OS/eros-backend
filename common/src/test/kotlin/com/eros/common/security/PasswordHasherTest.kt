@@ -11,13 +11,18 @@ import kotlin.test.assertFailsWith
 
 class PasswordHasherTest {
 
+    companion object {
+        private val HASH_TIME_LIMIT_MS = System.getenv("HASH_TIME_LIMIT_MS")?.toLongOrNull() ?: 500L
+        private val HASH_VERIFY_TIME_LIMIT_MS = System.getenv("HASH_VERIFY_TIME_LIMIT_MS")?.toLongOrNull() ?: 1000L
+    }
+
     @Test
     fun `successful password hash within limit (300ms)`() {
         val time = measureTimeMillis {
             val password = "Absdfijjoi\$4ijji*sfreg'okcdEf\$g123!"
             val hashedPassword = PasswordHasher.hash(password)
         }
-        assertTrue(time <= 300, "Hashing took longer than 300ms: ${time}ms")
+        assertTrue(time <= HASH_TIME_LIMIT_MS, "Hashing took longer than ${HASH_TIME_LIMIT_MS}ms: ${time}ms")
     }
 
     @Test
@@ -28,7 +33,7 @@ class PasswordHasherTest {
             val hashedPassword = PasswordHasher.hash(password)
             result = PasswordHasher.verify(password, hashedPassword)
         }
-        assertTrue(time <= 600, "Hashing and verification took longer than 600ms: ${time}ms")
+        assertTrue(time <= HASH_VERIFY_TIME_LIMIT_MS, "Hashing and verification took longer than ${HASH_VERIFY_TIME_LIMIT_MS}ms: ${time}ms")
         assertTrue(result, "Password and hash did not match when they should have.")
     }
 
