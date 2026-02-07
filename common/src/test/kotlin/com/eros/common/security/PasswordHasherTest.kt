@@ -3,8 +3,10 @@ package com.eros.common.security
 import kotlin.system.measureTimeMillis
 
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.test.assertFalse
+import kotlin.test.assertFailsWith
 
 
 class PasswordHasherTest {
@@ -36,5 +38,29 @@ class PasswordHasherTest {
         val hashedPassword = PasswordHasher.hash(password)
         val result = PasswordHasher.verify("iNcorRecT_P45Sw0Rd!.$£$", hashedPassword)
         assertFalse(result, "Password and hash incorrectly matched.")
+    }
+
+    @Test
+    fun `empty password throws IllegalArgumentException`() {
+        val exception = assertFailsWith<IllegalArgumentException> {
+            PasswordHasher.hash("")
+        }
+        assertEquals(exception.message?.contains("Password cannot be blank or empty"), true)
+    }
+
+    @Test
+    fun `blank password throws IllegalArgumentException`() {
+        val exception = assertFailsWith<IllegalArgumentException> {
+            PasswordHasher.hash("   ")
+        }
+        assertEquals(exception.message?.contains("Password cannot be blank or empty"), true)
+    }
+
+    @Test
+    fun `whitespace-only password throws IllegalArgumentException`() {
+        val exception = assertFailsWith<IllegalArgumentException> {
+            PasswordHasher.hash("\t\n  ")
+        }
+        assertEquals(exception.message?.contains("Password cannot be blank or empty"), true)
     }
 }
