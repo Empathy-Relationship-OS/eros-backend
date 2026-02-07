@@ -52,7 +52,14 @@ jobs:
           echo "Version: $VERSION"
 
       - name: Rename JAR for release
-        run: cp ./app/build/libs/app-all.jar ./eros-backend-develop-${{ steps.version.outputs.version }}.jar
+        run: |
+          FAT_JAR=$(find ./app/build/libs -name "app-*-all.jar" -type f | head -n 1)
+          if [ -z "$FAT_JAR" ]; then
+            echo "Error: No Fat JAR matching pattern 'app-*-all.jar' found in ./app/build/libs"
+            exit 1
+          fi
+          echo "Found Fat JAR: $FAT_JAR"
+          cp "$FAT_JAR" ./eros-backend-develop-${{ steps.version.outputs.version }}.jar
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
