@@ -78,3 +78,33 @@ fun ResultRow.toOtpVerificationRecord() = OtpVerificationRecord(
     attempts = this[OtpVerification.attempts],
     createdAt = this[OtpVerification.createdAt]
 )
+
+/**
+ * Result of OTP verification operation
+ */
+enum class OtpVerificationResult {
+    /**
+     * OTP verification succeeded
+     */
+    SUCCESS,
+
+    /**
+     * OTP is invalid (doesn't match stored hash)
+     */
+    INVALID,
+
+    /**
+     * OTP has expired
+     */
+    EXPIRED,
+
+    /**
+     * Maximum verification attempts exceeded
+     */
+    MAX_ATTEMPTS_EXCEEDED,
+
+    /**
+     * No OTP record found for the given phone number
+     */
+    NOT_FOUND
+}

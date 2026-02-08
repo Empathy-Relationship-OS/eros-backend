@@ -6,6 +6,7 @@ plugins {
 dependencies {
     // Internal modules
     implementation(project(":common"))
+    implementation(project(":database"))
 
     // Ktor
     implementation(libs.ktor.server.core)
@@ -27,4 +28,14 @@ dependencies {
     // Testing
     testImplementation(libs.kotlin.test.junit)
     testImplementation(libs.ktor.server.test.host)
+    testImplementation(libs.testcontainers.postgresql)
+    testImplementation(libs.testcontainers.junit)
+    testImplementation(libs.junit.jupiter)
+    testRuntimeOnly(libs.junit.platform.launcher)
+    testImplementation(libs.flyway.core)
+    testImplementation(libs.flyway.database.postgresql)
+}
+
+tasks.test {
+    useJUnitPlatform()
 }

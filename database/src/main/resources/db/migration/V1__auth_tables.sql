@@ -11,6 +11,8 @@ CREATE TABLE users (
     password_hash VARCHAR(255) NOT NULL,
     verification_status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    last_active_at TIMESTAMP,
 
     -- Constraints
     CONSTRAINT users_email_unique UNIQUE (email),
@@ -23,6 +25,7 @@ CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_phone ON users(phone) WHERE phone IS NOT NULL;
 CREATE INDEX idx_users_verification_status ON users(verification_status);
 CREATE INDEX idx_users_created_at ON users(created_at);
+CREATE INDEX idx_users_last_active_at ON users(last_active_at) WHERE last_active_at IS NOT NULL;
 
 -- OTP Verification table: Phone number verification via OTP
 CREATE TABLE otp_verification (
@@ -49,6 +52,8 @@ COMMENT ON COLUMN users.phone IS 'User phone number (optional, unique if provide
 COMMENT ON COLUMN users.password_hash IS 'BCrypt hashed password';
 COMMENT ON COLUMN users.verification_status IS 'User verification state: PENDING, VERIFIED, or SUSPENDED';
 COMMENT ON COLUMN users.created_at IS 'Account creation timestamp (UTC)';
+COMMENT ON COLUMN users.updated_at IS 'Last update timestamp for user record (UTC)';
+COMMENT ON COLUMN users.last_active_at IS 'Last activity timestamp for session management (UTC, nullable)';
 
 COMMENT ON TABLE otp_verification IS 'OTP verification records for phone number confirmation';
 COMMENT ON COLUMN otp_verification.phone_number IS 'Phone number being verified';

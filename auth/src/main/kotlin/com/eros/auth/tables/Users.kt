@@ -23,6 +23,7 @@ object Users : Table("users") {
     val phone = varchar("phone", 20).nullable()
     val passwordHash = varchar("password_hash", 255)
     val verificationStatus = varchar("verification_status", 20).default("PENDING")
+    val lastActiveAt = timestamp("last_active_at").nullable()
     val createdAt = timestamp("created_at").clientDefault { Instant.now() }
     val updatedAt = timestamp("updated_at").clientDefault { Instant.now() }
 
@@ -60,6 +61,7 @@ data class User(
     val phone: String?,
     val passwordHash: String,
     val verificationStatus: VerificationStatus,
+    val lastActiveAt: Instant?,
     val createdAt: Instant,
     val updatedAt: Instant
 )
@@ -74,6 +76,7 @@ fun ResultRow.toUser() = User(
     phone = this[Users.phone],
     passwordHash = this[Users.passwordHash],
     verificationStatus = VerificationStatus.fromString(this[Users.verificationStatus]),
+    lastActiveAt = this[Users.lastActiveAt],
     createdAt = this[Users.createdAt],
     updatedAt = this[Users.updatedAt]
 )
