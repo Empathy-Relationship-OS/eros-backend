@@ -4,10 +4,13 @@ ktor:
             - com.eros.ApplicationKt.module
     deployment:
         port: 8080
+
 jwt:
-  domain: "https://jwt-provider-domain/"
-  audience: "jwt-audience"
-  realm: "ktor sample app"
+  secret: ${JWT_SECRET:}
+  issuer: ${JWT_ISSUER:eros-backend}
+  audience: ${JWT_AUDIENCE:eros-users}
+  realm: ${JWT_REALM:eros-api}
+
 database:
   host: ${DB_HOST:localhost}
   port: ${DB_PORT:5432}
