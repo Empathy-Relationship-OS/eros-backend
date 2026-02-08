@@ -37,6 +37,7 @@ CREATE TABLE otp_verification (
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
 
     -- Constraints
+    CONSTRAINT otp_phone_number_unique UNIQUE (phone_number),
     CONSTRAINT otp_attempts_check CHECK (attempts >= 0 AND attempts <= 10)
 );
 

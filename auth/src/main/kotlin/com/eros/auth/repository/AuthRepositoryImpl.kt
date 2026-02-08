@@ -3,8 +3,9 @@ package com.eros.auth.repository
 import com.eros.auth.tables.*
 import com.eros.common.security.PasswordHasher
 import com.eros.database.dbQuery
-import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.jdbc.*
+import java.time.Clock
 import java.time.Instant
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -14,13 +15,17 @@ import kotlin.uuid.Uuid
  *
  * All database operations are wrapped in dbQuery for proper transaction management
  * and IO dispatcher execution.
+ *
+ * @param clock Clock instance for time-based operations (defaults to system UTC)
  */
 @OptIn(ExperimentalUuidApi::class)
-class AuthRepositoryImpl : AuthRepository {
+class AuthRepositoryImpl(
+    private val clock: Clock = Clock.systemUTC()
+) : AuthRepository {
 
     override suspend fun createUser(email: String, phone: String?, plainPassword: String): User = dbQuery {
         val passwordHash = PasswordHasher.hash(plainPassword)
-        val now = Instant.now()
+        val now = Instant.now(clock)
 
         val insertStatement = Users.insert { row ->
             row[Users.email] = email
@@ -61,14 +66,14 @@ class AuthRepositoryImpl : AuthRepository {
     override suspend fun updateVerificationStatus(userId: Uuid): Int = dbQuery {
         Users.update({ Users.id eq userId }) {
             it[verificationStatus] = VerificationStatus.VERIFIED.name
-            it[updatedAt] = Instant.now()
+            it[updatedAt] = Instant.now(clock)
         }
     }
 
     override suspend fun updateLastActiveAt(userId: Uuid): Int = dbQuery {
         Users.update({ Users.id eq userId }) {
-            it[lastActiveAt] = Instant.now()
-            it[updatedAt] = Instant.now()
+            it[lastActiveAt] = Instant.now(clock)
+            it[updatedAt] = Instant.now(clock)
         }
     }
 
@@ -77,21 +82,21 @@ class AuthRepositoryImpl : AuthRepository {
         plainOtp: String,
         expiryMinutes: Long
     ): Uuid = dbQuery {
-        // Delete any existing OTP for this phone number
-        OtpVerification.deleteWhere { OtpVerification.phoneNumber eq phoneNumber }
-
         // Hash the OTP before storage
         val otpHash = PasswordHasher.hash(plainOtp)
-        val expiresAt = Instant.now().plusSeconds(expiryMinutes * 60)
+        val expiresAt = Instant.now(clock).plusSeconds(expiryMinutes * 60)
+        val now = Instant.now(clock)
 
-        val insertStatement = OtpVerification.insert { row ->
-            row[OtpVerification.phoneNumber] = phoneNumber
-            row[OtpVerification.otpHash] = otpHash
-            row[OtpVerification.expiresAt] = expiresAt
-            row[OtpVerification.attempts] = 0
+        // Use upsert to guarantee single row per phone number
+        val upsertStatement = OtpVerification.upsert(OtpVerification.phoneNumber) {
+            it[OtpVerification.phoneNumber] = phoneNumber
+            it[OtpVerification.otpHash] = otpHash
+            it[OtpVerification.expiresAt] = expiresAt
+            it[OtpVerification.attempts] = 0
+            it[OtpVerification.createdAt] = now
         }
 
-        insertStatement[OtpVerification.id]
+        upsertStatement[OtpVerification.id]
     }
 
     override suspend fun verifyOtp(phoneNumber: String, plainOtp: String): OtpVerificationResult = dbQuery {
@@ -102,8 +107,9 @@ class AuthRepositoryImpl : AuthRepository {
             ?.toOtpVerificationRecord()
             ?: return@dbQuery OtpVerificationResult.NOT_FOUND
 
-        // Check if expired
-        if (otpRecord.isExpired()) {
+        // Check if expired using the injected clock
+        val now = Instant.now(clock)
+        if (now.isAfter(otpRecord.expiresAt)) {
             // Clean up expired OTP
             OtpVerification.deleteWhere { OtpVerification.id eq otpRecord.id }
             return@dbQuery OtpVerificationResult.EXPIRED
@@ -122,11 +128,20 @@ class AuthRepositoryImpl : AuthRepository {
             OtpVerification.deleteWhere { OtpVerification.id eq otpRecord.id }
             OtpVerificationResult.SUCCESS
         } else {
-            // Increment attempts on failure
-            OtpVerification.update({ OtpVerification.id eq otpRecord.id }) {
-                it[attempts] = otpRecord.attempts + 1
+            // Atomically increment attempts with guard against exceeding max
+            val rowsUpdated = OtpVerification.update({
+                (OtpVerification.id eq otpRecord.id) and
+                (OtpVerification.attempts less intLiteral(OtpVerificationRecord.MAX_ATTEMPTS))
+            }) {
+                it[attempts] = OtpVerification.attempts + 1
             }
-            OtpVerificationResult.INVALID
+
+            // If update affected 0 rows, max attempts was reached
+            if (rowsUpdated == 0) {
+                OtpVerificationResult.MAX_ATTEMPTS_EXCEEDED
+            } else {
+                OtpVerificationResult.INVALID
+            }
         }
     }
 }

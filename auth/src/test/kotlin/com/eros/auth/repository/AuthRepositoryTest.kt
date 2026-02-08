@@ -10,7 +10,10 @@ import org.junit.jupiter.api.*
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
+import java.time.Clock
+import java.time.Duration
 import java.time.Instant
+import java.time.ZoneId
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
@@ -40,6 +43,7 @@ class AuthRepositoryTest {
     }
 
     private lateinit var repository: AuthRepository
+    private lateinit var testClock: MutableClock
 
     @BeforeAll
     fun setup() {
@@ -61,12 +65,16 @@ class AuthRepositoryTest {
             user = postgres.username,
             password = postgres.password
         )
-
-        repository = AuthRepositoryImpl()
     }
 
     @BeforeEach
     fun cleanDatabase() {
+        // Reset test clock to a fixed instant
+        testClock = MutableClock(Instant.parse("2024-01-01T00:00:00Z"), ZoneId.of("UTC"))
+
+        // Initialize repository with test clock
+        repository = AuthRepositoryImpl(testClock)
+
         // Clean tables before each test
         transaction {
             exec("TRUNCATE TABLE users CASCADE")
@@ -276,9 +284,9 @@ class AuthRepositoryTest {
         assertNull(user.lastActiveAt, "Initially lastActiveAt should be null")
 
         // When
-        val before = Instant.now()
+        val before = Instant.now(testClock)
         val rowsUpdated = repository.updateLastActiveAt(user.id)
-        val after = Instant.now()
+        val after = Instant.now(testClock)
 
         // Then
         assertEquals(1, rowsUpdated)
@@ -401,11 +409,11 @@ class AuthRepositoryTest {
         val phoneNumber = "+1234567890"
         val plainOtp = "123456"
 
-        // Store OTP with 0 minutes expiry (immediately expired)
-        repository.storeOtp(phoneNumber, plainOtp, expiryMinutes = 0)
+        // Store OTP with 1 minute expiry
+        repository.storeOtp(phoneNumber, plainOtp, expiryMinutes = 1)
 
-        // Sleep briefly to ensure expiry
-        Thread.sleep(100)
+        // Advance clock past expiry
+        testClock.advance(Duration.ofMinutes(2))
 
         // When
         val result = repository.verifyOtp(phoneNumber, plainOtp)
@@ -472,8 +480,10 @@ class AuthRepositoryTest {
         // Given
         val phoneNumber = "+1234567890"
         val plainOtp = "123456"
-        repository.storeOtp(phoneNumber, plainOtp, expiryMinutes = 0)
-        Thread.sleep(100)
+        repository.storeOtp(phoneNumber, plainOtp, expiryMinutes = 1)
+
+        // Advance clock past expiry
+        testClock.advance(Duration.ofMinutes(2))
 
         // When
         val firstResult = repository.verifyOtp(phoneNumber, plainOtp)
@@ -490,5 +500,36 @@ class AuthRepositoryTest {
         kotlinx.coroutines.runBlocking {
             block()
         }
+    }
+}
+
+/**
+ * Mutable Clock implementation for testing time-based operations.
+ *
+ * Allows tests to control time progression without real delays.
+ */
+class MutableClock(
+    private var instant: Instant,
+    private val zone: ZoneId
+) : Clock() {
+
+    override fun instant(): Instant = instant
+
+    override fun withZone(zone: ZoneId): Clock = MutableClock(instant, zone)
+
+    override fun getZone(): ZoneId = zone
+
+    /**
+     * Advance the clock by the specified duration.
+     */
+    fun advance(duration: Duration) {
+        instant = instant.plus(duration)
+    }
+
+    /**
+     * Set the clock to a specific instant.
+     */
+    fun setInstant(newInstant: Instant) {
+        instant = newInstant
     }
 }
