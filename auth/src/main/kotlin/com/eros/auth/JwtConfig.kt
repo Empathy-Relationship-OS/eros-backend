@@ -86,14 +86,27 @@ class JwtConfig(private val settings: JwtSettings) {
     /**
      * Extracts the payload from a decoded JWT token.
      *
+     * Defensively unwraps claims from the DecodedJWT to prevent NPE.
+     * If claims are missing or null, throws IllegalArgumentException.
+     *
      * @param decodedJWT The decoded JWT token
      * @return JwtPayload containing the user claims
+     * @throws IllegalArgumentException if required claims (sub, email, roles) are missing or null
      */
     fun extractPayload(decodedJWT: DecodedJWT): JwtPayload {
+        val sub = decodedJWT.subject
+            ?: throw IllegalArgumentException("Token is missing required 'sub' claim")
+
+        val email = decodedJWT.getClaim("email")?.asString()
+            ?: throw IllegalArgumentException("Token is missing required 'email' claim")
+
+        val roles = decodedJWT.getClaim("roles")?.asList(String::class.java)
+            ?: throw IllegalArgumentException("Token is missing required 'roles' claim")
+
         return JwtPayload(
-            sub = decodedJWT.subject,
-            email = decodedJWT.getClaim("email").asString(),
-            roles = decodedJWT.getClaim("roles").asList(String::class.java)
+            sub = sub,
+            email = email,
+            roles = roles
         )
     }
 

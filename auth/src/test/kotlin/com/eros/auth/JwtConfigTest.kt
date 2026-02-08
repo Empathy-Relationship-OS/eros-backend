@@ -120,6 +120,84 @@ class JwtConfigTest {
     }
 
     @Test
+    fun `verifyToken throws exception for token with wrong issuer`() {
+        // Given - Create a token with correct secret but wrong issuer
+        val tokenWithWrongIssuer = createTokenWithWrongIssuer()
+
+        // When & Then
+        assertFailsWith<JWTVerificationException>(
+            message = "Should throw JWTVerificationException for token with wrong issuer"
+        ) {
+            jwtConfig.verifyToken(tokenWithWrongIssuer)
+        }
+    }
+
+    @Test
+    fun `verifyToken throws exception for token with wrong audience`() {
+        // Given - Create a token with correct secret but wrong audience
+        val tokenWithWrongAudience = createTokenWithWrongAudience()
+
+        // When & Then
+        assertFailsWith<JWTVerificationException>(
+            message = "Should throw JWTVerificationException for token with wrong audience"
+        ) {
+            jwtConfig.verifyToken(tokenWithWrongAudience)
+        }
+    }
+
+    @Test
+    fun `verifyToken throws exception for malformed token`() {
+        // Given
+        val malformedToken = "not.a.valid.jwt"
+
+        // When & Then
+        assertFailsWith<JWTVerificationException>(
+            message = "Should throw JWTVerificationException for malformed token"
+        ) {
+            jwtConfig.verifyToken(malformedToken)
+        }
+    }
+
+    @Test
+    fun `verifyToken throws exception for empty token`() {
+        // Given
+        val emptyToken = ""
+
+        // When & Then
+        assertFailsWith<JWTVerificationException>(
+            message = "Should throw JWTVerificationException for empty token"
+        ) {
+            jwtConfig.verifyToken(emptyToken)
+        }
+    }
+
+    @Test
+    fun `verifyToken throws exception for token with only dots`() {
+        // Given
+        val invalidToken = "..."
+
+        // When & Then
+        assertFailsWith<JWTVerificationException>(
+            message = "Should throw JWTVerificationException for token with only dots"
+        ) {
+            jwtConfig.verifyToken(invalidToken)
+        }
+    }
+
+    @Test
+    fun `verifyToken throws exception for token with random characters`() {
+        // Given
+        val randomToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.invalid-payload.invalid-signature"
+
+        // When & Then
+        assertFailsWith<JWTVerificationException>(
+            message = "Should throw JWTVerificationException for token with invalid structure"
+        ) {
+            jwtConfig.verifyToken(randomToken)
+        }
+    }
+
+    @Test
     fun `extractPayload correctly extracts all claims`() {
         // Given
         val userId = UUID.randomUUID()
@@ -226,6 +304,20 @@ class JwtConfigTest {
     }
 
     @Test
+    fun `JwtSettings validates secret is not whitespace only`() {
+        // When & Then
+        assertFailsWith<IllegalArgumentException>(
+            message = "Should throw IllegalArgumentException for whitespace-only secret"
+        ) {
+            JwtSettings(
+                secret = "   ",
+                issuer = "test-issuer",
+                audience = "test-audience"
+            )
+        }
+    }
+
+    @Test
     fun `JwtSettings toString masks secret`() {
         // Given
         val settings = JwtSettings(
@@ -261,6 +353,40 @@ class JwtConfigTest {
             .withExpiresAt(pastTime) // Expired 10 seconds ago
             .withIssuer(testSettings.issuer)
             .withAudience(testSettings.audience)
+            .sign(algorithm)
+    }
+
+    private fun createTokenWithWrongIssuer(): String {
+        // Create a token with correct secret but wrong issuer
+        val algorithm = Algorithm.HMAC256(testSettings.secret)
+        val now = Date()
+        val expiresAt = Date(now.time + 7 * 24 * 60 * 60 * 1000) // 7 days
+
+        return JWT.create()
+            .withSubject(UUID.randomUUID().toString())
+            .withClaim("email", "wrongissuer@example.com")
+            .withArrayClaim("roles", arrayOf("user"))
+            .withIssuedAt(now)
+            .withExpiresAt(expiresAt)
+            .withIssuer("wrong-issuer") // Wrong issuer!
+            .withAudience(testSettings.audience) // Correct audience
+            .sign(algorithm)
+    }
+
+    private fun createTokenWithWrongAudience(): String {
+        // Create a token with correct secret but wrong audience
+        val algorithm = Algorithm.HMAC256(testSettings.secret)
+        val now = Date()
+        val expiresAt = Date(now.time + 7 * 24 * 60 * 60 * 1000) // 7 days
+
+        return JWT.create()
+            .withSubject(UUID.randomUUID().toString())
+            .withClaim("email", "wrongaudience@example.com")
+            .withArrayClaim("roles", arrayOf("user"))
+            .withIssuedAt(now)
+            .withExpiresAt(expiresAt)
+            .withIssuer(testSettings.issuer) // Correct issuer
+            .withAudience("wrong-audience") // Wrong audience!
             .sign(algorithm)
     }
 }
