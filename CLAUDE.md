@@ -132,35 +132,109 @@ Global validation is configured in `Routing.kt`:
 
 Status pages are configured to catch all `Throwable` and return 500 with error details. Customize in `Routing.kt:configureRouting()`.
 
+## Module Architecture
+
+Eros Backend uses a **modular monolith** architecture where each module can potentially be extracted as an independent microservice. Modules follow a clear separation of concerns:
+
+### Core Modules
+
+**auth/** - Authentication & Identity
+- **Purpose**: "Who you are" - identity, credentials, verification
+- **Owns**: User authentication, OTP verification, session management
+- **Tables**: `users`, `otp_verification`, `refresh_tokens`
+- **Routes**: `/auth/login`, `/auth/signup`, `/auth/verify`
+- **Reusable**: Can authenticate any entity type (users, admins, services)
+
+**users/** - User Profiles & Management
+- **Purpose**: "What you're like" - profiles, preferences, social features
+- **Owns**: User profiles, preferences, activity tracking
+- **Tables**: `user_profiles`, `user_preferences`, `user_activity`
+- **Routes**: `/users/{id}`, `/users/me`, `/users/search`
+- **Dependencies**: Auth module for identity
+
+**database/** - Database Infrastructure
+- **Purpose**: Shared database connectivity and migrations
+- **Provides**: HikariCP connection pooling, Flyway migrations, Exposed setup
+- **No business logic**: Pure infrastructure module
+
+**common/** - Shared Utilities
+- **Purpose**: Cross-cutting utilities used by all modules
+- **Provides**: Security helpers (PasswordHasher), common DTOs, extensions
+
+### Feature Modules (Future)
+
+- **matching/** - Matching algorithm and compatibility
+- **dates/** - Date scheduling and management
+- **notifications/** - Push notifications and messaging
+- **wallet/** - Payment and transaction management
+
+### Design Principles
+
+1. **Auth vs Users Separation**
+   - Auth handles security-critical identity data (credentials, verification)
+   - Users handles business-specific profile data (preferences, activity)
+   - This allows auth to be reused across multiple entity types
+   - Enables independent scaling and security auditing
+
+2. **Database Module Pattern**
+   - Migrations live in `database/src/main/resources/db/migration/`
+   - Table definitions (Exposed objects) live in their owning module (e.g., `auth/tables/`)
+   - Database module provides only connectivity infrastructure
+
+3. **Microservice Extraction Path**
+   - Each module has minimal dependencies
+   - Business logic stays within module boundaries
+   - Modules communicate through well-defined interfaces
+   - Can extract to standalone service by adding HTTP client layer
+
 ## Project Structure
 
 ```
-app/src/main/kotlin/
-  ├── Application.kt      - Entry point and module orchestration
-  ├── Database.kt         - Database plugin configuration
-  ├── Serialization.kt    - JSON content negotiation
-  ├── Administration.kt   - Rate limiting
-  ├── HTTP.kt            - CORS and headers
-  ├── Monitoring.kt      - Call logging
-  ├── Security.kt        - OAuth + JWT authentication
-  └── Routing.kt         - Routes and validation
+app/
+  ├── src/main/kotlin/
+  │   ├── Application.kt      - Entry point and module orchestration
+  │   ├── Database.kt         - Database plugin configuration
+  │   ├── Serialization.kt    - JSON content negotiation
+  │   ├── Administration.kt   - Rate limiting
+  │   ├── HTTP.kt            - CORS and headers
+  │   ├── Monitoring.kt      - Call logging
+  │   ├── Security.kt        - OAuth + JWT authentication
+  │   └── Routing.kt         - Routes and validation
+  ├── src/main/resources/
+  │   ├── application.yaml   - Ktor, database, and JWT config
+  │   └── logback.xml       - Logging config
+  └── src/test/kotlin/
+      └── ApplicationTest.kt - Test suite
 
-app/src/main/resources/
-  ├── application.yaml   - Ktor, database, and JWT config
-  └── logback.xml       - Logging config
+auth/
+  └── src/main/kotlin/com/eros/auth/
+      ├── tables/           - Exposed table definitions (Users, OtpVerification)
+      ├── services/         - Auth business logic (AuthService, OtpService)
+      ├── routes/           - Auth endpoints
+      └── models/           - DTOs and data classes
 
-database/src/main/kotlin/com/eros/database/
-  ├── DatabasePlugin.kt  - Ktor plugin for database lifecycle
-  ├── DatabaseConfig.kt  - Database configuration data class
-  ├── DatabaseFactory.kt - HikariCP DataSource factory
-  └── FlywayConfig.kt   - Flyway migration management
+users/
+  └── src/main/kotlin/com/eros/users/
+      ├── tables/           - User profile tables
+      ├── services/         - User business logic
+      ├── routes/           - User endpoints
+      └── models/           - User DTOs
 
-database/src/main/resources/db/migration/
-  ├── V0__init.sql      - Baseline migration
-  └── V1__*.sql         - Feature migrations
+database/
+  ├── src/main/kotlin/com/eros/database/
+  │   ├── DatabasePlugin.kt  - Ktor plugin for database lifecycle
+  │   ├── DatabaseConfig.kt  - Database configuration data class
+  │   ├── DatabaseFactory.kt - HikariCP DataSource factory
+  │   └── FlywayConfig.kt   - Flyway migration management
+  └── src/main/resources/db/migration/
+      ├── V0__init.sql      - Baseline migration
+      ├── V1__auth_tables.sql - Auth module tables
+      └── V2__user_profiles.sql - Users module tables
 
-app/src/test/kotlin/
-  └── ApplicationTest.kt - Test suite
+common/
+  └── src/main/kotlin/com/eros/common/
+      └── security/
+          └── PasswordHasher.kt - BCrypt password hashing utility
 ```
 
 ## Important Notes
