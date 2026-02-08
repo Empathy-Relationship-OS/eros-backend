@@ -17,8 +17,10 @@ object PasswordHasher {
      *
      * @param password The plain-text password to be hashed.
      * @return Hashed string using BCrypt.
+     * @throws IllegalArgumentException if the password is blank or empty.
      */
     fun hash(password: String): String {
+        require(password.isNotBlank()) { "Password cannot be blank or empty" }
         return BCrypt.hashpw(password, BCrypt.gensalt(COST_FACTOR))
     }
 

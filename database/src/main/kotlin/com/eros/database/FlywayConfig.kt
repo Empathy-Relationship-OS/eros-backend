@@ -27,6 +27,13 @@ object FlywayConfig {
      * @throws org.flywaydb.core.api.FlywayException if migration fails
      */
     fun migrate(dataSource: DataSource) {
+        /*
+         * Confirm intent of baseline strategy with V0 migration.
+         * With baselineOnMigrate(true) and BASELINE_VERSION = "0", Flyway will mark version 0 as applied during baseline on non-empty schemas without a schema history table. This means the V0__init.sql migration will not run on existing databases undergoing initial Flyway adoption. This is intended behavior for taking over existing schemas, but you should explicitly confirm whether this is your desired strategy:
+         * If targeting fresh databases only: V0 runs normally.
+         * If targeting existing production databases: V0 is skipped (baseline records it as applied).
+         * If you need V0 to run on existing databases: reconsider the baseline version (e.g., use baselineVersion("-1") or remove baseline).
+         */
         val flyway = Flyway.configure()
             .dataSource(dataSource)
             .locations(MIGRATION_LOCATION)
@@ -46,6 +53,9 @@ object FlywayConfig {
      * @param dataSource HikariCP DataSource for database connection
      */
     fun clean(dataSource: DataSource) {
+        val env = System.getenv("ENVIRONMENT") ?: "development"
+        require(env != "production") { "Flyway clean is not allowed in production environment" }
+
         val flyway = Flyway.configure()
             .dataSource(dataSource)
             .locations(MIGRATION_LOCATION)

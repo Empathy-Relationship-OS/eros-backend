@@ -100,6 +100,7 @@ The application uses PostgreSQL with Exposed ORM and Flyway migrations.
 - Default configuration for local development (localhost:5432)
 
 **Database Query Helper**:
+
 ```kotlin
 import com.eros.database.dbQuery
 
