@@ -10,6 +10,7 @@ hikari = "6.2.1"
 flyway = "12.0.0"
 testcontainers = "1.21.4"
 junit = "5.11.0"
+java-jwt = "4.5.0"
 
 [libraries]
 ktor-server-content-negotiation = { module = "io.ktor:ktor-server-content-negotiation", version.ref = "ktor" }
@@ -45,6 +46,7 @@ testcontainers-postgresql = { module = "org.testcontainers:postgresql", version.
 testcontainers-junit = { module = "org.testcontainers:junit-jupiter", version.ref = "testcontainers" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
+java-jwt = { module = "com.auth0:java-jwt", version.ref = "java-jwt" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
