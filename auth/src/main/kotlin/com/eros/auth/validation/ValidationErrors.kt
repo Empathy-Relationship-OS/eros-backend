@@ -1,8 +1,8 @@
 package com.eros.auth.validation
 
 enum class Errors(val message: String) {
-    NULL("Password must not be null!"),
-    EMPTY("Password must not be empty!"),
+    NULL("Password must not be null."),
+    EMPTY("Password must not be empty."),
     WHITESPACE("Password must not contain whitespace!"),
     LENGTH("Must be at least ${PasswordValidator.MIN_LENGTH} characters."),
     UPPER_MISSING("Missing an uppercase letter."),
@@ -17,4 +17,8 @@ enum class Errors(val message: String) {
     PHONE_ZERO("Phone number must not start with a '0'!"),
     PHONE_SHORT("Phone number must be less than ${PhoneValidator.MAX_DIGITS} characters!"),
     PHONE_LONG("Phone number must be less than ${PhoneValidator.MAX_DIGITS} characters!"),
+
+    EMAIL_NULL("Email is null."),
+    EMAIL_EMPTY("Email is empty."),
+    EMAIL_INVALID("Not a valid email.")
 }
