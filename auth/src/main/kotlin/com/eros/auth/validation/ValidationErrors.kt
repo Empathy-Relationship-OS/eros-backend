@@ -15,7 +15,6 @@ enum class Errors(val message: String) {
     PHONE_EMPTY("Phone number must not be empty!"),
     PHONE_DIGITS("Phone number must contain only digits!"),
     PHONE_ZERO("Phone number must not start with a '0'!"),
-    PHONE_SHORT("Phone number must be less than ${PhoneValidator.MAX_DIGITS} characters!"),
     PHONE_LONG("Phone number must be less than ${PhoneValidator.MAX_DIGITS} characters!"),
 
     EMAIL_NULL("Email is null."),

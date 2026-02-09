@@ -82,24 +82,3 @@ object PasswordValidator {
      */
     fun getMinLength(): Int = MIN_LENGTH
 }
-
-
-fun main() {
-
-    val pw = "awd4drgGH^wa"
-    val pw2 = "  "
-
-    val res = PasswordValidator.validate(pw2)
-
-    for (error in res.errors){
-        println(error.message)
-    }
-
-    println(res.isValid)
-    println(res.errors)
-
-    println(PasswordValidator.isValid(pw))
-
-    println(PasswordValidator.getRequirements())
-
-}

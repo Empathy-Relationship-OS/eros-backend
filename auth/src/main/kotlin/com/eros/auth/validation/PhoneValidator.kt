@@ -42,7 +42,6 @@ object PhoneValidator {
 
         val errors = mutableListOf<Errors>()
 
-        if (digits.length < MIN_DIGITS) errors.add(Errors.PHONE_SHORT)
         if (digits.length > MAX_DIGITS) errors.add(Errors.PHONE_LONG)
 
         return if (errors.isEmpty()) ValidationResult.success() else ValidationResult.failure(errors)
