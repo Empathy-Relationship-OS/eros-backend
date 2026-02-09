@@ -6,12 +6,17 @@ plugins {
 dependencies {
     // Internal modules
     implementation(project(":common"))
+    implementation(project(":database"))
 
     // Ktor
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.auth)
     implementation(libs.ktor.server.auth.jwt)
     implementation(libs.ktor.serialization.kotlinx.json)
+    implementation(libs.ktor.server.config.yaml)
+
+    // JWT
+    implementation(libs.java.jwt)
 
     // DB Dependencies
     implementation(libs.exposed.core)
@@ -23,4 +28,14 @@ dependencies {
     // Testing
     testImplementation(libs.kotlin.test.junit)
     testImplementation(libs.ktor.server.test.host)
+    testImplementation(libs.testcontainers.postgresql)
+    testImplementation(libs.testcontainers.junit)
+    testImplementation(libs.junit.jupiter)
+    testRuntimeOnly(libs.junit.platform.launcher)
+    testImplementation(libs.flyway.core)
+    testImplementation(libs.flyway.database.postgresql)
+}
+
+tasks.test {
+    useJUnitPlatform()
 }
