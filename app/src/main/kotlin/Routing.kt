@@ -2,6 +2,7 @@ package com.eros
 
 import io.ktor.http.*
 import io.ktor.server.application.*
+import io.ktor.server.auth.*
 import io.ktor.server.plugins.requestvalidation.*
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.response.*
@@ -16,13 +17,43 @@ fun Application.configureRouting() {
         }
     }
     install(StatusPages) {
-        exception<Throwable> { call, cause ->
-            call.respondText(text = "500: $cause" , status = HttpStatusCode.InternalServerError)
+        // Handle specific application exceptions
+        // Authentication failures are handled by the Authentication plugin's challenge mechanism
+        exception<IllegalArgumentException> { call, cause ->
+            call.respondText(text = "400: ${cause.message}" , status = HttpStatusCode.BadRequest)
+        }
+        exception<IllegalStateException> { call, cause ->
+            call.respondText(text = "500: ${cause.message}" , status = HttpStatusCode.InternalServerError)
         }
     }
     routing {
         get("/") {
             call.respondText("Hello World!")
+        }
+
+        // Protected routes requiring JWT authentication
+        authenticate("jwt-auth") {
+            // TODO: Implement /users/me endpoint
+            // This endpoint should return the authenticated user's profile information
+            // Access the JWT payload via: val payload = call.principal<JwtPayload>()
+            // Example response: { "userId": "...", "email": "...", "profile": {...} }
+            get("/users/me") {
+                val payload = call.principal<JwtPayload>()
+                    ?: return@get call.respond(
+                        HttpStatusCode.Unauthorized,
+                        mapOf("error" to "No authentication principal found")
+                    )
+
+                // Placeholder response - actual implementation should fetch user data from database
+                call.respond(
+                    HttpStatusCode.OK,
+                    mapOf(
+                        "userId" to payload.userId.toString(),
+                        "email" to payload.email,
+                        "message" to "TODO: Implement user profile retrieval from database"
+                    )
+                )
+            }
         }
     }
 }

@@ -54,6 +54,7 @@ class ApplicationTest {
     fun testRoot() = testApplication {
         environment {
             config = MapApplicationConfig(
+                // Database configuration
                 "database.host" to postgres.host,
                 "database.port" to postgres.firstMappedPort.toString(),
                 "database.name" to postgres.databaseName,
@@ -61,7 +62,13 @@ class ApplicationTest {
                 "database.password" to postgres.password,
                 "database.poolSize" to "5",
                 "database.maxLifetime" to "600000",
-                "database.connectionTimeout" to "30000"
+                "database.connectionTimeout" to "30000",
+
+                // JWT configuration (required for authentication module)
+                "jwt.secret" to "test-secret-key-for-application-test",
+                "jwt.domain" to "https://test-issuer/",
+                "jwt.audience" to "test-audience",
+                "jwt.realm" to "test realm"
             )
         }
         application {

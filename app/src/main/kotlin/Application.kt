@@ -12,6 +12,6 @@ fun Application.module() {
     configureAdministration()
     configureHTTP()
     configureMonitoring()
-    configureSecurity()
+    configureAuthentication()  // JWT + OAuth authentication
     configureRouting()
 }
