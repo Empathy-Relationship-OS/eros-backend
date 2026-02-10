@@ -11,14 +11,13 @@ package com.eros.auth.validation
 */
 object OTPValidator {
 
-    const val MIN_DIGITS = 4
-    const val MAX_DIGITS = 6
+    const val DIGITS_LENGTH = 6
 
     /**
     * Validates the OTP format.
     *
     * Requirements.
-    * Must be all digits and between [MIN_DIGITS] and [MAX_DIGITS].
+    * Must be all digits and [DIGITS_LENGTH] digits.
     *
     * @param otp otp to be checked for formatting.
     * @returns [ValidationResult] with success or failure and relevant errors if applicable.
@@ -32,7 +31,7 @@ object OTPValidator {
             return ValidationResult.failure(Errors.OTP_NON_DIGITS)
         }
 
-        if (otp.length < 4 || otp.length > 6) {
+        if (otp.length != DIGITS_LENGTH) {
             return ValidationResult.failure(Errors.OTP_SIZE)
         }
         return ValidationResult.success()
@@ -42,7 +41,7 @@ object OTPValidator {
      * Validates the OTP format.
      *
      * Requirements.
-     * Must be all digits and between [MIN_DIGITS] and [MAX_DIGITS].
+     * Must be all digits and [DIGITS_LENGTH] digits.
      *
      * @param otp otp to be checked for formatting.
      * @returns `true` if valid OTP format otherwise `false`

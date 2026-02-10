@@ -27,5 +27,5 @@ enum class Errors(val message: String) {
 
     OTP_BLANK("OTP cannot be blank"),
     OTP_NON_DIGITS("OTP must contain only digits"),
-    OTP_SIZE("OTP must be between ${OTPValidator.MIN_DIGITS} and ${OTPValidator.MAX_DIGITS} digits"),
+    OTP_SIZE("OTP must be ${OTPValidator.DIGITS_LENGTH} digits"),
 }
