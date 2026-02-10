@@ -5,7 +5,7 @@
 
 -- Users table: Core identity and authentication
 CREATE TABLE users (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
     email VARCHAR(255) NOT NULL,
     phone VARCHAR(20),
     password_hash VARCHAR(255) NOT NULL,
@@ -29,7 +29,7 @@ CREATE INDEX idx_users_last_active_at ON users(last_active_at) WHERE last_active
 
 -- OTP Verification table: Phone number verification via OTP
 CREATE TABLE otp_verification (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
     phone_number VARCHAR(20) NOT NULL,
     otp_hash VARCHAR(255) NOT NULL,
     expires_at TIMESTAMP NOT NULL,
@@ -47,7 +47,7 @@ CREATE INDEX idx_otp_expires_at ON otp_verification(expires_at);
 
 -- Comments for documentation
 COMMENT ON TABLE users IS 'Core user identity and authentication data';
-COMMENT ON COLUMN users.id IS 'Unique user identifier (UUID v4)';
+COMMENT ON COLUMN users.id IS 'Unique user identifier (UUID v7)';
 COMMENT ON COLUMN users.email IS 'User email address (unique, required for authentication)';
 COMMENT ON COLUMN users.phone IS 'User phone number (optional, unique if provided)';
 COMMENT ON COLUMN users.password_hash IS 'BCrypt hashed password';

@@ -1,6 +1,8 @@
 package com.eros.auth.models
 
 import kotlinx.serialization.Serializable
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 
 /**
@@ -12,9 +14,10 @@ import kotlinx.serialization.Serializable
  * @property profileStatus User's profile status (PENDING, VERIFIED, SUSPENDED)
  * @property phoneVerified Whether the user's phone number is verified
  */
+@OptIn(ExperimentalUuidApi::class)
 @Serializable
 data class UserSummary(
-    val userId: Int,
+    val userId: Uuid,
     val email: String,
     val name : String,
     val profileStatus : ProfileStatus,
