@@ -63,7 +63,7 @@ data class RegisterRequest(
 
         return if (errors.isEmpty()) {
             ValidationResult.success()
-        }else{
+        } else{
             ValidationResult.failure(errors)
         }
     }

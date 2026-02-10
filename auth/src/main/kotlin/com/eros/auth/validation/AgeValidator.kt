@@ -28,11 +28,11 @@ object AgeValidator {
         try {
             val age = Period.between(birthDate, LocalDate.now()).years
             if (age < 18) {
-                ValidationResult.failure(Errors.UNDERAGE)
+                return ValidationResult.failure(Errors.UNDERAGE)
             }
         } catch (_: DateTimeParseException) {
             // TODO maybe we log e, for greater visibility, might not be needed
-            ValidationResult.failure(Errors.DATE_FORMATTING)
+            return ValidationResult.failure(Errors.DATE_FORMATTING)
         }
         return ValidationResult.success()
     }
