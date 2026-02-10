@@ -3,12 +3,10 @@ package com.eros
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
-import io.ktor.server.auth.OAuthAccessTokenResponse
 import io.ktor.server.plugins.requestvalidation.*
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import io.ktor.server.sessions.*
 
 fun Application.configureRouting() {
     install(RequestValidation) {
@@ -39,19 +37,6 @@ fun Application.configureRouting() {
     routing {
         get("/") {
             call.respondText("Hello World!")
-        }
-
-        // OAuth routes for Google authentication
-        authenticate("auth-oauth-google") {
-            get("login") {
-                call.respondRedirect("/callback")
-            }
-
-            get("/callback") {
-                val principal: OAuthAccessTokenResponse.OAuth2? = call.authentication.principal()
-                call.sessions.set(UserSession(principal?.accessToken.toString()))
-                call.respondRedirect("/hello")
-            }
         }
 
         // Protected routes requiring JWT authentication

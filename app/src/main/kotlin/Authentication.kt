@@ -182,8 +182,21 @@ fun Application.configureAuthentication() {
         }
     }
 
-    // Log OAuth configuration status
+    // Configure OAuth routes if OAuth is enabled
     if (!googleClientId.isNullOrBlank() && !googleClientSecret.isNullOrBlank()) {
+        routing {
+            authenticate("auth-oauth-google") {
+                get("login") {
+                    call.respondRedirect("/callback")
+                }
+
+                get("/callback") {
+                    val principal: OAuthAccessTokenResponse.OAuth2? = call.authentication.principal()
+                    call.sessions.set(UserSession(principal?.accessToken.toString()))
+                    call.respondRedirect("/hello")
+                }
+            }
+        }
         log.debug("OAuth authentication configured for Google")
     } else {
         log.warn("Google OAuth credentials not found - OAuth authentication disabled. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to enable.")
