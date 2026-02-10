@@ -37,10 +37,10 @@ data class LoginRequest(
         val passwordResult = PasswordValidator.validate(password)
         errors.addAll(passwordResult.errors)
 
-        if (errors.isEmpty()) {
-            return ValidationResult.success()
+        return if (errors.isEmpty()) {
+            ValidationResult.success()
         }else{
-            return ValidationResult.failure(errors)
+            ValidationResult.failure(errors)
         }
     }
 

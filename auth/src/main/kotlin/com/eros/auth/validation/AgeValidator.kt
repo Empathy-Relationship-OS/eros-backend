@@ -24,20 +24,20 @@ object AgeValidator {
      *
      * @returns [ValidationResult] success or failure with error if applicable.
      */
-    fun validate(birthDate : String): ValidationResult {
+    fun validate(birthDate : LocalDate): ValidationResult {
         try {
-            val birth = LocalDate.parse(birthDate)
-            val age = Period.between(birth, LocalDate.now()).years
+            val age = Period.between(birthDate, LocalDate.now()).years
             if (age < 18) {
                 ValidationResult.failure(Errors.UNDERAGE)
             }
-        } catch (e: DateTimeParseException) {
+        } catch (_: DateTimeParseException) {
+            // TODO maybe we log e, for greater visibility, might not be needed
             ValidationResult.failure(Errors.DATE_FORMATTING)
         }
         return ValidationResult.success()
     }
 
-    fun isValid(birthDate: String) : Boolean{
+    fun isValid(birthDate: LocalDate) : Boolean{
         return validate(birthDate).isValid
     }
 }

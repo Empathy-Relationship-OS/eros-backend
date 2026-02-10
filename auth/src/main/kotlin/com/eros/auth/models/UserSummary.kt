@@ -19,13 +19,4 @@ data class UserSummary(
     val name : String,
     val profileStatus : ProfileStatus,
     val phoneVerified : Boolean
-){
-
-
-
-}
-
-
-fun main() {
-    UserSummary(0,"adw","awd", ProfileStatus.PENDING, true)
-}
+)

@@ -39,11 +39,10 @@ data class VerifyPhoneRequest(
         val otpResult = OTPValidator.validate(otp)
         errors.addAll(otpResult.errors)
 
-        if (errors.isEmpty()){
-            return ValidationResult.success()
-        }
-        else{
-            return ValidationResult.failure(errors);
+        return if (errors.isEmpty()){
+            ValidationResult.success()
+        } else{
+            ValidationResult.failure(errors);
         }
     }
 

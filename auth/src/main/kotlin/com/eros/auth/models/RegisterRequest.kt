@@ -6,6 +6,8 @@ import com.eros.auth.validation.Errors
 import com.eros.auth.validation.PasswordValidator
 import com.eros.auth.validation.PhoneValidator
 import com.eros.auth.validation.ValidationResult
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.toJavaLocalDate
 
 import kotlinx.serialization.Serializable
 
@@ -25,7 +27,7 @@ data class RegisterRequest(
     val password: String,
     val phone: String,
     val name: String,
-    val birthDate: String
+    val birthDate: LocalDate,
 ) {
     /**
      * Validates the registration request.
@@ -56,13 +58,13 @@ data class RegisterRequest(
         val phoneResult = PhoneValidator.validate(phone)
         errors.addAll(phoneResult.errors)
 
-        val ageResult = AgeValidator.validate(birthDate)
+        val ageResult = AgeValidator.validate(birthDate.toJavaLocalDate())
         errors.addAll(ageResult.errors)
 
-        if (errors.isEmpty()) {
-            return ValidationResult.success()
+        return if (errors.isEmpty()) {
+            ValidationResult.success()
         }else{
-            return ValidationResult.failure(errors)
+            ValidationResult.failure(errors)
         }
     }
 
@@ -82,15 +84,4 @@ data class RegisterRequest(
     fun isValid() : Boolean{
         return validate().isValid
     }
-}
-
-fun main() {
-
-    val reg = RegisterRequest("awdadw@wdaawd.com","awddaw4SEF%g","+4458378947485","Blah Blah", "2000/12/11")
-
-    val res = reg.validate()
-
-    println(res.isValid)
-    println(res.errors)
-
 }
