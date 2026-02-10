@@ -19,5 +19,13 @@ enum class Errors(val message: String) {
 
     EMAIL_NULL("Email is null."),
     EMAIL_EMPTY("Email is empty."),
-    EMAIL_INVALID("Not a valid email.")
+    EMAIL_INVALID("Not a valid email."),
+
+    UNDERAGE("User must be at least 18 years old."),
+    DATE_FORMATTING("Invalid birth date format. Expected ISO-8601 format (YYYY-MM-DD)"),
+    BLANK_NAME("Name cannot be blank"),
+
+    OTP_BLANK("OTP cannot be blank"),
+    OTP_NON_DIGITS("OTP must contain only digits"),
+    OTP_SIZE("OTP must be between ${OTPValidator.MIN_DIGITS} and ${OTPValidator.MAX_DIGITS} digits"),
 }
