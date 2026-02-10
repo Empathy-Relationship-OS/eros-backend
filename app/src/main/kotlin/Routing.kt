@@ -3,10 +3,12 @@ package com.eros
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
+import io.ktor.server.auth.OAuthAccessTokenResponse
 import io.ktor.server.plugins.requestvalidation.*
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.server.sessions.*
 
 fun Application.configureRouting() {
     install(RequestValidation) {
@@ -25,10 +27,31 @@ fun Application.configureRouting() {
         exception<IllegalStateException> { call, cause ->
             call.respondText(text = "500: ${cause.message}" , status = HttpStatusCode.InternalServerError)
         }
+        // Catch-all handler for any uncaught exceptions
+        exception<Throwable> { call, cause ->
+            call.application.log.error("Unhandled exception", cause)
+            call.respondText(
+                text = "500: Internal Server Error - ${cause.message ?: "An unexpected error occurred"}",
+                status = HttpStatusCode.InternalServerError
+            )
+        }
     }
     routing {
         get("/") {
             call.respondText("Hello World!")
+        }
+
+        // OAuth routes for Google authentication
+        authenticate("auth-oauth-google") {
+            get("login") {
+                call.respondRedirect("/callback")
+            }
+
+            get("/callback") {
+                val principal: OAuthAccessTokenResponse.OAuth2? = call.authentication.principal()
+                call.sessions.set(UserSession(principal?.accessToken.toString()))
+                call.respondRedirect("/hello")
+            }
         }
 
         // Protected routes requiring JWT authentication
@@ -38,11 +61,9 @@ fun Application.configureRouting() {
             // Access the JWT payload via: val payload = call.principal<JwtPayload>()
             // Example response: { "userId": "...", "email": "...", "profile": {...} }
             get("/users/me") {
-                val payload = call.principal<JwtPayload>()
-                    ?: return@get call.respond(
-                        HttpStatusCode.Unauthorized,
-                        mapOf("error" to "No authentication principal found")
-                    )
+                val payload = requireNotNull(call.principal<JwtPayload>()) {
+                    "No authentication principal found"
+                }
 
                 // Placeholder response - actual implementation should fetch user data from database
                 call.respond(

@@ -88,6 +88,12 @@ fun Application.configureAuthentication() {
     val jwtRealm = environment.config.propertyOrNull("jwt.realm")?.getString()
         ?: "ktor sample app"
 
+    // Read OAuth configuration
+    val oauthCallbackUrl = environment.config.propertyOrNull("oauth.callbackUrl")?.getString()
+        ?: "http://localhost:8080/callback"
+    val googleClientId = environment.config.propertyOrNull("oauth.google.clientId")?.getString()
+    val googleClientSecret = environment.config.propertyOrNull("oauth.google.clientSecret")?.getString()
+
     install(Authentication) {
         // Configure JWT authentication provider
         jwt("jwt-auth") {
@@ -107,12 +113,6 @@ fun Application.configureAuthentication() {
                 try {
                     val payload = credential.payload
 
-                    // Validate required claims
-                    if (!payload.audience.contains(jwtAudience)) {
-                        application.log.warn("JWT validation failed: Invalid audience")
-                        return@validate null
-                    }
-
                     // Extract user ID from "sub" claim
                     val userIdString = payload.subject
                         ?: run {
@@ -123,7 +123,7 @@ fun Application.configureAuthentication() {
                     val userId = try {
                         UUID.fromString(userIdString)
                     } catch (e: IllegalArgumentException) {
-                        application.log.warn("JWT validation failed: Invalid user ID format: $userIdString")
+                        application.log.warn("JWT validation failed: Invalid user ID format: $userIdString", e)
                         return@validate null
                     }
 
@@ -162,42 +162,37 @@ fun Application.configureAuthentication() {
         }
 
         // Configure OAuth authentication provider for Google
-        oauth("auth-oauth-google") {
-            urlProvider = { "http://localhost:8080/callback" }
-            providerLookup = {
-                OAuthServerSettings.OAuth2ServerSettings(
-                    name = "google",
-                    authorizeUrl = "https://accounts.google.com/o/oauth2/auth",
-                    accessTokenUrl = "https://accounts.google.com/o/oauth2/token",
-                    requestMethod = HttpMethod.Post,
-                    clientId = System.getenv("GOOGLE_CLIENT_ID"),
-                    clientSecret = System.getenv("GOOGLE_CLIENT_SECRET"),
-                    defaultScopes = listOf("https://www.googleapis.com/auth/userinfo.profile")
-                )
-            }
-            client = HttpClient(Apache)
-        }
-    }
-
-    // Configure OAuth routes
-    routing {
-        authenticate("auth-oauth-google") {
-            get("login") {
-                call.respondRedirect("/callback")
-            }
-
-            get("/callback") {
-                val principal: OAuthAccessTokenResponse.OAuth2? = call.authentication.principal()
-                call.sessions.set(UserSession(principal?.accessToken.toString()))
-                call.respondRedirect("/hello")
+        // Only configure if credentials are available
+        if (!googleClientId.isNullOrBlank() && !googleClientSecret.isNullOrBlank()) {
+            oauth("auth-oauth-google") {
+                urlProvider = { oauthCallbackUrl }
+                providerLookup = {
+                    OAuthServerSettings.OAuth2ServerSettings(
+                        name = "google",
+                        authorizeUrl = "https://accounts.google.com/o/oauth2/auth",
+                        accessTokenUrl = "https://accounts.google.com/o/oauth2/token",
+                        requestMethod = HttpMethod.Post,
+                        clientId = requireNotNull(googleClientId) { "GOOGLE_CLIENT_ID is required" },
+                        clientSecret = requireNotNull(googleClientSecret) { "GOOGLE_CLIENT_SECRET is required" },
+                        defaultScopes = listOf("https://www.googleapis.com/auth/userinfo.profile")
+                    )
+                }
+                client = HttpClient(Apache)
             }
         }
     }
 
-    log.info("JWT authentication configured successfully")
-    log.info("JWT Realm: $jwtRealm")
-    log.info("JWT Audience: $jwtAudience")
-    log.info("JWT Issuer: $jwtDomain")
+    // Log OAuth configuration status
+    if (!googleClientId.isNullOrBlank() && !googleClientSecret.isNullOrBlank()) {
+        log.debug("OAuth authentication configured for Google")
+    } else {
+        log.warn("Google OAuth credentials not found - OAuth authentication disabled. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to enable.")
+    }
+
+    log.debug("JWT authentication configured successfully")
+    log.debug("JWT Realm: $jwtRealm")
+    log.debug("JWT Audience: $jwtAudience")
+    log.debug("JWT Issuer: $jwtDomain")
 }
 
 /**

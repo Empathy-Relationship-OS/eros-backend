@@ -8,7 +8,6 @@ import io.ktor.http.*
 import io.ktor.server.config.*
 import io.ktor.server.testing.*
 import kotlinx.serialization.json.*
-import org.testcontainers.containers.PostgreSQLContainer
 import java.util.*
 import kotlin.test.*
 
@@ -22,32 +21,11 @@ import kotlin.test.*
  * - Invalid/expired tokens are rejected
  * - Proper error messages are returned
  */
-class AuthenticationTest {
+class AuthenticationTest : IntegrationTestBase() {
 
-    private lateinit var postgres: PostgreSQLContainer<*>
     private val testJwtSecret = "test-secret-key-for-jwt-authentication-testing"
     private val testAudience = "jwt-audience"
     private val testIssuer = "https://jwt-provider-domain/"
-
-    @BeforeTest
-    fun setUp() {
-        // Configure Docker socket location for macOS if needed
-        if (System.getProperty("os.name").contains("Mac") && System.getenv("DOCKER_HOST") == null) {
-            val dockerSock = System.getProperty("user.home") + "/.docker/run/docker.sock"
-            System.setProperty("DOCKER_HOST", "unix://$dockerSock")
-        }
-
-        postgres = PostgreSQLContainer("postgres:16-alpine")
-            .withDatabaseName("eros_test")
-            .withUsername("test")
-            .withPassword("test")
-        postgres.start()
-    }
-
-    @AfterTest
-    fun tearDown() {
-        postgres.stop()
-    }
 
     /**
      * Helper function to generate a valid JWT token for testing.

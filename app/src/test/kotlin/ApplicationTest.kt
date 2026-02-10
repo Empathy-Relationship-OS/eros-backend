@@ -4,9 +4,6 @@ import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.server.config.*
 import io.ktor.server.testing.*
-import org.testcontainers.containers.PostgreSQLContainer
-import kotlin.test.AfterTest
-import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -18,37 +15,7 @@ import kotlin.test.assertEquals
  *
  * Note: On macOS, ensure Docker Desktop is running before executing tests.
  */
-class ApplicationTest {
-
-    private lateinit var postgres: PostgreSQLContainer<*>
-
-    /**
-     * Starts PostgreSQL container before each test.
-     * Container provides isolated database instance with random port assignment.
-     */
-    @BeforeTest
-    fun setUp() {
-        // Configure Docker socket location for macOS if needed
-        if (System.getProperty("os.name").contains("Mac") && System.getenv("DOCKER_HOST") == null) {
-            val dockerSock = System.getProperty("user.home") + "/.docker/run/docker.sock"
-            System.setProperty("DOCKER_HOST", "unix://$dockerSock")
-        }
-
-        postgres = PostgreSQLContainer("postgres:16-alpine")
-            .withDatabaseName("eros_test")
-            .withUsername("test")
-            .withPassword("test")
-        postgres.start()
-    }
-
-    /**
-     * Stops and removes PostgreSQL container after each test.
-     * Ensures clean state for next test run.
-     */
-    @AfterTest
-    fun tearDown() {
-        postgres.stop()
-    }
+class ApplicationTest : IntegrationTestBase() {
 
     @Test
     fun testRoot() = testApplication {

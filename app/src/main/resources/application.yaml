@@ -11,6 +11,12 @@ jwt:
   audience: ${JWT_AUDIENCE:eros-users}
   realm: ${JWT_REALM:eros-api}
 
+oauth:
+  callbackUrl: ${OAUTH_CALLBACK_URL:http://localhost:8080/callback}
+  google:
+    clientId: ${GOOGLE_CLIENT_ID:}
+    clientSecret: ${GOOGLE_CLIENT_SECRET:}
+
 database:
   host: ${DB_HOST:localhost}
   port: ${DB_PORT:5432}
