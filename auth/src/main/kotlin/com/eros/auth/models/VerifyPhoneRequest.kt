@@ -25,7 +25,7 @@ data class VerifyPhoneRequest(
      * - Phone must be valid format (checked by PhoneValidator)
      * - OTP must not be blank
      * - OTP must be numeric
-     * - OTP must be appropriate length (typically 4-6 digits)
+     * - OTP must be appropriate length.
      *
      * @return [ValidationResult] containing success or failure and errors.
      */
