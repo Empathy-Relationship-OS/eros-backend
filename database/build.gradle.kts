@@ -24,6 +24,14 @@ dependencies {
     implementation(libs.flyway.database.postgresql)
 
     // Testing
+    testImplementation(libs.junit.jupiter)
+    testRuntimeOnly(libs.junit.platform.launcher)
     testImplementation(libs.kotlin.test.junit)
     testImplementation(libs.ktor.server.test.host)
+    testImplementation(libs.testcontainers.postgresql)
+    testImplementation(libs.testcontainers.junit)
+}
+
+tasks.test {
+    useJUnitPlatform()
 }

@@ -37,3 +37,6 @@ out/
 
 ### Local Environment Variables ###
 /.env
+
+### Local machine config ###
+local.properties
