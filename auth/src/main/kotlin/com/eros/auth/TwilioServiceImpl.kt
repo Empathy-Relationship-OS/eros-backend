@@ -3,6 +3,7 @@ package com.eros.auth
 import com.twilio.Twilio
 import com.twilio.rest.api.v2010.account.Message
 import com.twilio.rest.verify.v2.service.Verification
+import com.twilio.rest.verify.v2.service.VerificationCheck
 import com.twilio.type.PhoneNumber
 import org.slf4j.LoggerFactory
 
@@ -34,32 +35,30 @@ class TwilioServiceImpl(private val settings: TwilioSettings) : TwilioService {
     }
 
     private fun sendRealOtp(phoneNumber: String, otp: String): Boolean {
+
+        // Connect with information.
         Twilio.init(settings.accountSid, settings.authToken)
 
-        // Message with custom OTP
-        Twilio.init(settings.accountSid, settings.authToken)
-        val msg = "Your verification code is: $otp. Valid for 10 minutes."
-        val message = Message
-            .creator(
-                PhoneNumber(phoneNumber),
-                PhoneNumber(phoneNumber),
-                msg
-            )
-            .create()
-        println(message.body)
-        println(message.status)
 
-
-        //Actual - Verification with custom OTP.
+        // Send OTP to number.
         val verification = Verification.creator(
             settings.verifyServiceId,
             phoneNumber,
             "sms"
         )
-            .setCustomCode(otp)
             .create()
         println(verification.status)
         return true
+    }
+
+    private fun verifyOTP(phoneNumber: String, userInputOtp: String): Boolean{
+        Twilio.init(settings.accountSid, settings.authToken)
+        val verificationCheck = VerificationCheck.creator(settings.verifyServiceId)
+            .setTo(phoneNumber)
+            .setCode(userInputOtp)
+            .create()
+
+        return verificationCheck.status == "approved"
     }
 }
 
