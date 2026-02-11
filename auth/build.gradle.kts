@@ -34,6 +34,12 @@ dependencies {
     testRuntimeOnly(libs.junit.platform.launcher)
     testImplementation(libs.flyway.core)
     testImplementation(libs.flyway.database.postgresql)
+
+    // OPT and SMS
+    implementation(libs.twilio)
+
+    // Mock SMS Logging
+    implementation(libs.logback.classic)
 }
 
 tasks.test {
