@@ -4,25 +4,21 @@ import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.javatime.timestamp
 import java.time.Instant
-import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 
 /**
- * Users table - Core identity and authentication data
+ * Users table - Core identity linked to Firebase Auth
  *
- * This table is owned by the auth module and contains only authentication-related data.
- * Profile data (name, bio, preferences, etc.) belongs in the users module.
+ * This table stores minimal user identity data synced with Firebase Authentication.
+ * Firebase handles: passwords, OTP verification, email/phone verification, JWT tokens
+ * Backend handles: user profile data, business logic, Firebase UID linking
  *
- * Auth module responsibility: "Who you are" (identity, credentials, verification)
+ * Auth module responsibility: Sync Firebase users with local database for profile management
  */
-@OptIn(ExperimentalUuidApi::class)
 object Users : Table("users") {
 
-    val id = uuid("id").clientDefault { Uuid.random() }
+    val id = varchar("id", 128) // Firebase UID (primary key)
     val email = varchar("email", 255)
     val phone = varchar("phone", 20).nullable()
-    val passwordHash = varchar("password_hash", 255)
-    val verificationStatus = varchar("verification_status", 20).default("PENDING")
     val lastActiveAt = timestamp("last_active_at").nullable()
     val createdAt = timestamp("created_at").clientDefault { Instant.now() }
     val updatedAt = timestamp("updated_at").clientDefault { Instant.now() }
@@ -33,34 +29,17 @@ object Users : Table("users") {
         // Indexes defined in migration, documented here for reference
         index(isUnique = true, email)
         index(isUnique = true, phone)
-        index(customIndexName = "idx_users_verification_status", columns = arrayOf(verificationStatus))
         index(customIndexName = "idx_users_created_at", columns = arrayOf(createdAt))
-    }
-}
-
-/**
- * User verification status enumeration
- */
-enum class VerificationStatus {
-    PENDING,
-    VERIFIED,
-    SUSPENDED;
-
-    companion object {
-        fun fromString(value: String): VerificationStatus = valueOf(value.uppercase())
     }
 }
 
 /**
  * User DTO - Immutable data transfer object
  */
-@OptIn(ExperimentalUuidApi::class)
 data class User(
-    val id: Uuid,
+    val id: String, // Firebase UID
     val email: String,
     val phone: String?,
-    val passwordHash: String,
-    val verificationStatus: VerificationStatus,
     val lastActiveAt: Instant?,
     val createdAt: Instant,
     val updatedAt: Instant
@@ -69,13 +48,10 @@ data class User(
 /**
  * Extension function to map ResultRow to User DTO
  */
-@OptIn(ExperimentalUuidApi::class)
 fun ResultRow.toUser() = User(
     id = this[Users.id],
     email = this[Users.email],
     phone = this[Users.phone],
-    passwordHash = this[Users.passwordHash],
-    verificationStatus = VerificationStatus.fromString(this[Users.verificationStatus]),
     lastActiveAt = this[Users.lastActiveAt],
     createdAt = this[Users.createdAt],
     updatedAt = this[Users.updatedAt]

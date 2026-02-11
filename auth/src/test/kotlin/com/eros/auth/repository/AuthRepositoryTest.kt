@@ -1,8 +1,5 @@
 package com.eros.auth.repository
 
-import com.eros.auth.tables.OtpVerificationResult
-import com.eros.auth.tables.VerificationStatus
-import com.eros.common.security.PasswordHasher
 import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
@@ -15,22 +12,21 @@ import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-import kotlin.uuid.ExperimentalUuidApi
 
 /**
  * Integration tests for AuthRepository using Testcontainers PostgreSQL.
  *
- * Tests all repository methods with a real PostgreSQL database to ensure
- * proper Exposed ORM integration and transaction management.
+ * Tests Firebase-integrated AuthRepository methods with a real PostgreSQL database
+ * to ensure proper Exposed ORM integration and transaction management.
+ *
+ * Note: This tests the backend repository only. Firebase authentication itself
+ * is tested separately or mocked.
  */
 @Testcontainers
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@OptIn(ExperimentalUuidApi::class)
 class AuthRepositoryTest {
 
     companion object {
@@ -78,72 +74,120 @@ class AuthRepositoryTest {
         // Clean tables before each test
         transaction {
             exec("TRUNCATE TABLE users CASCADE")
-            exec("TRUNCATE TABLE otp_verification CASCADE")
         }
     }
 
-    // ========== createUser() tests ==========
+    // ========== createOrUpdateUser() tests ==========
 
     @Test
-    fun `createUser inserts new user with hashed password`() = runTest {
+    fun `createOrUpdateUser creates new user with Firebase UID`() = runTest {
         // Given
+        val firebaseUid = "firebase_uid_123"
         val email = "test@example.com"
         val phone = "+1234567890"
-        val password = "SecurePassword123!"
 
         // When
-        val user = repository.createUser(email, phone, password)
+        val user = repository.createOrUpdateUser(firebaseUid, email, phone)
 
         // Then
-        assertNotNull(user.id)
+        assertEquals(firebaseUid, user.id)
         assertEquals(email, user.email)
         assertEquals(phone, user.phone)
-        assertEquals(VerificationStatus.PENDING, user.verificationStatus)
         assertNotNull(user.createdAt)
         assertNotNull(user.updatedAt)
-
-        // Verify password is hashed
-        assertTrue(PasswordHasher.verify(password, user.passwordHash))
-        assertNotEquals(user.passwordHash, password, "Password should be hashed, not stored as plaintext")
+        assertNull(user.lastActiveAt)
     }
 
     @Test
-    fun `createUser allows null phone number`() = runTest {
+    fun `createOrUpdateUser allows null phone number`() = runTest {
         // Given
+        val firebaseUid = "firebase_uid_123"
         val email = "test@example.com"
-        val password = "SecurePassword123!"
 
         // When
-        val user = repository.createUser(email, null, password)
+        val user = repository.createOrUpdateUser(firebaseUid, email, null)
 
         // Then
-        assertNotNull(user.id)
+        assertEquals(firebaseUid, user.id)
         assertEquals(email, user.email)
         assertNull(user.phone)
     }
 
     @Test
-    fun `createUser throws exception for duplicate email`() = runTest {
+    fun `createOrUpdateUser updates existing user`() = runTest {
+        // Given
+        val firebaseUid = "firebase_uid_123"
+        val originalEmail = "original@example.com"
+        val updatedEmail = "updated@example.com"
+        val updatedPhone = "+9876543210"
+
+        // Create initial user
+        val originalUser = repository.createOrUpdateUser(firebaseUid, originalEmail, null)
+        val originalCreatedAt = originalUser.createdAt
+
+        // Advance time
+        testClock.advance(Duration.ofHours(24))
+
+        // When - update with new email and phone
+        val updatedUser = repository.createOrUpdateUser(firebaseUid, updatedEmail, updatedPhone)
+
+        // Then
+        assertEquals(firebaseUid, updatedUser.id)
+        assertEquals(updatedEmail, updatedUser.email)
+        assertEquals(updatedPhone, updatedUser.phone)
+        assertTrue(updatedUser.createdAt in originalCreatedAt.minusSeconds(10)..originalCreatedAt.plusSeconds(10), "createdAt should not change on update")
+        assertTrue(updatedUser.updatedAt.isAfter(originalUser.updatedAt), "updatedAt should be refreshed")
+    }
+
+    @Test
+    fun `createOrUpdateUser throws exception for duplicate email with different Firebase UID`() = runTest {
         // Given
         val email = "test@example.com"
-        repository.createUser(email, "+1234567890", "password1")
+        repository.createOrUpdateUser("firebase_uid_1", email, null)
 
         // When & Then
         assertThrows<org.jetbrains.exposed.v1.exceptions.ExposedSQLException> {
-            repository.createUser(email, "+0987654321", "password2")
+            repository.createOrUpdateUser("firebase_uid_2", email, null)
         }
     }
 
     @Test
-    fun `createUser throws exception for duplicate phone`() = runTest {
+    fun `createOrUpdateUser throws exception for duplicate phone with different Firebase UID`() = runTest {
         // Given
         val phone = "+1234567890"
-        repository.createUser("user1@example.com", phone, "password1")
+        repository.createOrUpdateUser("firebase_uid_1", "user1@example.com", phone)
 
         // When & Then
         assertThrows<org.jetbrains.exposed.v1.exceptions.ExposedSQLException> {
-            repository.createUser("user2@example.com", phone, "password2")
+            repository.createOrUpdateUser("firebase_uid_2", "user2@example.com", phone)
         }
+    }
+
+    // ========== findByFirebaseUid() tests ==========
+
+    @Test
+    fun `findByFirebaseUid returns user when exists`() = runTest {
+        // Given
+        val firebaseUid = "firebase_uid_123"
+        val email = "test@example.com"
+        repository.createOrUpdateUser(firebaseUid, email, "+1234567890")
+
+        // When
+        val foundUser = repository.findByFirebaseUid(firebaseUid)
+
+        // Then
+        assertNotNull(foundUser)
+        assertEquals(firebaseUid, foundUser.id)
+        assertEquals(email, foundUser.email)
+    }
+
+    @Test
+    fun `findByFirebaseUid returns null when user does not exist`() = runTest {
+        // When
+        val foundUser = repository.findByFirebaseUid("nonexistent_uid")
+
+        // Then
+        assertNull(foundUser)
     }
 
     // ========== findByEmail() tests ==========
@@ -151,15 +195,16 @@ class AuthRepositoryTest {
     @Test
     fun `findByEmail returns user when exists`() = runTest {
         // Given
+        val firebaseUid = "firebase_uid_123"
         val email = "test@example.com"
-        val createdUser = repository.createUser(email, "+1234567890", "password")
+        repository.createOrUpdateUser(firebaseUid, email, "+1234567890")
 
         // When
         val foundUser = repository.findByEmail(email)
 
         // Then
         assertNotNull(foundUser)
-        assertEquals(createdUser.id, foundUser.id)
+        assertEquals(firebaseUid, foundUser.id)
         assertEquals(email, foundUser.email)
     }
 
@@ -175,7 +220,7 @@ class AuthRepositoryTest {
     @Test
     fun `findByEmail is case-sensitive`() = runTest {
         // Given
-        repository.createUser("test@example.com", "+1234567890", "password")
+        repository.createOrUpdateUser("firebase_uid_123", "test@example.com", "+1234567890")
 
         // When
         val foundUser = repository.findByEmail("TEST@EXAMPLE.COM")
@@ -184,114 +229,24 @@ class AuthRepositoryTest {
         assertNull(foundUser, "Email lookup should be case-sensitive")
     }
 
-    // ========== existsByEmail() tests ==========
-
-    @Test
-    fun `existsByEmail returns true when email exists`() = runTest {
-        // Given
-        val email = "test@example.com"
-        repository.createUser(email, "+1234567890", "password")
-
-        // When
-        val exists = repository.existsByEmail(email)
-
-        // Then
-        assertTrue(exists)
-    }
-
-    @Test
-    fun `existsByEmail returns false when email does not exist`() = runTest {
-        // When
-        val exists = repository.existsByEmail("nonexistent@example.com")
-
-        // Then
-        assertFalse(exists)
-    }
-
-    // ========== existsByPhone() tests ==========
-
-    @Test
-    fun `existsByPhone returns true when phone exists`() = runTest {
-        // Given
-        val phone = "+1234567890"
-        repository.createUser("test@example.com", phone, "password")
-
-        // When
-        val exists = repository.existsByPhone(phone)
-
-        // Then
-        assertTrue(exists)
-    }
-
-    @Test
-    fun `existsByPhone returns false when phone does not exist`() = runTest {
-        // When
-        val exists = repository.existsByPhone("+9999999999")
-
-        // Then
-        assertFalse(exists)
-    }
-
-    @Test
-    fun `existsByPhone returns false for null phone`() = runTest {
-        // Given
-        repository.createUser("test@example.com", null, "password")
-
-        // When - checking for any specific phone
-        val exists = repository.existsByPhone("+1234567890")
-
-        // Then
-        assertFalse(exists)
-    }
-
-    // ========== updateVerificationStatus() tests ==========
-
-    @Test
-    fun `updateVerificationStatus marks user as verified`() = runTest {
-        // Given
-        val user = repository.createUser("test@example.com", "+1234567890", "password")
-        assertEquals(VerificationStatus.PENDING, user.verificationStatus)
-
-        // When
-        val rowsUpdated = repository.updateVerificationStatus(user.id)
-
-        // Then
-        assertEquals(1, rowsUpdated)
-
-        val updatedUser = repository.findByEmail("test@example.com")
-        assertNotNull(updatedUser)
-        assertEquals(VerificationStatus.VERIFIED, updatedUser.verificationStatus)
-    }
-
-    @Test
-    fun `updateVerificationStatus returns 0 for non-existent user`() = runTest {
-        // Given
-        val nonExistentId = kotlin.uuid.Uuid.random()
-
-        // When
-        val rowsUpdated = repository.updateVerificationStatus(nonExistentId)
-
-        // Then
-        assertEquals(0, rowsUpdated)
-    }
-
     // ========== updateLastActiveAt() tests ==========
 
     @Test
     fun `updateLastActiveAt sets last active timestamp`() = runTest {
         // Given
-        val user = repository.createUser("test@example.com", "+1234567890", "password")
+        val firebaseUid = "firebase_uid_123"
+        val user = repository.createOrUpdateUser(firebaseUid, "test@example.com", "+1234567890")
         assertNull(user.lastActiveAt, "Initially lastActiveAt should be null")
 
         // When
         val before = Instant.now(testClock)
-        val rowsUpdated = repository.updateLastActiveAt(user.id)
+        val rowsUpdated = repository.updateLastActiveAt(firebaseUid)
         val after = Instant.now(testClock)
 
         // Then
         assertEquals(1, rowsUpdated)
 
-        val updatedUser = repository.findByEmail("test@example.com")
+        val updatedUser = repository.findByFirebaseUid(firebaseUid)
         assertNotNull(updatedUser)
         assertNotNull(updatedUser.lastActiveAt)
         assertTrue(
@@ -303,195 +258,64 @@ class AuthRepositoryTest {
     @Test
     fun `updateLastActiveAt returns 0 for non-existent user`() = runTest {
         // Given
-        val nonExistentId = kotlin.uuid.Uuid.random()
+        val nonExistentUid = "nonexistent_firebase_uid"
 
         // When
-        val rowsUpdated = repository.updateLastActiveAt(nonExistentId)
+        val rowsUpdated = repository.updateLastActiveAt(nonExistentUid)
 
         // Then
         assertEquals(0, rowsUpdated)
     }
 
-    // ========== storeOtp() tests ==========
+    // ========== deleteUser() tests ==========
 
     @Test
-    fun `storeOtp creates OTP record with hashed value`() = runTest {
+    fun `deleteUser removes user from database`() = runTest {
         // Given
-        val phoneNumber = "+1234567890"
-        val plainOtp = "123456"
+        val firebaseUid = "firebase_uid_123"
+        repository.createOrUpdateUser(firebaseUid, "test@example.com", "+1234567890")
+
+        // Verify user exists
+        assertNotNull(repository.findByFirebaseUid(firebaseUid))
 
         // When
-        val otpId = repository.storeOtp(phoneNumber, plainOtp, expiryMinutes = 10)
+        val rowsDeleted = repository.deleteUser(firebaseUid)
 
         // Then
-        assertNotNull(otpId)
-
-        // Verify OTP can be verified
-        val result = repository.verifyOtp(phoneNumber, plainOtp)
-        assertEquals(OtpVerificationResult.SUCCESS, result)
+        assertEquals(1, rowsDeleted)
+        assertNull(repository.findByFirebaseUid(firebaseUid), "User should be deleted")
     }
 
     @Test
-    fun `storeOtp deletes existing OTP for same phone number`() = runTest {
+    fun `deleteUser returns 0 for non-existent user`() = runTest {
         // Given
-        val phoneNumber = "+1234567890"
-        val firstOtp = "111111"
-        val secondOtp = "222222"
-
-        repository.storeOtp(phoneNumber, firstOtp)
+        val nonExistentUid = "nonexistent_firebase_uid"
 
         // When
-        repository.storeOtp(phoneNumber, secondOtp)
+        val rowsDeleted = repository.deleteUser(nonExistentUid)
 
         // Then
-        val resultFirst = repository.verifyOtp(phoneNumber, firstOtp)
-        assertEquals(OtpVerificationResult.INVALID, resultFirst, "First OTP should no longer be valid")
-
-        val resultSecond = repository.verifyOtp(phoneNumber, secondOtp)
-        assertEquals(OtpVerificationResult.SUCCESS, resultSecond, "Second OTP should be valid")
+        assertEquals(0, rowsDeleted)
     }
 
     @Test
-    fun `storeOtp sets correct expiry time`() = runTest {
+    fun `deleteUser allows email and phone to be reused after deletion`() = runTest {
         // Given
-        val phoneNumber = "+1234567890"
-        val plainOtp = "123456"
+        val firebaseUid1 = "firebase_uid_1"
+        val firebaseUid2 = "firebase_uid_2"
+        val email = "test@example.com"
+        val phone = "+1234567890"
 
-        // When
-        repository.storeOtp(phoneNumber, plainOtp, expiryMinutes = 10)
+        repository.createOrUpdateUser(firebaseUid1, email, phone)
 
-        // Then - OTP should be valid immediately
-        val result = repository.verifyOtp(phoneNumber, plainOtp)
-        assertEquals(OtpVerificationResult.SUCCESS, result)
-    }
+        // When - delete first user
+        repository.deleteUser(firebaseUid1)
 
-    // ========== verifyOtp() tests ==========
-
-    @Test
-    fun `verifyOtp returns SUCCESS for valid OTP`() = runTest {
-        // Given
-        val phoneNumber = "+1234567890"
-        val plainOtp = "123456"
-        repository.storeOtp(phoneNumber, plainOtp)
-
-        // When
-        val result = repository.verifyOtp(phoneNumber, plainOtp)
-
-        // Then
-        assertEquals(OtpVerificationResult.SUCCESS, result)
-    }
-
-    @Test
-    fun `verifyOtp returns INVALID for wrong OTP`() = runTest {
-        // Given
-        val phoneNumber = "+1234567890"
-        repository.storeOtp(phoneNumber, "123456")
-
-        // When
-        val result = repository.verifyOtp(phoneNumber, "654321")
-
-        // Then
-        assertEquals(OtpVerificationResult.INVALID, result)
-    }
-
-    @Test
-    fun `verifyOtp returns NOT_FOUND when no OTP exists`() = runTest {
-        // When
-        val result = repository.verifyOtp("+1234567890", "123456")
-
-        // Then
-        assertEquals(OtpVerificationResult.NOT_FOUND, result)
-    }
-
-    @Test
-    fun `verifyOtp returns EXPIRED for expired OTP`() = runTest {
-        // Given
-        val phoneNumber = "+1234567890"
-        val plainOtp = "123456"
-
-        // Store OTP with 1 minute expiry
-        repository.storeOtp(phoneNumber, plainOtp, expiryMinutes = 1)
-
-        // Advance clock past expiry
-        testClock.advance(Duration.ofMinutes(2))
-
-        // When
-        val result = repository.verifyOtp(phoneNumber, plainOtp)
-
-        // Then
-        assertEquals(OtpVerificationResult.EXPIRED, result)
-    }
-
-    @Test
-    fun `verifyOtp deletes OTP on successful verification`() = runTest {
-        // Given
-        val phoneNumber = "+1234567890"
-        val plainOtp = "123456"
-        repository.storeOtp(phoneNumber, plainOtp)
-
-        // When
-        val firstResult = repository.verifyOtp(phoneNumber, plainOtp)
-        val secondResult = repository.verifyOtp(phoneNumber, plainOtp)
-
-        // Then
-        assertEquals(OtpVerificationResult.SUCCESS, firstResult)
-        assertEquals(OtpVerificationResult.NOT_FOUND, secondResult, "OTP should be deleted after successful verification")
-    }
-
-    @Test
-    fun `verifyOtp increments attempts on failure`() = runTest {
-        // Given
-        val phoneNumber = "+1234567890"
-        val correctOtp = "123456"
-        val wrongOtp = "654321"
-        repository.storeOtp(phoneNumber, correctOtp)
-
-        // When - make multiple failed attempts
-        repeat(3) {
-            val result = repository.verifyOtp(phoneNumber, wrongOtp)
-            assertEquals(OtpVerificationResult.INVALID, result)
-        }
-
-        // Then - correct OTP should still work (attempts < max)
-        val finalResult = repository.verifyOtp(phoneNumber, correctOtp)
-        assertEquals(OtpVerificationResult.SUCCESS, finalResult)
-    }
-
-    @Test
-    fun `verifyOtp returns MAX_ATTEMPTS_EXCEEDED after 10 failed attempts`() = runTest {
-        // Given
-        val phoneNumber = "+1234567890"
-        val correctOtp = "123456"
-        val wrongOtp = "654321"
-        repository.storeOtp(phoneNumber, correctOtp)
-
-        // When - make 10 failed attempts
-        repeat(10) {
-            repository.verifyOtp(phoneNumber, wrongOtp)
-        }
-
-        // Then - 11th attempt should return MAX_ATTEMPTS_EXCEEDED
-        val result = repository.verifyOtp(phoneNumber, correctOtp)
-        assertEquals(OtpVerificationResult.MAX_ATTEMPTS_EXCEEDED, result)
-    }
-
-    @Test
-    fun `verifyOtp deletes expired OTP`() = runTest {
-        // Given
-        val phoneNumber = "+1234567890"
-        val plainOtp = "123456"
-        repository.storeOtp(phoneNumber, plainOtp, expiryMinutes = 1)
-
-        // Advance clock past expiry
-        testClock.advance(Duration.ofMinutes(2))
-
-        // When
-        val firstResult = repository.verifyOtp(phoneNumber, plainOtp)
-        val secondResult = repository.verifyOtp(phoneNumber, plainOtp)
-
-        // Then
-        assertEquals(OtpVerificationResult.EXPIRED, firstResult)
-        assertEquals(OtpVerificationResult.NOT_FOUND, secondResult, "Expired OTP should be deleted")
+        // Then - should be able to create new user with same email and phone
+        val newUser = repository.createOrUpdateUser(firebaseUid2, email, phone)
+        assertEquals(firebaseUid2, newUser.id)
+        assertEquals(email, newUser.email)
+        assertEquals(phone, newUser.phone)
     }
 
     // ========== Helper function ==========

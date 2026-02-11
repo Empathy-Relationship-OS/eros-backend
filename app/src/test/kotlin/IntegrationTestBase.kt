@@ -8,7 +8,7 @@ import kotlin.test.BeforeTest
  * Base class for integration tests requiring PostgreSQL database.
  *
  * Provides shared Testcontainers lifecycle management for all integration tests.
- * Automatically starts a PostgreSQL container before each test and stops it after.
+ * Automatically starts a PostgreSQL container before each test.json and stops it after.
  *
  * Usage:
  * ```kotlin
@@ -16,7 +16,7 @@ import kotlin.test.BeforeTest
  *     @Test
  *     fun myTest() = testApplication {
  *         setupTestEnvironment()
- *         // Your test code here
+ *         // Your test.json code here
  *     }
  * }
  * ```
@@ -28,7 +28,7 @@ abstract class IntegrationTestBase {
     protected lateinit var postgres: PostgreSQLContainer<*>
 
     /**
-     * Starts PostgreSQL container before each test.
+     * Starts PostgreSQL container before each test.json.
      * Container provides isolated database instance with random port assignment.
      */
     @BeforeTest
@@ -41,14 +41,14 @@ abstract class IntegrationTestBase {
 
         postgres = PostgreSQLContainer("postgres:16-alpine")
             .withDatabaseName("eros_test")
-            .withUsername("test")
-            .withPassword("test")
+            .withUsername("test.json")
+            .withPassword("test.json")
         postgres.start()
     }
 
     /**
-     * Stops and removes PostgreSQL container after each test.
-     * Ensures clean state for next test run.
+     * Stops and removes PostgreSQL container after each test.json.
+     * Ensures clean state for next test.json run.
      */
     @AfterTest
     fun tearDown() {

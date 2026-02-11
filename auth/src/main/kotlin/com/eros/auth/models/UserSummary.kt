@@ -1,25 +1,19 @@
 package com.eros.auth.models
 
 import kotlinx.serialization.Serializable
-import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
-
 
 /**
- * Summary model for user information.
+ * Summary model for user information synced from Firebase Auth.
  *
- * @property userId Unique identifier for the user
- * @property email User's email address
- * @property name User's full name
- * @property profileStatus User's profile status (PENDING, VERIFIED, SUSPENDED)
- * @property phoneVerified Whether the user's phone number is verified
+ * @property userId Firebase UID (unique identifier)
+ * @property email User's email address (from Firebase)
+ * @property phone User's phone number (from Firebase, nullable)
+ * @property emailVerified Whether the user's email is verified in Firebase
  */
-@OptIn(ExperimentalUuidApi::class)
 @Serializable
 data class UserSummary(
-    val userId: Uuid,
+    val userId: String, // Firebase UID
     val email: String,
-    val name : String,
-    val profileStatus : ProfileStatus,
-    val phoneVerified : Boolean
+    val phone: String?,
+    val emailVerified: Boolean
 )

@@ -3,19 +3,19 @@ package com.eros.auth.models
 import kotlinx.serialization.Serializable
 
 /**
- * Response model for authentication.
+ * Response model for syncing a Firebase-authenticated user with backend.
  *
- * @property accessToken JWT token for authenticated requests
- * @property tokenType Type of token
- * @property issuedAt Epoch Time token was issued
- * @property expires Epoch Time token expires
- * @property user Summary information about the authenticated user
+ * After Firebase authentication on the client side, this response is returned
+ * when the user's profile is synced/created in the backend database.
+ *
+ * Note: The Firebase ID token is managed client-side. This response only
+ * contains the synced user profile data from the backend.
+ *
+ * @property user Summary information about the synced user
+ * @property isNewUser Whether this was a new user creation (true) or update (false)
  */
 @Serializable
-data class AuthResponse (
-    val accessToken: String,
-    val tokenType: String,
-    val issuedAt: Long,
-    val expires: Long,
-    val user: UserSummary
+data class SyncProfileResponse(
+    val user: UserSummary,
+    val isNewUser: Boolean
 )
