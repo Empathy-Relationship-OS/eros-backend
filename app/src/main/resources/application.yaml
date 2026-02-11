@@ -8,6 +8,7 @@ ktor:
 jwt:
   secret: ${JWT_SECRET:}
   issuer: ${JWT_ISSUER:eros-backend}
+  domain: "test"
   audience: ${JWT_AUDIENCE:eros-users}
   realm: ${JWT_REALM:eros-api}
 
