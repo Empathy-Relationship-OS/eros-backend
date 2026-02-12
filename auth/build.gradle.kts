@@ -40,6 +40,9 @@ dependencies {
 
     // Mock SMS Logging
     implementation(libs.logback.classic)
+
+    // .env
+    implementation(libs.dotenv.kotlin)
 }
 
 tasks.test {
