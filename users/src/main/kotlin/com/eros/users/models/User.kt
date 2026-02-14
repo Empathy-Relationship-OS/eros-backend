@@ -52,6 +52,7 @@ data class User(
     val sexualOrientation: DisplayableField<SexualOrientation>,
     val pronouns: DisplayableField<Pronouns?>,
     val starSign: DisplayableField<StarSign?>,
+    val ethnicity: DisplayableField<List<Ethnicity>>,
 
     // Brain & Body attributes
     val brainAttributes: DisplayableField<List<BrainAttribute>?>,
@@ -159,6 +160,7 @@ data class CreateUserRequest(
     val sexualOrientation: SexualOrientation? = null,
     val pronouns: Pronouns? = null,
     val starSign: StarSign? = null,
+    val ethnicity: List<Ethnicity>,
     val brainAttributes: List<BrainAttribute>? = null,
     val brainDescription: String? = null,
     val bodyAttributes: List<BodyAttribute>? = null,
@@ -206,6 +208,7 @@ data class UpdateUserRequest(
     val sexualOrientation: SexualOrientation? = null,
     val pronouns: Pronouns? = null,
     val starSign: StarSign? = null,
+    val ethnicity: List<Ethnicity>? = null,
     val brainAttributes: List<BrainAttribute>? = null,
     val brainDescription: String? = null,
     val bodyAttributes: List<BodyAttribute>? = null,
@@ -229,6 +232,9 @@ data class UpdateUserRequest(
         }
         if (bodyDescription != null) {
             require(bodyDescription.length <= 100) { "Body description must not exceed 100 characters" }
+        }
+        if (ethnicity != null) {
+            require(ethnicity.isNotEmpty()) { "Ethnicity must not be empty" }
         }
     }
 }

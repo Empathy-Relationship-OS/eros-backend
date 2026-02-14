@@ -108,9 +108,27 @@ object EnumValidator {
     /**
      * Validate and convert string to MediaType enum
      */
-    fun toMediaType(value: String): MediaType? = 
+    fun toMediaType(value: String): MediaType? =
         MediaType.entries.find { it.name.equals(value, ignoreCase = true) }
-    
+
+    /**
+     * Validate and convert string to Ethnicity enum
+     */
+    fun toEthnicity(value: String): Ethnicity? =
+        Ethnicity.entries.find { it.name.equals(value, ignoreCase = true) }
+
+    /**
+     * Validate and convert string to BrainAttribute enum
+     */
+    fun toBrainAttribute(value: String): BrainAttribute? =
+        BrainAttribute.entries.find { it.name.equals(value, ignoreCase = true) }
+
+    /**
+     * Validate and convert string to BodyAttribute enum
+     */
+    fun toBodyAttribute(value: String): BodyAttribute? =
+        BodyAttribute.entries.find { it.name.equals(value, ignoreCase = true) }
+
     /**
      * Validate interest string against all interest-related enums
      * Returns true if the string matches any of: Activity, Interest, Entertainment, 
@@ -168,6 +186,15 @@ object EnumValidator {
             BodyAttribute.entries.any { it.name.equals(attr, ignoreCase = true) }
         }
     }
+
+    /**
+     * Validate a list of ethnicity strings
+     */
+    fun validateEthnicities(ethnicities: List<String>): Boolean {
+        return ethnicities.all { ethnicity ->
+            Ethnicity.entries.any { it.name.equals(ethnicity, ignoreCase = true) }
+        }
+    }
 }
 
 /**
@@ -179,9 +206,13 @@ fun String.toLanguageOrNull(): Language? = EnumValidator.toLanguage(this)
 fun String.toTraitOrNull(): Trait? = EnumValidator.toTrait(this)
 fun String.toPredefinedQuestionOrNull(): PredefinedQuestion? = EnumValidator.toPredefinedQuestion(this)
 fun String.toMediaTypeOrNull(): MediaType? = EnumValidator.toMediaType(this)
+fun String.toEthnicityOrNull(): Ethnicity? = EnumValidator.toEthnicity(this)
+fun String.toBrainAttributeOrNull(): BrainAttribute? = EnumValidator.toBrainAttribute(this)
+fun String.toBodyAttributeOrNull(): BodyAttribute? = EnumValidator.toBodyAttribute(this)
 
 fun List<String>.areValidInterests(): Boolean = EnumValidator.validateInterests(this)
 fun List<String>.areValidTraits(): Boolean = EnumValidator.validateTraits(this)
 fun List<String>.areValidLanguages(): Boolean = EnumValidator.validateLanguages(this)
 fun List<String>.areValidBrainAttributes(): Boolean = EnumValidator.validateBrainAttributes(this)
 fun List<String>.areValidBodyAttributes(): Boolean = EnumValidator.validateBodyAttributes(this)
+fun List<String>.areValidEthnicities(): Boolean = EnumValidator.validateEthnicities(this)

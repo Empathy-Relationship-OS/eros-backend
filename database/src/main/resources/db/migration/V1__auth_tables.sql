@@ -65,6 +65,8 @@ CREATE TABLE users (
     pronouns_display BOOLEAN NOT NULL DEFAULT FALSE,
     star_sign VARCHAR(50),
     star_sign_display BOOLEAN NOT NULL DEFAULT FALSE,
+    ethnicity TEXT[] NOT NULL,
+    ethnicity_display BOOLEAN NOT NULL DEFAULT FALSE,
 
     -- Brain & Body attributes (PostgreSQL TEXT[] arrays)
     brain_attributes TEXT[],
@@ -103,6 +105,7 @@ CREATE INDEX idx_users_date_of_birth ON users(date_of_birth);
 CREATE INDEX idx_users_interests ON users USING GIN(interests);
 CREATE INDEX idx_users_traits ON users USING GIN(traits);
 CREATE INDEX idx_users_spoken_languages ON users USING GIN(spoken_languages);
+CREATE INDEX idx_users_ethnicity ON users USING GIN(ethnicity);
 
 -- Comments for documentation
 COMMENT ON TABLE users IS 'Complete user profile linked to Firebase Auth (Firebase UID as PK)';

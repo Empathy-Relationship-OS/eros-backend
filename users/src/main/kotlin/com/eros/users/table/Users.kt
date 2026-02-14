@@ -79,6 +79,8 @@ object Users : Table("users") {
     val pronounsDisplay = bool("pronouns_display").default(false)
     val starSign = varchar("star_sign", 50).nullable() // StarSign enum
     val starSignDisplay = bool("star_sign_display").default(false)
+    val ethnicity = array<String>("ethnicity") // Ethnicity enum array (required)
+    val ethnicityDisplay = bool("ethnicity_display").default(false)
 
     // Brain & Body attributes (stored as TEXT[] - PostgreSQL array)
     // Optional fields for neurodiversity and physical health

@@ -653,6 +653,26 @@ enum class BodyAttribute {
 }
 
 /**
+ * Ethnicity used for preferences + required
+ */
+enum class Ethnicity(val displayName: String) {
+    BLACK_AFRICAN_DESCENT("Black/African Descent"),
+    EAST_ASIAN("East Asian"),
+    HISPANIC_LATINO("Hispanic/Latino"),
+    MIDDLE_EASTERN("Middle Eastern"),
+    NATIVE_AMERICAN("Native American"),
+    PACIFIC_ISLANDER("Pacific Islander"),
+    SOUTH_ASIAN("South Asian"),
+    SOUTHEAST_ASIAN("Southeast Asian");
+
+    companion object {
+        fun fromDisplayName(displayName: String): Ethnicity? {
+            return entries.find { it.displayName == displayName }
+        }
+    }
+}
+
+/**
  * Media type for user uploads
  */
 enum class MediaType {
