@@ -40,3 +40,10 @@ out/
 
 ### Local machine config ###
 local.properties
+
+### Firebase Service Account Credentials ###
+# Exclude all service account JSON files
+*-service-account.json
+firebase-service-account.json
+# But keep test credentials tracked
+!app/src/test/resources/test.json
