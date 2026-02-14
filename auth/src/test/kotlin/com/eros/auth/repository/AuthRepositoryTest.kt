@@ -87,7 +87,7 @@ class AuthRepositoryTest {
         val phone = "+1234567890"
 
         // When
-        val user = repository.createOrUpdateUser(firebaseUid, email, phone)
+        val user = repository.createOrUpdateUser(firebaseUid, email, phone).user
 
         // Then
         assertEquals(firebaseUid, user.id)
@@ -105,7 +105,7 @@ class AuthRepositoryTest {
         val email = "test@example.com"
 
         // When
-        val user = repository.createOrUpdateUser(firebaseUid, email, null)
+        val user = repository.createOrUpdateUser(firebaseUid, email, null).user
 
         // Then
         assertEquals(firebaseUid, user.id)
@@ -122,14 +122,14 @@ class AuthRepositoryTest {
         val updatedPhone = "+9876543210"
 
         // Create initial user
-        val originalUser = repository.createOrUpdateUser(firebaseUid, originalEmail, null)
+        val originalUser = repository.createOrUpdateUser(firebaseUid, originalEmail, null).user
         val originalCreatedAt = originalUser.createdAt
 
         // Advance time
         testClock.advance(Duration.ofHours(24))
 
         // When - update with new email and phone
-        val updatedUser = repository.createOrUpdateUser(firebaseUid, updatedEmail, updatedPhone)
+        val updatedUser = repository.createOrUpdateUser(firebaseUid, updatedEmail, updatedPhone).user
 
         // Then
         assertEquals(firebaseUid, updatedUser.id)
@@ -218,7 +218,7 @@ class AuthRepositoryTest {
     }
 
     @Test
-    fun `findByEmail is case-sensitive`() = runTest {
+    fun `findByEmail is not case-sensitive`() = runTest {
         // Given
         repository.createOrUpdateUser("firebase_uid_123", "test@example.com", "+1234567890")
 
@@ -226,7 +226,7 @@ class AuthRepositoryTest {
         val foundUser = repository.findByEmail("TEST@EXAMPLE.COM")
 
         // Then
-        assertNull(foundUser, "Email lookup should be case-sensitive")
+        assertNotNull(foundUser, "Email lookup should be case-sensitive")
     }
 
     // ========== updateLastActiveAt() tests ==========
@@ -235,7 +235,7 @@ class AuthRepositoryTest {
     fun `updateLastActiveAt sets last active timestamp`() = runTest {
         // Given
         val firebaseUid = "firebase_uid_123"
-        val user = repository.createOrUpdateUser(firebaseUid, "test@example.com", "+1234567890")
+        val user = repository.createOrUpdateUser(firebaseUid, "test@example.com", "+1234567890").user
         assertNull(user.lastActiveAt, "Initially lastActiveAt should be null")
 
         // When
@@ -312,7 +312,7 @@ class AuthRepositoryTest {
         repository.deleteUser(firebaseUid1)
 
         // Then - should be able to create new user with same email and phone
-        val newUser = repository.createOrUpdateUser(firebaseUid2, email, phone)
+        val newUser = repository.createOrUpdateUser(firebaseUid2, email, phone).user
         assertEquals(firebaseUid2, newUser.id)
         assertEquals(email, newUser.email)
         assertEquals(phone, newUser.phone)
