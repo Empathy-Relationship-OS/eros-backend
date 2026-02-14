@@ -9,6 +9,8 @@ import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import org.jetbrains.exposed.v1.exceptions.ExposedSQLException
+import java.sql.SQLException
 
 /**
  * Configure authentication routes for Firebase Auth integration.
@@ -45,12 +47,8 @@ fun Route.authRoutes(authRepository: AuthRepository) {
                 )
 
             try {
-                // Check if user already exists
-                val existingUser = authRepository.findByFirebaseUid(principal.uid)
-                val isNewUser = existingUser == null
-
-                // Create or update user in database
-                val user = authRepository.createOrUpdateUser(
+                // Create or update user in database (atomic operation)
+                val upsertResult = authRepository.createOrUpdateUser(
                     firebaseUid = principal.uid,
                     email = principal.email ?: return@post call.respond(
                         HttpStatusCode.BadRequest,
@@ -64,15 +62,33 @@ fun Route.authRoutes(authRepository: AuthRepository) {
 
                 val response = SyncProfileResponse(
                     user = UserSummary(
-                        userId = user.id,
-                        email = user.email,
-                        phone = user.phone,
+                        userId = upsertResult.user.id,
+                        email = upsertResult.user.email,
+                        phone = upsertResult.user.phone,
                         emailVerified = principal.emailVerified
                     ),
-                    isNewUser = isNewUser
+                    isNewUser = upsertResult.wasCreated
                 )
 
                 call.respond(HttpStatusCode.OK, response)
+            } catch (e: IllegalArgumentException) {
+                call.application.log.warn("Invalid input while syncing user profile", e)
+                call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to "invalid_input", "message" to (e.message ?: "Invalid input"))
+                )
+            } catch (e: ExposedSQLException) {
+                call.application.log.error("Database error syncing user profile", e)
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    mapOf("error" to "database_error", "message" to "Database operation failed")
+                )
+            } catch (e: SQLException) {
+                call.application.log.error("SQL error syncing user profile", e)
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    mapOf("error" to "database_error", "message" to "Database operation failed")
+                )
             } catch (e: Exception) {
                 call.application.log.error("Error syncing user profile", e)
                 call.respond(
@@ -120,6 +136,18 @@ fun Route.authRoutes(authRepository: AuthRepository) {
                 )
 
                 call.respond(HttpStatusCode.OK, userSummary)
+            } catch (e: ExposedSQLException) {
+                call.application.log.error("Database error fetching user profile", e)
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    mapOf("error" to "database_error", "message" to "Database operation failed")
+                )
+            } catch (e: SQLException) {
+                call.application.log.error("SQL error fetching user profile", e)
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    mapOf("error" to "database_error", "message" to "Database operation failed")
+                )
             } catch (e: Exception) {
                 call.application.log.error("Error fetching user profile", e)
                 call.respond(
@@ -161,6 +189,18 @@ fun Route.authRoutes(authRepository: AuthRepository) {
                     call.application.log.info("User account deleted: ${principal.uid}")
                     call.respond(HttpStatusCode.NoContent)
                 }
+            } catch (e: ExposedSQLException) {
+                call.application.log.error("Database error deleting user account", e)
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    mapOf("error" to "database_error", "message" to "Database operation failed")
+                )
+            } catch (e: SQLException) {
+                call.application.log.error("SQL error deleting user account", e)
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    mapOf("error" to "database_error", "message" to "Database operation failed")
+                )
             } catch (e: Exception) {
                 call.application.log.error("Error deleting user account", e)
                 call.respond(

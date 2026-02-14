@@ -18,8 +18,7 @@ CREATE TABLE users (
 );
 
 -- Indexes for common query patterns
-CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_users_phone ON users(phone) WHERE phone IS NOT NULL;
+-- Note: email and phone already have indexes from UNIQUE constraints
 CREATE INDEX idx_users_created_at ON users(created_at);
 CREATE INDEX idx_users_last_active_at ON users(last_active_at) WHERE last_active_at IS NOT NULL;
 

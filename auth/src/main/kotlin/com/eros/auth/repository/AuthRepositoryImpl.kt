@@ -20,8 +20,15 @@ class AuthRepositoryImpl(
     private val clock: Clock = Clock.systemUTC()
 ) : AuthRepository {
 
-    override suspend fun createOrUpdateUser(firebaseUid: String, email: String, phone: String?): User = dbQuery {
+    override suspend fun createOrUpdateUser(firebaseUid: String, email: String, phone: String?): UpsertResult = dbQuery {
         val now = Instant.now(clock)
+
+        // Check if user exists before upsert
+        val existingUser = Users.selectAll()
+            .where { Users.id eq firebaseUid }
+            .singleOrNull()
+
+        val wasCreated = existingUser == null
 
         // Use upsert to create or update user based on Firebase UID
         Users.upsert(Users.id) { row ->
@@ -33,10 +40,12 @@ class AuthRepositoryImpl(
         }
 
         // Fetch and return the user
-        Users.selectAll()
+        val user = Users.selectAll()
             .where { Users.id eq firebaseUid }
             .single()
             .toUser()
+
+        UpsertResult(user = user, wasCreated = wasCreated)
     }
 
     override suspend fun findByFirebaseUid(firebaseUid: String): User? = dbQuery {
@@ -48,15 +57,16 @@ class AuthRepositoryImpl(
 
     override suspend fun findByEmail(email: String): User? = dbQuery {
         Users.selectAll()
-            .where { Users.email eq email }
+            .where { Users.email.lowerCase() eq email.lowercase() }
             .singleOrNull()
             ?.toUser()
     }
 
     override suspend fun updateLastActiveAt(firebaseUid: String): Int = dbQuery {
+        val now = Instant.now(clock)
         Users.update({ Users.id eq firebaseUid }) {
-            it[lastActiveAt] = Instant.now(clock)
-            it[updatedAt] = Instant.now(clock)
+            it[lastActiveAt] = now
+            it[updatedAt] = now
         }
     }
 

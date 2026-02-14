@@ -5,6 +5,7 @@ import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
 import io.ktor.server.application.*
 import java.io.FileInputStream
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Firebase configuration settings
@@ -28,33 +29,40 @@ data class FirebaseSettings(
  */
 object FirebaseConfig {
 
-    private var initialized = false
+    private val initialized = AtomicBoolean(false)
 
     /**
      * Initialize Firebase Admin SDK
      *
      * @param settings Firebase configuration settings
-     * @throws IllegalStateException if Firebase is already initialized
+     * @throws IllegalStateException if Firebase is already initialized or configuration is invalid
      */
     fun initialize(settings: FirebaseSettings) {
-        if (initialized) {
+        if (!initialized.compareAndSet(false, true)) {
             throw IllegalStateException("Firebase is already initialized")
         }
 
-        val serviceAccount = FileInputStream(settings.serviceAccountPath)
-        val options = FirebaseOptions.builder()
-            .setCredentials(GoogleCredentials.fromStream(serviceAccount))
-            .setProjectId(settings.projectId)
-            .build()
+        if (settings.projectId.isBlank() || settings.projectId == "your-project-id") {
+            throw IllegalStateException(
+                "FIREBASE_PROJECT_ID must be configured with a valid Firebase project ID. " +
+                "Please set the FIREBASE_PROJECT_ID environment variable."
+            )
+        }
+
+        val options = FileInputStream(settings.serviceAccountPath).use { serviceAccount ->
+            FirebaseOptions.builder()
+                .setCredentials(GoogleCredentials.fromStream(serviceAccount))
+                .setProjectId(settings.projectId)
+                .build()
+        }
 
         FirebaseApp.initializeApp(options)
-        initialized = true
     }
 
     /**
      * Check if Firebase has been initialized
      */
-    fun isInitialized(): Boolean = initialized
+    fun isInitialized(): Boolean = initialized.get()
 }
 
 /**

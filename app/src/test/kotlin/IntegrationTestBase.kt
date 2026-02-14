@@ -41,8 +41,8 @@ abstract class IntegrationTestBase {
 
         postgres = PostgreSQLContainer("postgres:16-alpine")
             .withDatabaseName("eros_test")
-            .withUsername("test.json")
-            .withPassword("test.json")
+            .withUsername("test")
+            .withPassword("test")
         postgres.start()
     }
 

@@ -3,6 +3,17 @@ package com.eros.auth.repository
 import com.eros.auth.tables.User
 
 /**
+ * Result of a user upsert operation.
+ *
+ * @property user The created or updated user
+ * @property wasCreated True if a new user was created, false if an existing user was updated
+ */
+data class UpsertResult(
+    val user: User,
+    val wasCreated: Boolean
+)
+
+/**
  * Repository interface for user data management with Firebase Auth integration.
  *
  * This repository handles syncing Firebase-authenticated users with the local database.
@@ -23,9 +34,9 @@ interface AuthRepository {
      * @param firebaseUid Firebase Authentication user ID (unique identifier)
      * @param email User's email address from Firebase
      * @param phone User's phone number from Firebase (nullable)
-     * @return The created or updated User object
+     * @return UpsertResult containing the created or updated User and whether it was newly created
      */
-    suspend fun createOrUpdateUser(firebaseUid: String, email: String, phone: String?): User
+    suspend fun createOrUpdateUser(firebaseUid: String, email: String, phone: String?): UpsertResult
 
     /**
      * Finds a user by Firebase UID.
