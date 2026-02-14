@@ -2,7 +2,7 @@
 kotlin = "2.2.21"
 ktor = "3.3.3"
 logback = "1.4.14"
-dotenv = "6.1.4"
+dotenv = "6.4.1"
 jbcrypt = "0.4"
 exposed = "1.0.0"
 postgresql = "42.7.4"
@@ -12,6 +12,7 @@ testcontainers = "1.21.4"
 junit = "5.11.0"
 java-jwt = "4.5.0"
 firebase-admin = "9.7.1"
+twilio = "9.14.1"
 
 [libraries]
 ktor-server-content-negotiation = { module = "io.ktor:ktor-server-content-negotiation", version.ref = "ktor" }
@@ -49,6 +50,7 @@ junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "jun
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
 java-jwt = { module = "com.auth0:java-jwt", version.ref = "java-jwt" }
 firebase-admin = { module = "com.google.firebase:firebase-admin", version.ref = "firebase-admin" }
+twilio = {module = "com.twilio.sdk:twilio", version.ref = "twilio"}
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
