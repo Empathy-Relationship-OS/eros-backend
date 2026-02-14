@@ -40,19 +40,20 @@ The application follows Ktor's module-based configuration pattern:
    - `configureAdministration()` - Rate limiting
    - `configureHTTP()` - CORS and default headers
    - `configureMonitoring()` - Call logging
-   - `configureSecurity()` - Authentication (OAuth + JWT)
+   - `configureAuthentication()` - Firebase authentication (token verification)
    - `configureRouting()` - Routes and request validation
 
 **Important**: Plugin installation order matters in Ktor. Database must be configured first, then security and serialization before routing.
 
 ### Configuration Files
 
-- `app/src/main/resources/application.yaml` - Server, database, and JWT configuration
+- `app/src/main/resources/application.yaml` - Server, database, and Firebase configuration
   - Module loading: `com.eros.ApplicationKt.module`
   - Port configuration
   - Database settings (host, port, name, credentials, connection pool)
-  - JWT settings (domain, audience, realm)
+  - Firebase settings (service account path, project ID)
 - `app/src/main/resources/logback.xml` - Logging configuration
+- `.env.example` - Example environment variables file
 
 ### Modular Plugin Structure
 
@@ -66,25 +67,41 @@ Each configuration function lives in its own file:
 - **Administration.kt** - Rate limiting with TokenBucket (100 capacity, 10s refill)
 - **HTTP.kt** - CORS (currently `anyHost()` - needs production restriction) and custom headers
 - **Monitoring.kt** - Call logging for all requests
-- **Security.kt** - Dual authentication:
-  - OAuth with Google (requires `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` env vars)
-  - JWT verification (HMAC256, configured via application.yaml)
-  - Session management with `UserSession`
+- **Authentication.kt** - Firebase authentication:
+  - Firebase Admin SDK initialization
+  - Firebase ID token verification
+  - Bearer token authentication scheme ("firebase-auth")
+  - Configured via `firebase` section in application.yaml
 - **Routing.kt** - Request validation and route definitions
 
-### Authentication Flow
+### Authentication Flow (Firebase)
 
-The Security module sets up two authentication schemes:
+The application uses **Firebase Authentication** for user identity management:
 
-1. **OAuth ("auth-oauth-google")**:
-   - Login endpoint: `/login` redirects to Google OAuth
-   - Callback: `/callback` receives token and creates session
-   - Requires environment variables for Google client credentials
+**Firebase handles**:
+- User registration (email/password, phone, social providers)
+- Password hashing and storage
+- OTP generation and verification
+- Email/phone verification
+- JWT (ID token) generation and signing
+- Token refresh
 
-2. **JWT**:
-   - Validates HMAC256 signed tokens
-   - Checks audience and issuer claims
-   - Configuration pulled from `application.yaml` (partially hardcoded)
+**Backend handles**:
+- Firebase ID token verification
+- User profile data storage and management
+- Business logic and authorization
+
+**Flow**:
+1. Client authenticates with Firebase (via Firebase SDK)
+2. Firebase returns ID token to client
+3. Client sends ID token in `Authorization: Bearer <token>` header
+4. Backend verifies token with Firebase Admin SDK
+5. Backend extracts user info (UID, email, phone) from verified token
+6. Backend syncs/retrieves user profile from local database
+
+**Authentication Scheme**: `"firebase-auth"` (Bearer token - Firebase ID tokens are JWTs)
+**Principal**: `FirebaseUserPrincipal` containing UID, email, phone, emailVerified
+**Token Format**: `Authorization: Bearer <firebase-id-token>`
 
 ### Database Module
 
@@ -116,6 +133,8 @@ suspend fun getUser(id: UUID): User? = dbQuery {
 - Status tracked in `flyway_schema_history` table
 
 **Environment Variables**:
+- `FIREBASE_SERVICE_ACCOUNT_PATH` - Path to Firebase service account JSON (required)
+- `FIREBASE_PROJECT_ID` - Firebase project ID (required)
 - `DB_HOST` - Database hostname (default: localhost)
 - `DB_PORT` - Database port (default: 5432)
 - `DB_NAME` - Database name (default: eros)
@@ -138,12 +157,16 @@ Eros Backend uses a **modular monolith** architecture where each module can pote
 
 ### Core Modules
 
-**auth/** - Authentication & Identity
-- **Purpose**: "Who you are" - identity, credentials, verification
-- **Owns**: User authentication, OTP verification, session management
-- **Tables**: `users`, `otp_verification`, `refresh_tokens`
-- **Routes**: `/auth/login`, `/auth/signup`, `/auth/verify`
-- **Reusable**: Can authenticate any entity type (users, admins, services)
+**auth/** - Authentication & Identity (Firebase Integration)
+- **Purpose**: Sync Firebase-authenticated users with backend database
+- **Owns**: User profile data linked to Firebase UIDs
+- **Tables**: `users` (Firebase UID as primary key)
+- **Routes**:
+  - `POST /auth/sync-profile` - Sync Firebase user to backend database
+  - `GET /auth/me` - Get current user profile
+  - `DELETE /auth/delete-account` - Delete user account (GDPR compliance)
+- **Firebase Integration**: Uses Firebase Admin SDK for token verification
+- **Note**: Firebase handles passwords, OTP, email/phone verification, JWT tokens
 
 **users/** - User Profiles & Management
 - **Purpose**: "What you're like" - profiles, preferences, social features
@@ -159,7 +182,7 @@ Eros Backend uses a **modular monolith** architecture where each module can pote
 
 **common/** - Shared Utilities
 - **Purpose**: Cross-cutting utilities used by all modules
-- **Provides**: Security helpers (PasswordHasher), common DTOs, extensions
+- **Provides**: Common DTOs, extensions, shared utilities
 
 ### Feature Modules (Future)
 
@@ -171,10 +194,10 @@ Eros Backend uses a **modular monolith** architecture where each module can pote
 ### Design Principles
 
 1. **Auth vs Users Separation**
-   - Auth handles security-critical identity data (credentials, verification)
+   - Auth handles syncing Firebase users with backend database
    - Users handles business-specific profile data (preferences, activity)
-   - This allows auth to be reused across multiple entity types
-   - Enables independent scaling and security auditing
+   - Firebase handles all security-critical operations (auth, verification)
+   - Enables independent scaling and clear separation of concerns
 
 2. **Database Module Pattern**
    - Migrations live in `database/src/main/resources/db/migration/`
@@ -208,10 +231,12 @@ app/
 
 auth/
   └── src/main/kotlin/com/eros/auth/
-      ├── tables/           - Exposed table definitions (Users, OtpVerification)
-      ├── services/         - Auth business logic (AuthService, OtpService)
+      ├── firebase/         - Firebase configuration and authentication
+      ├── tables/           - Exposed table definitions (Users)
+      ├── repository/       - Data access layer (AuthRepository)
       ├── routes/           - Auth endpoints
-      └── models/           - DTOs and data classes
+      ├── models/           - DTOs and data classes
+      └── validation/       - Input validators (Email, Phone, Age)
 
 users/
   └── src/main/kotlin/com/eros/users/
@@ -228,21 +253,23 @@ database/
   │   └── FlywayConfig.kt   - Flyway migration management
   └── src/main/resources/db/migration/
       ├── V0__init.sql      - Baseline migration
-      ├── V1__auth_tables.sql - Auth module tables
-      └── V2__user_profiles.sql - Users module tables
+      └── V1__auth_tables.sql - Auth module tables (Firebase UID as PK)
 
 common/
   └── src/main/kotlin/com/eros/common/
-      └── security/
-          └── PasswordHasher.kt - BCrypt password hashing utility
+      └── (shared utilities and DTOs)
 ```
 
 ## Important Notes
 
 - **Security Warning**: `HTTP.kt` currently uses `anyHost()` for CORS, which allows all origins. This should be restricted in production.
-- **JWT Configuration**: JWT settings are partially hardcoded in `Security.kt` (secret, audience, domain). Consider moving entirely to `application.yaml`.
-- **Environment Variables**: Google OAuth requires `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` to be set.
+- **Firebase Setup Required**:
+  - Download Firebase service account JSON from Firebase Console
+  - Set `FIREBASE_SERVICE_ACCOUNT_PATH` and `FIREBASE_PROJECT_ID` environment variables
+  - See `.env.example` for configuration template
+- **Authentication**: All authentication is handled by Firebase. Backend only verifies tokens and manages user profiles.
 - **Rate Limiting**: Currently applies TokenBucket (100 capacity, 10s rate) to all routes under `/`. Adjust in `Administration.kt` as needed.
+- **GDPR Compliance**: Firebase handles user data deletion. Backend implements `DELETE /auth/delete-account` for profile cleanup.
 
 ## Adding New Features
 

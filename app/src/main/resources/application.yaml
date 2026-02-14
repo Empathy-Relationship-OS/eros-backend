@@ -5,18 +5,9 @@ ktor:
     deployment:
         port: 8080
 
-jwt:
-  secret: ${JWT_SECRET:}
-  issuer: ${JWT_ISSUER:eros-backend}
-  domain: "test"
-  audience: ${JWT_AUDIENCE:eros-users}
-  realm: ${JWT_REALM:eros-api}
-
-oauth:
-  callbackUrl: ${OAUTH_CALLBACK_URL:http://localhost:8080/callback}
-  google:
-    clientId: ${GOOGLE_CLIENT_ID:}
-    clientSecret: ${GOOGLE_CLIENT_SECRET:}
+firebase:
+  serviceAccountPath: ${FIREBASE_SERVICE_ACCOUNT_PATH:./firebase-service-account.json}
+  projectId: ${FIREBASE_PROJECT_ID:your-project-id}
 
 database:
   host: ${DB_HOST:localhost}

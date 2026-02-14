@@ -1,8 +1,9 @@
 package com.eros
 
+import com.eros.auth.repository.AuthRepositoryImpl
+import com.eros.auth.routes.authRoutes
 import io.ktor.http.*
 import io.ktor.server.application.*
-import io.ktor.server.auth.*
 import io.ktor.server.plugins.requestvalidation.*
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.response.*
@@ -34,32 +35,18 @@ fun Application.configureRouting() {
             )
         }
     }
+
+    // Initialize repositories
+    val authRepository = AuthRepositoryImpl()
+
     routing {
         get("/") {
             call.respondText("Hello World!")
         }
 
-        // Protected routes requiring JWT authentication
-        authenticate("jwt-auth") {
-            // TODO: Implement /users/me endpoint
-            // This endpoint should return the authenticated user's profile information
-            // Access the JWT payload via: val payload = call.principal<JwtPayload>()
-            // Example response: { "userId": "...", "email": "...", "profile": {...} }
-            get("/users/me") {
-                val payload = requireNotNull(call.principal<JwtPayload>()) {
-                    "No authentication principal found"
-                }
-
-                // Placeholder response - actual implementation should fetch user data from database
-                call.respond(
-                    HttpStatusCode.OK,
-                    mapOf(
-                        "userId" to payload.userId.toString(),
-                        "email" to payload.email,
-                        "message" to "TODO: Implement user profile retrieval from database"
-                    )
-                )
-            }
+        // Auth routes (Firebase authenticated)
+        route("/auth") {
+            authRoutes(authRepository)
         }
     }
 }

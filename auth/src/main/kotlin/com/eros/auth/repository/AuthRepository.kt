@@ -1,30 +1,50 @@
 package com.eros.auth.repository
 
-import com.eros.auth.tables.OtpVerificationResult
 import com.eros.auth.tables.User
-import java.time.Instant
-import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 
 /**
- * Repository interface for authentication-related database operations.
+ * Result of a user upsert operation.
  *
- * Provides data access methods for user management and OTP verification.
+ * @property user The created or updated user
+ * @property wasCreated True if a new user was created, false if an existing user was updated
+ */
+data class UpsertResult(
+    val user: User,
+    val wasCreated: Boolean
+)
+
+/**
+ * Repository interface for user data management with Firebase Auth integration.
+ *
+ * This repository handles syncing Firebase-authenticated users with the local database.
+ * Firebase handles: passwords, OTP verification, email/phone verification, JWT tokens
+ * This repository handles: User profile data storage and retrieval
+ *
  * All operations use Exposed ORM with proper transaction management via dbQuery.
  */
-@OptIn(ExperimentalUuidApi::class)
 interface AuthRepository {
 
     /**
-     * Creates a new user with hashed password.
+     * Creates or updates a user from Firebase authentication.
      *
-     * @param email User's email address (must be unique)
-     * @param phone User's phone number (optional, must be unique if provided)
-     * @param plainPassword Plain text password to be hashed
-     * @return The created User object
-     * @throws org.jetbrains.exposed.v1.exceptions.ExposedSQLException if email or phone already exists
+     * This method syncs a Firebase-authenticated user to the local database.
+     * If a user with the given Firebase UID exists, it updates their data.
+     * If not, it creates a new user record.
+     *
+     * @param firebaseUid Firebase Authentication user ID (unique identifier)
+     * @param email User's email address from Firebase
+     * @param phone User's phone number from Firebase (nullable)
+     * @return UpsertResult containing the created or updated User and whether it was newly created
      */
-    suspend fun createUser(email: String, phone: String?, plainPassword: String): User
+    suspend fun createOrUpdateUser(firebaseUid: String, email: String, phone: String?): UpsertResult
+
+    /**
+     * Finds a user by Firebase UID.
+     *
+     * @param firebaseUid Firebase user ID to search for
+     * @return User if found, null otherwise
+     */
+    suspend fun findByFirebaseUid(firebaseUid: String): User?
 
     /**
      * Finds a user by email address.
@@ -35,64 +55,21 @@ interface AuthRepository {
     suspend fun findByEmail(email: String): User?
 
     /**
-     * Checks if an email address is already registered.
-     *
-     * @param email Email address to check
-     * @return true if email exists, false otherwise
-     */
-    suspend fun existsByEmail(email: String): Boolean
-
-    /**
-     * Checks if a phone number is already registered.
-     *
-     * @param phone Phone number to check
-     * @return true if phone exists, false otherwise
-     */
-    suspend fun existsByPhone(phone: String): Boolean
-
-    /**
-     * Updates user's verification status to VERIFIED.
-     *
-     * @param userId ID of the user to update
-     * @return Number of rows updated (1 if successful, 0 if user not found)
-     */
-    suspend fun updateVerificationStatus(userId: Uuid): Int
-
-    /**
      * Updates user's last active timestamp to current time.
      *
-     * @param userId ID of the user to update
+     * @param firebaseUid Firebase UID of the user to update
      * @return Number of rows updated (1 if successful, 0 if user not found)
      */
-    suspend fun updateLastActiveAt(userId: Uuid): Int
+    suspend fun updateLastActiveAt(firebaseUid: String): Int
 
     /**
-     * Stores a new OTP for phone verification.
+     * Deletes a user by Firebase UID.
      *
-     * Automatically hashes the OTP before storage and sets expiry time.
-     * Deletes any existing OTP for the same phone number before inserting.
+     * Used when a user deletes their Firebase account.
+     * Should cascade delete all related user data for GDPR compliance.
      *
-     * @param phoneNumber Phone number to associate with OTP
-     * @param plainOtp Plain text OTP to be hashed and stored
-     * @param expiryMinutes Number of minutes until OTP expires (default: 10)
-     * @return The ID of the created OTP record
+     * @param firebaseUid Firebase UID of the user to delete
+     * @return Number of rows deleted (1 if successful, 0 if user not found)
      */
-    suspend fun storeOtp(
-        phoneNumber: String,
-        plainOtp: String,
-        expiryMinutes: Long = 10L
-    ): Uuid
-
-    /**
-     * Verifies an OTP against the stored hash.
-     *
-     * Checks if OTP is valid, not expired, and attempts haven't been exceeded.
-     * Increments attempt counter on failure.
-     * Deletes OTP record on successful verification.
-     *
-     * @param phoneNumber Phone number to verify
-     * @param plainOtp Plain text OTP to verify
-     * @return OtpVerificationResult indicating the outcome
-     */
-    suspend fun verifyOtp(phoneNumber: String, plainOtp: String): OtpVerificationResult
+    suspend fun deleteUser(firebaseUid: String): Int
 }
