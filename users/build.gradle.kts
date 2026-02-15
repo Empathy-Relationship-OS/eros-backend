@@ -7,6 +7,7 @@ dependencies {
     // Internal modules
     implementation(project(":common"))
     implementation(project(":database"))
+    implementation(project(":auth"))
 
     // Ktor
     implementation(libs.ktor.server.core)

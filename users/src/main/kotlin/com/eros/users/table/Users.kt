@@ -1,6 +1,7 @@
 package com.eros.users.table
 
-
+import com.eros.users.models.*
+import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.javatime.date
 import org.jetbrains.exposed.v1.javatime.timestamp
@@ -97,6 +98,97 @@ object Users : Table("users") {
     val createdAt = timestamp("created_at").clientDefault { Instant.now() }
     val updatedAt = timestamp("updated_at").clientDefault { Instant.now() }
     val deletedAt = timestamp("deleted_at").nullable() // Soft delete
-    
+
     override val primaryKey = PrimaryKey(userId)
 }
+
+/**
+ * Extension function to map ResultRow to User DTO
+ */
+fun ResultRow.toDTO() = User(
+    userId = this[Users.userId],
+    firstName = this[Users.firstName],
+    lastName = this[Users.lastName],
+    email = this[Users.email],
+    heightCm = this[Users.heightCm],
+    dateOfBirth = this[Users.dateOfBirth],
+    city = this[Users.city],
+    educationLevel = EducationLevel.valueOf(this[Users.educationLevel]),
+    gender = Gender.valueOf(this[Users.gender]),
+    occupation = this[Users.occupation] ?: "",
+    bio = this[Users.bio] ?: "",
+    interests = this[Users.interests].toList(),
+    traits = this[Users.traits].toList().map { Trait.valueOf(it) },
+    preferredLanguage = Language.valueOf(this[Users.preferredLanguage]),
+    spokenLanguages = DisplayableField(
+        field = this[Users.spokenLanguages].toList().map { Language.valueOf(it) },
+        display = this[Users.spokenLanguagesDisplay]
+    ),
+    religion = DisplayableField(
+        field = this[Users.religion]?.let { Religion.valueOf(it) },
+        display = this[Users.religionDisplay]
+    ),
+    politicalView = DisplayableField(
+        field = this[Users.politicalView]?.let { PoliticalView.valueOf(it) },
+        display = this[Users.politicalViewDisplay]
+    ),
+    alcoholConsumption = DisplayableField(
+        field = this[Users.alcoholConsumption]?.let { AlcoholConsumption.valueOf(it) },
+        display = this[Users.alcoholConsumptionDisplay]
+    ),
+    smokingStatus = DisplayableField(
+        field = this[Users.smokingStatus]?.let { SmokingStatus.valueOf(it) },
+        display = this[Users.smokingStatusDisplay]
+    ),
+    diet = DisplayableField(
+        field = this[Users.diet]?.let { Diet.valueOf(it) },
+        display = this[Users.dietDisplay]
+    ),
+    dateIntentions = DisplayableField(
+        field = this[Users.dateIntentions]?.let { DateIntentions.valueOf(it) } ?: DateIntentions.NOT_SURE,
+        display = this[Users.dateIntentionsDisplay]
+    ),
+    relationshipType = DisplayableField(
+        field = this[Users.relationshipType]?.let { RelationshipType.valueOf(it) } ?: RelationshipType.MONOGAMOUS,
+        display = this[Users.relationshipTypeDisplay]
+    ),
+    kidsPreference = DisplayableField(
+        field = this[Users.kidsPreference]?.let { KidsPreference.valueOf(it) } ?: KidsPreference.PREFER_NOT_TO_SAY,
+        display = this[Users.kidsPreferenceDisplay]
+    ),
+    sexualOrientation = DisplayableField(
+        field = this[Users.sexualOrientation]?.let { SexualOrientation.valueOf(it) } ?: SexualOrientation.PREFER_NOT_TO_SAY,
+        display = this[Users.sexualOrientationDisplay]
+    ),
+    pronouns = DisplayableField(
+        field = this[Users.pronouns]?.let { Pronouns.valueOf(it) },
+        display = this[Users.pronounsDisplay]
+    ),
+    starSign = DisplayableField(
+        field = this[Users.starSign]?.let { StarSign.valueOf(it) },
+        display = this[Users.starSignDisplay]
+    ),
+    ethnicity = DisplayableField(
+        field = this[Users.ethnicity].toList().map { Ethnicity.valueOf(it) },
+        display = this[Users.ethnicityDisplay]
+    ),
+    brainAttributes = DisplayableField(
+        field = this[Users.brainAttributes]?.toList()?.map { BrainAttribute.valueOf(it) },
+        display = this[Users.brainAttributesDisplay]
+    ),
+    brainDescription = DisplayableField(
+        field = this[Users.brainDescription],
+        display = this[Users.brainDescriptionDisplay]
+    ),
+    bodyAttributes = DisplayableField(
+        field = this[Users.bodyAttributes]?.toList()?.map { BodyAttribute.valueOf(it) },
+        display = this[Users.bodyAttributesDisplay]
+    ),
+    bodyDescription = DisplayableField(
+        field = this[Users.bodyDescription],
+        display = this[Users.bodyDescriptionDisplay]
+    ),
+    createdAt = this[Users.createdAt],
+    updatedAt = this[Users.updatedAt],
+    deletedAt = this[Users.deletedAt]
+)
