@@ -3,7 +3,7 @@ package com.eros.users.routes
 import com.eros.auth.firebase.FirebaseUserPrincipal
 import com.eros.users.models.CreateUserRequest
 import com.eros.users.models.UpdateUserRequest
-import com.eros.users.repository.UserRepository
+import com.eros.users.service.UserService
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -29,9 +29,9 @@ data class UserExistsResponse(
  * These routes handle user profile CRUD operations.
  * All routes require Firebase authentication.
  *
- * @param userRepository Repository for user data operations
+ * @param userService Service for user data operations
  */
-fun Route.userRoutes(userRepository: UserRepository) {
+fun Route.userRoutes(userService: UserService) {
 
     // All user routes require Firebase authentication
     authenticate("firebase-auth") {
@@ -66,14 +66,14 @@ fun Route.userRoutes(userRepository: UserRepository) {
                 }
 
                 // Check if user already exists
-                if (userRepository.userExists(request.userId)) {
+                if (userService.userExists(request.userId)) {
                     return@post call.respond(
                         HttpStatusCode.Conflict,
                         mapOf("error" to "user_exists", "message" to "User profile already exists")
                     )
                 }
 
-                val user = userRepository.createUser(request)
+                val user = userService.createUser(request)
                 call.respond(HttpStatusCode.Created, user)
             } catch (e: IllegalArgumentException) {
                 call.application.log.warn("Invalid input while creating user profile", e)
@@ -120,7 +120,7 @@ fun Route.userRoutes(userRepository: UserRepository) {
                 )
 
             try {
-                val user = userRepository.findByUserId(principal.uid)
+                val user = userService.findByUserId(principal.uid)
                     ?: return@get call.respond(
                         HttpStatusCode.NotFound,
                         mapOf(
@@ -169,7 +169,7 @@ fun Route.userRoutes(userRepository: UserRepository) {
                 )
 
             try {
-                val exists = userRepository.userExists(principal.uid)
+                val exists = userService.userExists(principal.uid)
                 call.respond(HttpStatusCode.OK, UserExistsResponse(exists = exists, userId = principal.uid))
             } catch (e: Exception) {
                 call.application.log.error("Error checking user existence", e)
@@ -198,7 +198,7 @@ fun Route.userRoutes(userRepository: UserRepository) {
                 )
 
             try {
-                val user = userRepository.findByUserId(userId)
+                val user = userService.findByUserId(userId)
                     ?: return@get call.respond(
                         HttpStatusCode.NotFound,
                         mapOf("error" to "user_not_found", "message" to "User profile not found")
@@ -246,7 +246,7 @@ fun Route.userRoutes(userRepository: UserRepository) {
 
             try {
                 val request = call.receive<UpdateUserRequest>()
-                val user = userRepository.updateUser(principal.uid, request)
+                val user = userService.updateUser(principal.uid, request)
                     ?: return@put call.respond(
                         HttpStatusCode.NotFound,
                         mapOf("error" to "user_not_found", "message" to "User profile not found")
@@ -298,7 +298,7 @@ fun Route.userRoutes(userRepository: UserRepository) {
                 )
 
             try {
-                val rowsDeleted = userRepository.deleteUser(principal.uid)
+                val rowsDeleted = userService.deleteUser(principal.uid)
 
                 if (rowsDeleted == 0) {
                     call.respond(

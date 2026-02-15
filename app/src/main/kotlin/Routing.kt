@@ -1,6 +1,7 @@
 package com.eros
 
 import com.eros.users.repository.UserRepositoryImpl
+import com.eros.users.service.UserService
 import com.eros.users.routes.userRoutes
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -39,12 +40,15 @@ fun Application.configureRouting() {
     // Initialize repositories
     val userRepository = UserRepositoryImpl()
 
+    // Initialize services
+    val userService = UserService(userRepository)
+
     routing {
         get("/") {
             call.respondText("Hello World!")
         }
 
         // User routes (Firebase authenticated)
-        userRoutes(userRepository)
+        userRoutes(userService)
     }
 }
