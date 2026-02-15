@@ -1,19 +1,24 @@
 package com.eros.users.models
 
+import com.eros.common.serializers.InstantSerializer
+import com.eros.common.serializers.LocalDateSerializer
+import kotlinx.serialization.Serializable
 import java.time.Instant
 import java.time.LocalDate
 
 /**
  * User domain model representing a complete user profile
  */
+@Serializable
 data class User(
     val userId: String,
-    
+
     // Required fields
     val firstName: String,
     val lastName: String,
     val email: String,
     val heightCm: Int,
+    @Serializable(with = LocalDateSerializer::class)
     val dateOfBirth: LocalDate,
     val city: String,
     val educationLevel: EducationLevel,
@@ -61,8 +66,11 @@ data class User(
     val bodyDescription: DisplayableField<String?>, // max 100 chars
 
     // Timestamps
+    @Serializable(with = InstantSerializer::class)
     val createdAt: Instant,
+    @Serializable(with = InstantSerializer::class)
     val updatedAt: Instant,
+    @Serializable(with = InstantSerializer::class)
     val deletedAt: Instant? = null
 ) {
     /**
@@ -74,9 +82,9 @@ data class User(
      * Calculate user's age from date of birth
      */
     fun getAge(): Int {
-        val today = LocalDate.from(Instant.now())
+        val today = LocalDate.now()
         var age = today.year - dateOfBirth.year
-        if (today.monthValue < dateOfBirth.monthValue || 
+        if (today.monthValue < dateOfBirth.monthValue ||
             (today.monthValue == dateOfBirth.monthValue && today.dayOfMonth < dateOfBirth.dayOfMonth)) {
             age--
         }
@@ -131,12 +139,14 @@ data class User(
 /**
  * Request DTO for creating a new user
  */
+@Serializable
 data class CreateUserRequest(
     val userId: String, // From Firebase JWT
     val firstName: String,
     val lastName: String,
     val email: String,
     val heightCm: Int,
+    @Serializable(with = LocalDateSerializer::class)
     val dateOfBirth: LocalDate,
     val city: String,
     val educationLevel: EducationLevel,
@@ -184,6 +194,7 @@ data class CreateUserRequest(
 /**
  * Request DTO for updating user profile
  */
+@Serializable
 data class UpdateUserRequest(
     val firstName: String? = null,
     val lastName: String? = null,
@@ -243,4 +254,5 @@ data class UpdateUserRequest(
  * This is an encapsulating class for DTOs to reflect if a field should be viewable
  * on users profile
  */
+@Serializable
 data class DisplayableField<T>(val field: T, val display: Boolean)
