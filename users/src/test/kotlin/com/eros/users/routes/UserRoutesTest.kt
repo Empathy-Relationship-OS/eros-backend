@@ -51,6 +51,8 @@ class UserRoutesTest {
             }
 
             assertEquals(HttpStatusCode.Created, response.status)
+            val returnedUser = response.body<User>()
+            assertEquals(createdUser, returnedUser)
             coVerify { mockUserService.userExists(request.userId) }
             coVerify { mockUserService.createUser(request) }
         }
@@ -184,6 +186,8 @@ class UserRoutesTest {
             }
 
             assertEquals(HttpStatusCode.OK, response.status)
+            val returnedUser = response.body<User>()
+            assertEquals(user, returnedUser)
             coVerify { mockUserService.findByUserId(userId) }
         }
 
@@ -317,6 +321,8 @@ class UserRoutesTest {
             }
 
             assertEquals(HttpStatusCode.OK, response.status)
+            val returnedUser = response.body<User>()
+            assertEquals(user, returnedUser)
             coVerify { mockUserService.findByUserId(userId) }
         }
 
@@ -385,6 +391,9 @@ class UserRoutesTest {
             }
 
             assertEquals(HttpStatusCode.OK, response.status)
+            val returnedUser = response.body<User>()
+            assertEquals("UpdatedName", returnedUser.firstName)
+            assertEquals(updatedUser, returnedUser)
             coVerify { mockUserService.updateUser(userId, updateRequest) }
         }
 
