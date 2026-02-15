@@ -46,19 +46,3 @@ object UserPreferences : Table("user_preferences") {
         check("age_max_greater") { ageRangeMax.greater(ageRangeMin) }
     }
 }
-
-fun ResultRow.toUserPreferenceDTO() = UserPreference(
-    id = this[UserPreferences.id],
-    userId = this[UserPreferences.userId],
-    genderIdentities = this[UserPreferences.genderIdentities].map { Gender.valueOf(it) },
-    ageRangeMin = this[UserPreferences.ageRangeMin],
-    ageRangeMax = this[UserPreferences.ageRangeMax],
-    heightRangeMin = this[UserPreferences.heightRangeMin],
-    heightRangeMax = this[UserPreferences.heightRangeMax],
-    ethnicity = this[UserPreferences.ethnicities].map { Ethnicity.valueOf(it) },
-    dateLanguages = this[UserPreferences.dateLanguages].map { Language.valueOf(it) },
-    dateActivities = this[UserPreferences.dateActivities].map { Activity.valueOf(it) },
-    dateLimit = this[UserPreferences.dateLimit],
-    createdAt = this[UserPreferences.createdAt],
-    updatedAt = this[UserPreferences.updatedAt]
-)
