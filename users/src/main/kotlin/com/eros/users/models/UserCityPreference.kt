@@ -17,3 +17,7 @@ data class DeleteUserCityPreferenceRequest(
     val userId : String,
     val cityId : Long
 )
+
+data class DeleteAllUserCityPreferenceRequest(
+    val userId : String,
+)

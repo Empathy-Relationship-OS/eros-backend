@@ -1,6 +1,8 @@
 package com.eros.users.repository
 
 import com.eros.database.dbQuery
+import com.eros.users.models.CreateUserCityPreferenceRequest
+import com.eros.users.models.DeleteAllUserCityPreferenceRequest
 import com.eros.users.models.DeleteUserCityPreferenceRequest
 import com.eros.users.models.UserCityPreference
 import com.eros.users.table.UserCitiesPreference
@@ -16,7 +18,7 @@ import java.time.Instant
 
 class UserCitiesRepositoryImpl(private val clock: Clock = Clock.systemUTC()) : UserCitiesRepository {
 
-    override suspend fun addUserCityPreference(request: DeleteUserCityPreferenceRequest): UserCityPreference = dbQuery{
+    override suspend fun addUserCityPreference(request: CreateUserCityPreferenceRequest): UserCityPreference = dbQuery{
         val now = Instant.now(clock)
 
         UserCitiesPreference.insert { row ->
@@ -40,12 +42,12 @@ class UserCitiesRepositoryImpl(private val clock: Clock = Clock.systemUTC()) : U
      *
      * @return [UserCityPreference] if the record was deleted otherwise `null`
      */
-    override suspend fun deleteUserCityPreference(cityId: Long, userId: String): UserCityPreference? = dbQuery {
+    override suspend fun deleteUserCityPreference(request : DeleteUserCityPreferenceRequest): UserCityPreference? = dbQuery {
         // Get the record before deleting - To ensure it is a valid record.
         val existingRecord = UserCitiesPreference.selectAll()
             .where {
-                (UserCitiesPreference.userId eq userId) and
-                        (UserCitiesPreference.cityId eq cityId)
+                (UserCitiesPreference.userId eq request.userId) and
+                        (UserCitiesPreference.cityId eq request.cityId)
             }
             .singleOrNull()
             ?.toUserCityPreferenceDTO()
@@ -58,5 +60,12 @@ class UserCitiesRepositoryImpl(private val clock: Clock = Clock.systemUTC()) : U
 
         // Return the deleted record (or null if it didn't exist)
         existingRecord
+    }
+
+    override suspend fun deleteAllUserCityPreference(request : DeleteAllUserCityPreferenceRequest): Int = dbQuery {
+        // Delete the record
+        UserCitiesPreference.deleteWhere {
+            (UserCitiesPreference.userId eq userId)
+        }
     }
 }

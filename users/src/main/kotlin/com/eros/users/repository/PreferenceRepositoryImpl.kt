@@ -15,7 +15,7 @@ import java.time.Instant
 
 class PreferenceRepositoryImpl(private val clock: Clock = Clock.systemUTC()) : PreferenceRepository {
 
-    override suspend fun createPreferences(request: CreatePreferenceRequest): UserPreference{
+    override suspend fun createPreferences(request: CreatePreferenceRequest): UserPreference {
         val now = Instant.now(clock)
 
         UserPreferences.insert { row ->
@@ -35,48 +35,38 @@ class PreferenceRepositoryImpl(private val clock: Clock = Clock.systemUTC()) : P
 
         // Insert city preferences into junction table.
         request.dateCities.forEach { cityId ->
-            UserCitiesPreference.insert { row ->
-                row[UserCitiesPreference.userId] = request.userId
-                row[UserCitiesPreference.cityId] = cityId
-                row[createdAt] = now
-            }
+            UserCitiesRepositoryImpl().addUserCityPreference(CreateUserCityPreferenceRequest(request.userId, cityId))
         }
 
         return getUserPreferenceWithCities(request.userId)
     }
 
-    override suspend fun updatePreference(preferenceId: Long, request: UpdatePreferenceRequest): UserPreference{
-            val now = Instant.now(clock)
+    override suspend fun updatePreference(preferenceId: Long, request: UpdatePreferenceRequest): UserPreference {
+        val now = Instant.now(clock)
 
-            UserPreferences.update({ UserPreferences.id eq preferenceId }) { row ->
-                row[genderIdentities] = request.genderIdentities.map { it.name }
-                row[ageRangeMin] = request.ageRangeMin
-                row[ageRangeMax] = request.ageRangeMax
-                row[heightRangeMin] = request.heightRangeMin
-                row[heightRangeMax] = request.heightRangeMax
-                row[ethnicities] = request.ethnicity.map { it.name }
-                row[dateLanguages] = request.dateLanguages.map { it.name }
-                row[dateActivities] = request.dateActivities.map { it.name }
-                row[dateLimit] = request.dateLimit
-                row[updatedAt] = now
-            }
-
-            // Delete existing city preferences
-            UserCitiesPreference.deleteWhere {
-                UserCitiesPreference.userId eq request.userId
-            }
-
-            // Insert new city preferences
-            request.dateCities.forEach { cityId ->
-                UserCitiesPreference.insert { row ->
-                    row[UserCitiesPreference.userId] = request.userId
-                    row[UserCitiesPreference.cityId] = cityId
-                    row[createdAt] = now
-                }
-            }
-
-            return getUserPreferenceWithCities(request.userId)
+        UserPreferences.update({ UserPreferences.id eq preferenceId }) { row ->
+            row[genderIdentities] = request.genderIdentities.map { it.name }
+            row[ageRangeMin] = request.ageRangeMin
+            row[ageRangeMax] = request.ageRangeMax
+            row[heightRangeMin] = request.heightRangeMin
+            row[heightRangeMax] = request.heightRangeMax
+            row[ethnicities] = request.ethnicity.map { it.name }
+            row[dateLanguages] = request.dateLanguages.map { it.name }
+            row[dateActivities] = request.dateActivities.map { it.name }
+            row[dateLimit] = request.dateLimit
+            row[updatedAt] = now
         }
+
+        // Delete existing city preferences
+        UserCitiesRepositoryImpl().deleteAllUserCityPreference(DeleteAllUserCityPreferenceRequest(request.userId))
+
+        // Insert city preferences into junction table.
+        request.dateCities.forEach { cityId ->
+            UserCitiesRepositoryImpl().addUserCityPreference(CreateUserCityPreferenceRequest(request.userId, cityId))
+        }
+
+        return getUserPreferenceWithCities(request.userId)
+    }
 
 
     override suspend fun getUserPreferenceWithCities(userId: String): UserPreference {
