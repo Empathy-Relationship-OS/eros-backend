@@ -280,6 +280,33 @@ common/
 
 ## Testing
 
+### Tech Stack
+- **Language**: Kotlin 2.x
+- **Framework**: Ktor (Server-side)
+- **Testing Framework**: JUnit 5
+- **Mocking**: MockK
+- **Assertions**: Kotlin.test or AssertJ
+- **Async/Coroutines**: kotlinx-coroutines-test (`runTest`)
+- **HTTP/Integration Testing**: Ktor `testApplication`
+
+### Core Testing Strategy
+- **Structure**: Group public methods using JUnit 5 `@Nested` classes.
+- **Naming**: Use backticks for descriptive test names (e.g., `` `should return 404 when id is missing` ``).
+- **Behavior-Driven**: Focus on testing behaviors and outcomes, not framework internals.
+- **Pattern**: Follow the **SIFER** pattern (Simple, Isolated, Fast, Economical, Robust).
+
+### Mocking Strategy
+**DO Mock:**
+- External API services (using Ktor `MockEngine` or MockK wrappers)
+- Database Repositories/DAOs (unless performing integration tests)
+- System Clock/Time (inject `java.time.Clock`)
+- Third-party libraries/Heavy computations
+
+**DON'T Mock:**
+- Ktor application modules (prefer `testApplication` for real route testing)
+- Data Classes, Models, or DTOs
+- Simple utility functions or Kotlin standard library functions
+
 Tests use `ktor-server-test-host` for in-memory server testing. See `ApplicationTest.kt` for examples.
 
 When successful, the server logs:
