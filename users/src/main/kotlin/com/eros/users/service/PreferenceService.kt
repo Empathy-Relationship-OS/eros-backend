@@ -1,12 +1,9 @@
 package com.eros.users.service
 
 import com.eros.users.models.CreatePreferenceRequest
-import com.eros.users.models.CreateUserRequest
 import com.eros.users.models.UpdatePreferenceRequest
-import com.eros.users.models.User
 import com.eros.users.models.UserPreference
 import com.eros.users.repository.PreferenceRepository
-import com.eros.users.repository.UserRepository
 
 class PreferenceService(private val preferenceRepository: PreferenceRepository) {
 
