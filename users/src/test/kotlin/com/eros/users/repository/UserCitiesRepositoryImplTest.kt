@@ -48,7 +48,7 @@ class UserCitiesRepositoryImplTest {
             password = postgresContainer.password
         )
 
-        // Use regular transaction for schema creation (doesn't conflict)
+        // Use regular transaction for schema creation
         transaction {
             SchemaUtils.create(Cities, UserCitiesPreference)
         }
@@ -65,7 +65,7 @@ class UserCitiesRepositoryImplTest {
         transaction {
             UserCitiesPreference.deleteAll()
             Cities.deleteAll()
-            Users.deleteAll()  // Add this - clean users table too
+            Users.deleteAll()
 
             // Insert test cities
             Cities.insert {
@@ -88,7 +88,7 @@ class UserCitiesRepositoryImplTest {
             }
         }
 
-        // Create test users - do this AFTER transaction block, using runBlocking
+        // Create test users
         runBlocking {
             // Create user123
             userRepository.createUser(
