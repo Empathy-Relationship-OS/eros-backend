@@ -24,7 +24,7 @@ object UserPreferences : Table("user_preferences") {
     // Who I like section
     val ageRangeMin = integer("age_range_min")
     val ageRangeMax = integer("age_range_max")
-    val heightRangeMin = integer("height_range_max") // In cm
+    val heightRangeMin = integer("height_range_min") // In cm
     val heightRangeMax = integer("height_range_max") // In cm
     val ethnicities = array<String>("ethnicities")
     val genderIdentities = array<String>("gender_identities")
