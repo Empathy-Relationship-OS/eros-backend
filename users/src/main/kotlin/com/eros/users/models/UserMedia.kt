@@ -1,10 +1,13 @@
 package com.eros.users.models
 
+import com.eros.common.serializers.LocalDateTimeSerializer
+import kotlinx.serialization.Serializable
 import java.time.LocalDateTime
 
 /**
  * User media domain model for photos and videos
  */
+@Serializable
 data class UserMediaItem(
     val id: Long,
     val userId: String,
@@ -12,7 +15,9 @@ data class UserMediaItem(
     val mediaType: MediaType,
     val displayOrder: Int, // 1-6
     val isPrimary: Boolean,
+    @Serializable(with = LocalDateTimeSerializer::class)
     val createdAt: LocalDateTime,
+    @Serializable(with = LocalDateTimeSerializer::class)
     val updatedAt: LocalDateTime
 ) {
     init {
@@ -24,6 +29,7 @@ data class UserMediaItem(
 /**
  * Request DTO for adding user media
  */
+@Serializable
 data class AddUserMediaRequest(
     val userId: Long,
     val mediaUrl: String,
@@ -40,6 +46,7 @@ data class AddUserMediaRequest(
 /**
  * Request DTO for updating user media
  */
+@Serializable
 data class UpdateUserMediaRequest(
     val mediaUrl: String? = null,
     val displayOrder: Int? = null,
@@ -55,6 +62,7 @@ data class UpdateUserMediaRequest(
 /**
  * Response containing all media for a user, ordered by displayOrder
  */
+@Serializable
 data class UserMediaCollection(
     val userId: String,
     val media: List<UserMediaItem>,
