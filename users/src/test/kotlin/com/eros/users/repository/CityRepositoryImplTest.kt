@@ -22,6 +22,7 @@ import java.time.Instant
 import java.time.ZoneId
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
+import kotlin.test.assertNotNull
 
 @Testcontainers
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -75,14 +76,13 @@ class CityRepositoryImplTest {
 
     @Test
     fun createCity() {
-        val id = 1L
         val cityName = "TestValue"
 
         val city = runBlocking {
-            repository.createCity(CreateCityRequest(id, cityName))
+            repository.createCity(CreateCityRequest(cityName))
         }
 
-        assertEquals(id, city.id)
+        assertNotNull(city.cityId)
         assertEquals(cityName, city.cityName)
         assertEquals(fixedInstant, city.createdAt)
         assertEquals(fixedInstant, city.updatedAt)
@@ -95,11 +95,11 @@ class CityRepositoryImplTest {
         val cityDefault = City(id,cityName,clock.instant(),clock.instant())
         var city: City? = City(id,cityName,clock.instant(),clock.instant())
         runBlocking {
-            city = repository.createCity(CreateCityRequest(id, cityName))
+            city = repository.createCity(CreateCityRequest(cityName))
         }
         val newCityName = "AlteredTestValue"
         runBlocking {
-            city = repository.updateCity(cityDefault.id, UpdateCityRequest(newCityName))
+            city = repository.updateCity(cityDefault.cityId, UpdateCityRequest(cityDefault.cityId, newCityName))
         }
         assertNotEquals(city?.cityName ?: cityDefault.cityName, cityDefault.cityName)
     }

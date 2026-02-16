@@ -12,7 +12,6 @@ import com.eros.users.models.Gender
 import com.eros.users.models.Language
 import com.eros.users.models.Trait
 import com.eros.users.models.User
-import com.eros.users.service.PreferenceService
 import com.eros.users.table.Cities
 import com.eros.users.table.UserCitiesPreference
 import com.eros.users.table.UserPreferences
@@ -33,8 +32,6 @@ import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
-import kotlin.test.assertEquals
-import kotlin.test.assertNotEquals
 
 @Testcontainers
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -92,10 +89,10 @@ class PreferenceRepositoryImplTest {
         }
     }
 
-    fun createCity(id :Long, cityName : String) : City{
+    fun createCity(cityName : String) : City{
         val city : City
         runBlocking {
-            city = cityRepository.createCity(CreateCityRequest(id, cityName))
+            city = cityRepository.createCity(CreateCityRequest(cityName))
         }
         return city
     }
@@ -133,10 +130,9 @@ class PreferenceRepositoryImplTest {
         val user = createUser()
 
         // Create Test City
-        val city = createCity(1L, "TestCity")
+        val city = createCity( "TestCity")
 
         val request = CreatePreferenceRequest(
-            1L,
             "user123",
             listOf(Gender.FEMALE, Gender.NON_BINARY),
             25,
@@ -148,8 +144,6 @@ class PreferenceRepositoryImplTest {
             listOf(Activity.ESCAPE_ROOMS, Activity.BEACH),
             5,
             listOf(1L),
-            fixedInstant,
-            fixedInstant
         )
 
         runBlocking {

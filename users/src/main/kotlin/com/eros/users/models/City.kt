@@ -4,7 +4,7 @@ import java.time.Instant
 
 data class City(
     // City id.
-    val id : Long,
+    val cityId : Long,
 
     // City name.
     val cityName : String,
@@ -15,10 +15,10 @@ data class City(
 )
 
 data class CreateCityRequest(
-    val id: Long,
     val cityName : String
 )
 
 data class UpdateCityRequest(
-    val cityName : String,
+    val cityId : Long,
+    val newCityName : String
 )

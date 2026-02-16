@@ -18,14 +18,13 @@ CREATE TABLE user_preferences (
     -- Dating practicalities
     date_languages TEXT[] NOT NULL,
     date_activities TEXT[] NOT NULL,
-    date_limit INTEGER NOT NULL,
+    date_limit INTEGER,
 
     -- Timestamps
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
 
     -- Constraints
-    CONSTRAINT user_preferences_date_limit_range CHECK (date_limit BETWEEN 1 AND 6),
     CONSTRAINT user_preferences_age_min_valid CHECK (age_range_min > 17),
     CONSTRAINT user_preferences_age_max_greater CHECK (age_range_max > age_range_min),
     CONSTRAINT user_preferences_height_range_valid CHECK (height_range_max > height_range_min)

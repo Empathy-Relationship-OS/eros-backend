@@ -23,7 +23,7 @@ object Cities : Table("cities") {
 }
 
 fun ResultRow.toCityDTO() = City(
-    id = this[Cities.id],
+    cityId = this[Cities.id],
     cityName = this[Cities.cityName],
     createdAt = this[Cities.createdAt],
     updatedAt = this[Cities.updatedAt]

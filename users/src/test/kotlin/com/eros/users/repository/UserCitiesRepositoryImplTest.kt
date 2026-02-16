@@ -70,19 +70,16 @@ class UserCitiesRepositoryImplTest {
 
             // Insert test cities
             Cities.insert {
-                it[id] = 1L
                 it[cityName] = "New York"
                 it[createdAt] = fixedInstant
                 it[updatedAt] = fixedInstant
             }
             Cities.insert {
-                it[id] = 2L
                 it[cityName] = "Los Angeles"
                 it[createdAt] = fixedInstant
                 it[updatedAt] = fixedInstant
             }
             Cities.insert {
-                it[id] = 3L
                 it[cityName] = "Chicago"
                 it[createdAt] = fixedInstant
                 it[updatedAt] = fixedInstant
@@ -159,19 +156,19 @@ class UserCitiesRepositoryImplTest {
 
     @Test
     fun `should add single city preference successfully`() = runBlocking {
-        // Given
+
+        val city = CityRepositoryImpl().createCity(CreateCityRequest("Blah"))
+
         val request = CreateUserCityPreferenceRequest(
             userId = "user123",
-            cityId = 1L
+            cityId = city.cityId
         )
 
-        // When
         val result = repository.addUserCityPreference(request)
 
-        // Then
         assertNotEquals(result,null)
         assertEquals("user123", result.userId)
-        assertEquals(1L, result.cityId)
+        assertEquals(city.cityId, result.cityId)
         assertEquals(fixedInstant, result.createdAt)
     }
 

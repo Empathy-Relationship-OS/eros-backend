@@ -10,6 +10,8 @@ import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.between
 import org.jetbrains.exposed.v1.core.greater
+import org.jetbrains.exposed.v1.core.isNull
+import org.jetbrains.exposed.v1.core.or
 import org.jetbrains.exposed.v1.javatime.timestamp
 import java.time.Instant
 
@@ -32,7 +34,7 @@ object UserPreferences : Table("user_preferences") {
     // Dating Practicalities
     val dateLanguages = array<String>("date_languages")
     val dateActivities = array<String>("date_activities")
-    val dateLimit = integer("date_limit")
+    val dateLimit = integer("date_limit").nullable()
 
     // Timestamps
     val createdAt = timestamp("created_at").clientDefault { Instant.now() }
@@ -41,7 +43,7 @@ object UserPreferences : Table("user_preferences") {
     override val primaryKey = PrimaryKey(Users.userId)
 
     init {
-        check("date_limit_range") { dateLimit.between(1, 6) }
+        check("date_limit_range") { dateLimit.isNull() or dateLimit.between(1, 6) }
         check("age_min_valid") { ageRangeMin.greater(17) }
         check("age_max_greater") { ageRangeMax.greater(ageRangeMin) }
     }
