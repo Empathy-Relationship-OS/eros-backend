@@ -4,6 +4,7 @@ package com.eros.users.repository
 import com.eros.users.models.*
 import com.eros.users.table.Cities
 import com.eros.users.table.UserCitiesPreference
+import com.eros.users.table.UserPreferences
 import com.eros.users.table.Users
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.v1.jdbc.Database

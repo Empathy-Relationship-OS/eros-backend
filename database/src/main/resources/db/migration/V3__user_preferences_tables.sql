@@ -36,19 +36,19 @@ CREATE INDEX idx_user_preferences_user_id ON user_preferences(user_id);
 CREATE INDEX idx_user_preferences_age_range ON user_preferences(age_range_min, age_range_max);
 
 -- Junction table: User city preferences
-CREATE TABLE user_city_preferences (
+CREATE TABLE user_cities_preference (
     user_id VARCHAR(128) NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
-    city_id BIGSERIAL NOT NULL REFERENCES cities(id) ON DELETE CASCADE,
+    city_id BIGINT NOT NULL REFERENCES cities(id) ON DELETE CASCADE,
     -- Timestamps
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     PRIMARY KEY (user_id, city_id)
 );
 -- Indexes for junction table
-CREATE INDEX idx_user_city_preferences_city_id ON user_city_preferences(city_id);
+CREATE INDEX idx_user_cities_preference_city_id ON user_cities_preference(city_id);
 
 -- Comments for documentation
 COMMENT ON TABLE user_preferences IS 'Main user dating preferences (one record per user)';
-COMMENT ON TABLE user_city_preferences IS 'Many-to-many: User preferred cities for dating';
+COMMENT ON TABLE user_cities_preference IS 'Many-to-many: User preferred cities for dating';
 
 COMMENT ON COLUMN user_preferences.date_ethnicity IS 'List of ethnicity preference';
 COMMENT ON COLUMN user_preferences.date_activities IS 'List of activities users prefer';

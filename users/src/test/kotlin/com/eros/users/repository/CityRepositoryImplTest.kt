@@ -7,6 +7,7 @@ import com.eros.users.table.Cities
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
+import org.jetbrains.exposed.v1.jdbc.deleteAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
@@ -58,6 +59,11 @@ class CityRepositoryImplTest {
     fun setupEach() {
         clock = Clock.fixed(fixedInstant, ZoneId.of("UTC"))
         repository = CityRepositoryImpl(clock)
+
+        // Clear Cities before each test.
+        transaction {
+            Cities.deleteAll()
+        }
     }
 
     @AfterAll
@@ -68,21 +74,22 @@ class CityRepositoryImplTest {
     }
 
     @Test
-    fun createCity(){
-
+    fun createCity() {
         val id = 1L
         val cityName = "TestValue"
-        val cityDefault = City(id,cityName,clock.instant(),clock.instant())
-        var city = City(id,cityName,clock.instant(),clock.instant())
-        runBlocking {
-            city = repository.createCity(CreateCityRequest(id, cityName))
+
+        val city = runBlocking {
+            repository.createCity(CreateCityRequest(id, cityName))
         }
-        assertEquals(city, cityDefault)
+
+        assertEquals(id, city.id)
+        assertEquals(cityName, city.cityName)
+        assertEquals(fixedInstant, city.createdAt)
+        assertEquals(fixedInstant, city.updatedAt)
     }
 
     @Test
     fun updateCity(){
-
         val id = 1L
         val cityName = "TestValue"
         val cityDefault = City(id,cityName,clock.instant(),clock.instant())
