@@ -15,11 +15,6 @@ private const val SCORE_OCCUPATION = 5
 private const val SCORE_TRAITS = 10
 private const val SCORE_INTERESTS = 10
 
-// Relationship Intent (15)
-private const val SCORE_DATE_INTENTIONS = 6
-private const val SCORE_RELATIONSHIP_TYPE = 5
-private const val SCORE_KIDS_PREFERENCE = 4
-
 // Lifestyle & Values (5)
 private const val SCORE_RELIGION = 1
 private const val SCORE_POLITICAL_VIEW = 1
@@ -34,8 +29,7 @@ private const val SCORE_QA_3_PLUS = 10
 
 
 private const val MAX_SCORE = SCORE_PHOTO_5_PLUS+SCORE_BIO+SCORE_OCCUPATION+SCORE_TRAITS+SCORE_INTERESTS+
-        SCORE_DATE_INTENTIONS+SCORE_RELATIONSHIP_TYPE+SCORE_KIDS_PREFERENCE+SCORE_RELIGION+SCORE_POLITICAL_VIEW+
-        SCORE_ALCOHOL+SCORE_SMOKING+SCORE_DIET + SCORE_QA_3_PLUS
+        +SCORE_RELIGION+SCORE_POLITICAL_VIEW+ SCORE_ALCOHOL+SCORE_SMOKING+SCORE_DIET + SCORE_QA_3_PLUS
 private const val MIN_PROFILE_COMPLETENESS = 50
 
 
@@ -47,8 +41,8 @@ data class CompletenessBreakdown(
     val photoScore: Int,
     val coreIdentityScore: Int,
     val lifestyleScore: Int,
-    val relationshipIntentScore: Int,
     val totalScore: Int,
+    val userQAScore : Int,
     val isMatchingEligible: Boolean
 )
 
@@ -85,17 +79,16 @@ class ProfileCompleteness {
         val photoScore = calculatePhotoScore(userMedia)
         val coreIdentityScore = calculateCoreIdentityScore(user)
         val lifestyleScore = calculateLifestyleScore(user)
-        val relationshipIntentScore = calculateRelationshipIntentScore(user)
         val userQAScore = calculateQAScore(userQA)
 
-        val totalScore = (photoScore + coreIdentityScore + lifestyleScore + relationshipIntentScore)
+        val totalScore = (photoScore + coreIdentityScore + lifestyleScore + userQAScore)
 
         return CompletenessBreakdown(
             photoScore = photoScore,
             coreIdentityScore = coreIdentityScore,
             lifestyleScore = lifestyleScore,
             totalScore = totalScore,
-            relationshipIntentScore = relationshipIntentScore,
+            userQAScore = userQAScore,
             isMatchingEligible = totalScore >= MIN_PROFILE_COMPLETENESS
         )
     }
@@ -139,20 +132,6 @@ class ProfileCompleteness {
         if (user.occupation.isNotBlank()) score += SCORE_OCCUPATION
         if (user.hasValidTraitsCount()) score += SCORE_TRAITS
         if (user.hasValidInterestsCount()) score += SCORE_INTERESTS
-
-        return score
-    }
-
-
-    /**
-     * Relationship intent: 25 points.
-     */
-    private fun calculateRelationshipIntentScore(user: User): Int {
-        var score = 0
-
-        if (user.dateIntentions.field != null) score += SCORE_DATE_INTENTIONS
-        if (user.relationshipType.field != null) score += SCORE_RELATIONSHIP_TYPE
-        if (user.kidsPreference.field != null) score += SCORE_KIDS_PREFERENCE
 
         return score
     }
