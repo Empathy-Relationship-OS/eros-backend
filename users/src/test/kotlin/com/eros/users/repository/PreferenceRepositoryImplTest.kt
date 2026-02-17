@@ -6,10 +6,14 @@ import com.eros.users.models.City
 import com.eros.users.models.CreateCityRequest
 import com.eros.users.models.CreatePreferenceRequest
 import com.eros.users.models.CreateUserRequest
+import com.eros.users.models.DateIntentions
 import com.eros.users.models.EducationLevel
 import com.eros.users.models.Ethnicity
 import com.eros.users.models.Gender
+import com.eros.users.models.KidsPreference
 import com.eros.users.models.Language
+import com.eros.users.models.RelationshipType
+import com.eros.users.models.SexualOrientation
 import com.eros.users.models.Trait
 import com.eros.users.models.User
 import com.eros.users.table.Cities
@@ -115,7 +119,11 @@ class PreferenceRepositoryImplTest {
                     preferredLanguage = Language.ENGLISH,
                     interests = listOf("Reading", "Hiking", "Movies", "Music", "Travel"),
                     traits = listOf(Trait.ADVENTUROUS, Trait.HONEST, Trait.KIND),
-                    ethnicity = listOf(Ethnicity.MIDDLE_EASTERN)
+                    ethnicity = listOf(Ethnicity.MIDDLE_EASTERN),
+                    dateIntentions = DateIntentions.SERIOUS_DATING,
+                    relationshipType = RelationshipType.MONOGAMOUS,
+                    kidsPreference = KidsPreference.OPEN_TO_KIDS,
+                    sexualOrientation = SexualOrientation.STRAIGHT
                 )
             )
         }

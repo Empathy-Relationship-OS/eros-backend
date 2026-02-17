@@ -12,7 +12,7 @@ import kotlin.test.assertTrue
 class UserTest {
 
     @Nested
-    inner class `getAge` {
+    inner class GetAge {
 
         @Test
         fun `should calculate correct age when birthday has passed this year`() {
@@ -60,7 +60,7 @@ class UserTest {
     }
 
     @Nested
-    inner class `getFullName` {
+    inner class GetFullName {
 
         @Test
         fun `should concatenate first and last name`() {
@@ -71,7 +71,7 @@ class UserTest {
     }
 
     @Nested
-    inner class `isDeleted` {
+    inner class IsDeleted {
 
         @Test
         fun `should return false when deletedAt is null`() {
@@ -89,7 +89,7 @@ class UserTest {
     }
 
     @Nested
-    inner class `hasValidInterestsCount` {
+    inner class HasValidInterestsCount {
 
         @Test
         fun `should return true when interests count is 5`() {
@@ -128,7 +128,7 @@ class UserTest {
     }
 
     @Nested
-    inner class `hasValidTraitsCount` {
+    inner class HasValidTraitsCount {
 
         @Test
         fun `should return true when traits count is 3`() {
@@ -167,7 +167,7 @@ class UserTest {
     }
 
     @Nested
-    inner class `hasValidBio` {
+    inner class HasValidBio {
 
         @Test
         fun `should return true when bio is empty`() {
@@ -199,7 +199,7 @@ class UserTest {
     }
 
     @Nested
-    inner class `hasMinimumRequiredFields` {
+    inner class HasMinimumRequiredFields {
 
         @Test
         fun `should return true when all required fields are valid`() {
@@ -292,7 +292,11 @@ class UserTest {
                     preferredLanguage = Language.ENGLISH,
                     interests = listOf("A", "B", "C", "D"),
                     traits = List(3) { Trait.entries[it] },
-                    ethnicity = listOf(Ethnicity.BLACK_AFRICAN_DESCENT)
+                    ethnicity = listOf(Ethnicity.BLACK_AFRICAN_DESCENT),
+                    dateIntentions = DateIntentions.SERIOUS_DATING,
+                    relationshipType = RelationshipType.MONOGAMOUS,
+                    kidsPreference = KidsPreference.OPEN_TO_KIDS,
+                    sexualOrientation = SexualOrientation.STRAIGHT
                 )
             }
             assertEquals("Interests must be between 5 and 10 items", exception.message)
@@ -314,7 +318,11 @@ class UserTest {
                     preferredLanguage = Language.ENGLISH,
                     interests = List(11) { "Interest$it" },
                     traits = List(3) { Trait.entries[it] },
-                    ethnicity = listOf(Ethnicity.BLACK_AFRICAN_DESCENT)
+                    ethnicity = listOf(Ethnicity.BLACK_AFRICAN_DESCENT),
+                    dateIntentions = DateIntentions.SERIOUS_DATING,
+                    relationshipType = RelationshipType.MONOGAMOUS,
+                    kidsPreference = KidsPreference.OPEN_TO_KIDS,
+                    sexualOrientation = SexualOrientation.STRAIGHT
                 )
             }
             assertEquals("Interests must be between 5 and 10 items", exception.message)
@@ -336,7 +344,11 @@ class UserTest {
                     preferredLanguage = Language.ENGLISH,
                     interests = List(5) { "Interest$it" },
                     traits = listOf(Trait.HONEST, Trait.KIND),
-                    ethnicity = listOf(Ethnicity.BLACK_AFRICAN_DESCENT)
+                    ethnicity = listOf(Ethnicity.BLACK_AFRICAN_DESCENT),
+                    dateIntentions = DateIntentions.SERIOUS_DATING,
+                    relationshipType = RelationshipType.MONOGAMOUS,
+                    kidsPreference = KidsPreference.OPEN_TO_KIDS,
+                    sexualOrientation = SexualOrientation.STRAIGHT
                 )
             }
             assertEquals("Traits must be between 3 and 10 items", exception.message)
@@ -359,7 +371,11 @@ class UserTest {
                     bio = "a".repeat(301),
                     interests = List(5) { "Interest$it" },
                     traits = List(3) { Trait.entries[it] },
-                    ethnicity = listOf(Ethnicity.BLACK_AFRICAN_DESCENT)
+                    ethnicity = listOf(Ethnicity.BLACK_AFRICAN_DESCENT),
+                    dateIntentions = DateIntentions.SERIOUS_DATING,
+                    relationshipType = RelationshipType.MONOGAMOUS,
+                    kidsPreference = KidsPreference.OPEN_TO_KIDS,
+                    sexualOrientation = SexualOrientation.STRAIGHT
                 )
             }
             assertEquals("Bio must not exceed 300 characters", exception.message)
@@ -381,7 +397,11 @@ class UserTest {
                     preferredLanguage = Language.ENGLISH,
                     interests = List(5) { "Interest$it" },
                     traits = List(3) { Trait.entries[it] },
-                    ethnicity = listOf(Ethnicity.BLACK_AFRICAN_DESCENT)
+                    ethnicity = listOf(Ethnicity.BLACK_AFRICAN_DESCENT),
+                    dateIntentions = DateIntentions.SERIOUS_DATING,
+                    relationshipType = RelationshipType.MONOGAMOUS,
+                    kidsPreference = KidsPreference.OPEN_TO_KIDS,
+                    sexualOrientation = SexualOrientation.STRAIGHT,
                 )
             }
             assertEquals("Height must be positive", exception.message)
@@ -403,7 +423,11 @@ class UserTest {
                     preferredLanguage = Language.ENGLISH,
                     interests = List(5) { "Interest$it" },
                     traits = List(3) { Trait.entries[it] },
-                    ethnicity = listOf(Ethnicity.BLACK_AFRICAN_DESCENT)
+                    ethnicity = listOf(Ethnicity.BLACK_AFRICAN_DESCENT),
+                    dateIntentions = DateIntentions.SERIOUS_DATING,
+                    relationshipType = RelationshipType.MONOGAMOUS,
+                    kidsPreference = KidsPreference.OPEN_TO_KIDS,
+                    sexualOrientation = SexualOrientation.STRAIGHT
                 )
             }
             assertEquals("First name is required", exception.message)
@@ -426,6 +450,10 @@ class UserTest {
                     interests = List(5) { "Interest$it" },
                     traits = List(3) { Trait.entries[it] },
                     ethnicity = listOf(Ethnicity.BLACK_AFRICAN_DESCENT),
+                    dateIntentions = DateIntentions.SERIOUS_DATING,
+                    relationshipType = RelationshipType.MONOGAMOUS,
+                    kidsPreference = KidsPreference.OPEN_TO_KIDS,
+                    sexualOrientation = SexualOrientation.STRAIGHT,
                     brainDescription = "a".repeat(201)
                 )
             }
@@ -447,7 +475,11 @@ class UserTest {
                 preferredLanguage = Language.ENGLISH,
                 interests = List(5) { "Interest$it" },
                 traits = List(3) { Trait.entries[it] },
-                ethnicity = listOf(Ethnicity.BLACK_AFRICAN_DESCENT)
+                ethnicity = listOf(Ethnicity.BLACK_AFRICAN_DESCENT),
+                dateIntentions = DateIntentions.SERIOUS_DATING,
+                relationshipType = RelationshipType.MONOGAMOUS,
+                kidsPreference = KidsPreference.OPEN_TO_KIDS,
+                sexualOrientation = SexualOrientation.STRAIGHT
             )
 
             assertEquals("test-id", request.userId)

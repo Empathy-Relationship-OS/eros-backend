@@ -103,7 +103,11 @@ class UserCitiesRepositoryImplTest {
                     preferredLanguage = Language.ENGLISH,
                     interests = listOf("Reading", "Hiking", "Movies", "Music", "Travel"),
                     traits = listOf(Trait.ADVENTUROUS, Trait.HONEST, Trait.KIND),
-                    ethnicity = listOf(Ethnicity.MIDDLE_EASTERN)
+                    ethnicity = listOf(Ethnicity.MIDDLE_EASTERN),
+                    dateIntentions = DateIntentions.SERIOUS_DATING,
+                    relationshipType = RelationshipType.MONOGAMOUS,
+                    kidsPreference = KidsPreference.OPEN_TO_KIDS,
+                    sexualOrientation = SexualOrientation.STRAIGHT
                 )
             )
 
@@ -122,7 +126,11 @@ class UserCitiesRepositoryImplTest {
                     preferredLanguage = Language.ENGLISH,
                     interests = listOf("Yoga", "Cooking", "Art", "Photography", "Fashion"),
                     traits = listOf(Trait.CREATIVE, Trait.EMPATHETIC, Trait.OUTGOING),
-                    ethnicity = listOf(Ethnicity.PACIFIC_ISLANDER)
+                    ethnicity = listOf(Ethnicity.PACIFIC_ISLANDER),
+                    dateIntentions = DateIntentions.SERIOUS_DATING,
+                    relationshipType = RelationshipType.MONOGAMOUS,
+                    kidsPreference = KidsPreference.OPEN_TO_KIDS,
+                    sexualOrientation = SexualOrientation.STRAIGHT
                 )
             )
 
@@ -141,7 +149,11 @@ class UserCitiesRepositoryImplTest {
                     preferredLanguage = Language.ENGLISH,
                     interests = listOf("Gaming", "Tech", "Running", "Coffee", "Coding"),
                     traits = listOf(Trait.CREATIVE, Trait.AMBITIOUS, Trait.OUTGOING),
-                    ethnicity = listOf(Ethnicity.HISPANIC_LATINO, Ethnicity.SOUTHEAST_ASIAN)
+                    ethnicity = listOf(Ethnicity.HISPANIC_LATINO, Ethnicity.SOUTHEAST_ASIAN),
+                    dateIntentions = DateIntentions.SERIOUS_DATING,
+                    relationshipType = RelationshipType.MONOGAMOUS,
+                    kidsPreference = KidsPreference.OPEN_TO_KIDS,
+                    sexualOrientation = SexualOrientation.STRAIGHT
                 )
             )
         }

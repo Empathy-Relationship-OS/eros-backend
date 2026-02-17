@@ -609,7 +609,11 @@ class UserRoutesTest {
             bio = "Test bio",
             interests = List(5) { "Interest$it" },
             traits = List(3) { Trait.entries[it] },
-            ethnicity = listOf(Ethnicity.BLACK_AFRICAN_DESCENT)
+            ethnicity = listOf(Ethnicity.BLACK_AFRICAN_DESCENT),
+            dateIntentions = DateIntentions.SERIOUS_DATING,
+            relationshipType = RelationshipType.MONOGAMOUS,
+            kidsPreference = KidsPreference.OPEN_TO_KIDS,
+            sexualOrientation = SexualOrientation.STRAIGHT
         )
     }
 
