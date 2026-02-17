@@ -663,7 +663,9 @@ enum class Ethnicity(val displayName: String) {
     NATIVE_AMERICAN("Native American"),
     PACIFIC_ISLANDER("Pacific Islander"),
     SOUTH_ASIAN("South Asian"),
-    SOUTHEAST_ASIAN("Southeast Asian");
+    SOUTHEAST_ASIAN("Southeast Asian"),
+    WHITE_CAUCASIAN("White/Caucasian"),
+    OTHER("Other");
 
     companion object {
         fun fromDisplayName(displayName: String): Ethnicity? {

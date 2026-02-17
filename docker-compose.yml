@@ -38,7 +38,7 @@ services:
       ADMINER_DEFAULT_SERVER: postgres
     networks:
       - eros-network
-    restart: always
+    restart: no
     env_file:
       - .env
 volumes:
