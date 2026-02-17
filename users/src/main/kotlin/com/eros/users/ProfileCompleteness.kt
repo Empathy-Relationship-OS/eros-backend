@@ -73,7 +73,7 @@ class ProfileCompleteness {
         return getBreakdown(user, userMedia, userQA).totalScore
     }
 
-    
+
     /**
      * Returns a full [CompletenessBreakdown] with per-category scores
      *
@@ -135,16 +135,9 @@ class ProfileCompleteness {
     private fun calculateCoreIdentityScore(user: User): Int {
         var score = 0
 
-        // Bio: only award points if it's substantive (not just whitespace)
         if (user.bio.isNotBlank() && user.hasValidBio()) score += SCORE_BIO
-
-        // Occupation
         if (user.occupation.isNotBlank()) score += SCORE_OCCUPATION
-
-        // Traits: award if the count is within the valid range
         if (user.hasValidTraitsCount()) score += SCORE_TRAITS
-
-        // Interests: award if the count is within the valid range
         if (user.hasValidInterestsCount()) score += SCORE_INTERESTS
 
         return score
