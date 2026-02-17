@@ -1,7 +1,6 @@
 package com.eros.users.repository
 
 import com.eros.database.dbQuery
-import com.eros.users.models.CreateUserCityPreferenceRequest
 import com.eros.users.models.DeleteAllUserCityPreferenceRequest
 import com.eros.users.models.DeleteUserCityPreferenceRequest
 import com.eros.users.models.UserCityPreference
@@ -18,20 +17,17 @@ import java.time.Instant
 
 class UserCitiesRepositoryImpl(private val clock: Clock = Clock.systemUTC()) : UserCitiesRepository {
 
-    override suspend fun addUserCityPreference(request: CreateUserCityPreferenceRequest): UserCityPreference = dbQuery {
-        val now = Instant.now(clock)
-
+    override suspend fun addUserCityPreference(entity: UserCityPreference): UserCityPreference = dbQuery {
         UserCitiesPreference.insert { row ->
-            row[cityId] = request.cityId
-            row[userId] = request.userId
-            row[createdAt] = now
+            row[cityId] = entity.cityId
+            row[userId] = entity.userId
+            row[createdAt] = entity.createdAt
         }
 
-        // FIXED: Use UserCitiesPreference.userId instead of UserPreferences.userId
         UserCitiesPreference.selectAll()
             .where {
-                (UserCitiesPreference.userId eq request.userId) and
-                        (UserCitiesPreference.cityId eq request.cityId)
+                (UserCitiesPreference.userId eq entity.userId) and
+                        (UserCitiesPreference.cityId eq entity.cityId)
             }
             .single()
             .toUserCityPreferenceDTO()
@@ -41,8 +37,8 @@ class UserCitiesRepositoryImpl(private val clock: Clock = Clock.systemUTC()) : U
      * Batch insert multiple city preferences for a user.
      * More efficient than multiple individual inserts.
      *
-     * @param userId - The id of the user
-     * @param cityIds - List of city ids to add as preferences
+     * @param userId  The id of the user.
+     * @param cityIds List of city ids to add as preferences.
      */
     override suspend fun addUserCityPreferencesBatch(userId: String, cityIds: List<Long>) = dbQuery {
         if (cityIds.isEmpty()) return@dbQuery
@@ -57,15 +53,13 @@ class UserCitiesRepositoryImpl(private val clock: Clock = Clock.systemUTC()) : U
     }
 
     /**
-     * Function to delete a City from a Users city preference list.
+     * Deletes a city from a user's city preference list.
      *
-     * @param request - Contains cityId and userId
-     *
-     * @return [UserCityPreference] if the record was deleted otherwise `null`
+     * @param request Contains cityId and userId.
+     * @return [UserCityPreference] if the record existed and was deleted, null otherwise.
      */
     override suspend fun deleteUserCityPreference(request: DeleteUserCityPreferenceRequest): UserCityPreference? =
         dbQuery {
-            // Get the record before deleting - To ensure it is a valid record.
             val existingRecord = UserCitiesPreference.selectAll()
                 .where {
                     (UserCitiesPreference.userId eq request.userId) and
@@ -74,18 +68,15 @@ class UserCitiesRepositoryImpl(private val clock: Clock = Clock.systemUTC()) : U
                 .singleOrNull()
                 ?.toUserCityPreferenceDTO()
 
-            // Delete the record
             UserCitiesPreference.deleteWhere {
                 (UserCitiesPreference.userId eq request.userId) and
                         (UserCitiesPreference.cityId eq request.cityId)
             }
 
-            // Return the deleted record (or null if it didn't exist)
             existingRecord
         }
 
     override suspend fun deleteAllUserCityPreference(request: DeleteAllUserCityPreferenceRequest): Int = dbQuery {
-        // Delete the record
         UserCitiesPreference.deleteWhere {
             UserCitiesPreference.userId eq request.userId
         }

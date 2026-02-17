@@ -21,7 +21,7 @@ class UserService(private val userRepository: UserRepository) {
      * @throws IllegalArgumentException if input validation fails
      */
     suspend fun createUser(request: CreateUserRequest): User {
-        return userRepository.createUser(request)
+        return userRepository.create(request)
     }
 
     /**
@@ -33,7 +33,7 @@ class UserService(private val userRepository: UserRepository) {
      * @throws IllegalArgumentException if input validation fails
      */
     suspend fun updateUser(userId: String, request: UpdateUserRequest): User? {
-        return userRepository.updateUser(userId, request)
+        return userRepository.update(userId, request)
     }
 
     /**
@@ -43,7 +43,7 @@ class UserService(private val userRepository: UserRepository) {
      * @return User if found, null otherwise
      */
     suspend fun findByUserId(userId: String): User? {
-        return userRepository.findByUserId(userId)
+        return userRepository.findById(userId)
     }
 
     /**
@@ -65,7 +65,7 @@ class UserService(private val userRepository: UserRepository) {
      * @return Number of rows updated (1 if successful, 0 if user not found)
      */
     suspend fun deleteUser(userId: String): Int {
-        return userRepository.deleteUser(userId)
+        return userRepository.delete(userId)
     }
 
     /**
@@ -75,6 +75,6 @@ class UserService(private val userRepository: UserRepository) {
      * @return True if user exists, false otherwise
      */
     suspend fun userExists(userId: String): Boolean {
-        return userRepository.userExists(userId)
+        return userRepository.doesExist(userId)
     }
 }
