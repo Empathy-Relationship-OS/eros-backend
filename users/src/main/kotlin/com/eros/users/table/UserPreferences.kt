@@ -1,12 +1,5 @@
 package com.eros.users.table
 
-import com.eros.users.models.City
-import com.eros.users.models.Activity
-import com.eros.users.models.Ethnicity
-import com.eros.users.models.Gender
-import com.eros.users.models.Language
-import com.eros.users.models.UserPreference
-import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.between
 import org.jetbrains.exposed.v1.core.greater
@@ -15,6 +8,22 @@ import org.jetbrains.exposed.v1.core.or
 import org.jetbrains.exposed.v1.javatime.timestamp
 import java.time.Instant
 
+/**
+ * Database table definition for user dating preferences.
+ *
+ * This table stores comprehensive preference criteria that users set for finding potential matches.
+ * It includes demographic filters (age, height, ethnicity, gender), dating practicalities
+ * (languages, activities, date frequency limits), and references cities through the junction
+ * table [UserCitiesPreference].
+ *
+ * The table enforces several data integrity constraints through database-level checks:
+ * - Date limit must be between 1-6 or null (unlimited)
+ * - Minimum age must be 18 or older
+ * - Maximum age must be greater than minimum age
+ *
+ * @see com.eros.users.models.UserPreference The domain model representing user preferences
+ * @see UserCitiesPreference Junction table linking users to their preferred cities
+ */
 object UserPreferences : Table("user_preferences") {
 
     // Primary key

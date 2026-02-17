@@ -6,6 +6,17 @@ import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.javatime.timestamp
 import java.time.Instant
 
+/**
+ * Database table definition for cities.
+ *
+ * This table stores city information used throughout the application for location-based features
+ * such as user preferences and date locations. Cities are referenced by other tables to maintain
+ * data consistency and enable efficient querying.
+ *
+ * The table uses Exposed framework's DSL for type-safe database operations.
+ *
+ * @see com.eros.users.models.City The domain model representing a city entity
+ */
 object Cities : Table("cities") {
 
     // Primary key
