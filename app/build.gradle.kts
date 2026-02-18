@@ -51,4 +51,6 @@ dependencies {
     testImplementation(libs.kotlin.test.junit)
     testImplementation(libs.testcontainers.postgresql)
     testImplementation(libs.testcontainers.junit)
+
+    implementation(libs.exposed.core)
 }

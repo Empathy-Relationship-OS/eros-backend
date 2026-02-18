@@ -1,5 +1,6 @@
 package com.eros
 
+import com.eros.common.plugins.configureExceptionHandling
 import io.ktor.server.application.*
 
 fun main(args: Array<String>) {
@@ -7,6 +8,7 @@ fun main(args: Array<String>) {
 }
 
 fun Application.module() {
+    configureExceptionHandling()
     configureDatabase()
     configureSerialization()
     configureAdministration()
