@@ -40,7 +40,7 @@ class ProfileCompleteness {
     /**
      * Algorithm to calculate a user's profile completeness rating.
      *
-     * Scoring breakdown (max 100):
+     * Scoring breakdown (max 50):
      *   - Photos:              20 pts  (scales with photo count)
      *   - Core identity:       20 pts  (bio, occupation, traits, interests)
      *   - User QA:             10 pts  (More than 1 QA)
