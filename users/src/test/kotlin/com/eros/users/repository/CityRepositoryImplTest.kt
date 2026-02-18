@@ -1,8 +1,6 @@
 package com.eros.users.repository
 
 import com.eros.users.models.City
-import com.eros.users.models.CreateCityRequest
-import com.eros.users.models.UpdateCityRequest
 import com.eros.users.table.Cities
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.v1.jdbc.Database
@@ -79,7 +77,7 @@ class CityRepositoryImplTest {
         val cityName = "TestValue"
 
         val city = runBlocking {
-            repository.createCity(CreateCityRequest(cityName))
+            repository.create(City(0L, cityName, fixedInstant, fixedInstant))
         }
 
         assertNotNull(city.cityId)
@@ -89,19 +87,16 @@ class CityRepositoryImplTest {
     }
 
     @Test
-    fun updateCity(){
-        val id = 1L
+    fun updateCity() {
         val cityName = "TestValue"
-        val cityDefault = City(id,cityName,clock.instant(),clock.instant())
-        var city: City? = City(id,cityName,clock.instant(),clock.instant())
-        runBlocking {
-            city = repository.createCity(CreateCityRequest(cityName))
+        val city: City = runBlocking {
+            repository.create(City(0L, cityName, fixedInstant, fixedInstant))
         }
         val newCityName = "AlteredTestValue"
-        runBlocking {
-            city = repository.updateCity(cityDefault.cityId, UpdateCityRequest(cityDefault.cityId, newCityName))
+        val updatedCity: City? = runBlocking {
+             repository.update(city.cityId, city.copy(cityName = newCityName))
         }
-        assertNotEquals(city?.cityName ?: cityDefault.cityName, cityDefault.cityName)
+        assertNotEquals(updatedCity?.cityName ?: city.cityName, city.cityName)
     }
 
 

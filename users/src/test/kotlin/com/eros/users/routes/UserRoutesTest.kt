@@ -609,11 +609,23 @@ class UserRoutesTest {
             bio = "Test bio",
             interests = List(5) { "Interest$it" },
             traits = List(3) { Trait.entries[it] },
-            ethnicity = listOf(Ethnicity.BLACK_AFRICAN_DESCENT),
-            dateIntentions = DateIntentions.SERIOUS_DATING,
-            relationshipType = RelationshipType.MONOGAMOUS,
-            kidsPreference = KidsPreference.OPEN_TO_KIDS,
-            sexualOrientation = SexualOrientation.STRAIGHT
+            spokenLanguages = DisplayableField(listOf(Language.ENGLISH), false),
+            religion = DisplayableField(null, false),
+            politicalView = DisplayableField(null, false),
+            alcoholConsumption = DisplayableField(null, false),
+            smokingStatus = DisplayableField(null, false),
+            diet = DisplayableField(null, false),
+            dateIntentions = DisplayableField(DateIntentions.SERIOUS_DATING, false),
+            relationshipType = DisplayableField(RelationshipType.MONOGAMOUS, false),
+            kidsPreference = DisplayableField(KidsPreference.OPEN_TO_KIDS, false),
+            sexualOrientation = DisplayableField(SexualOrientation.STRAIGHT, false),
+            pronouns = DisplayableField(null, false),
+            starSign = DisplayableField(null, false),
+            ethnicity = DisplayableField(listOf(Ethnicity.BLACK_AFRICAN_DESCENT), false),
+            brainAttributes = DisplayableField(null, false),
+            brainDescription = DisplayableField(null, false),
+            bodyAttributes = DisplayableField(null, false),
+            bodyDescription = DisplayableField(null, false)
         )
     }
 

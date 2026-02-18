@@ -3,10 +3,8 @@ package com.eros.users.repository
 
 import com.eros.users.models.Activity
 import com.eros.users.models.City
-import com.eros.users.models.CreateCityRequest
-import com.eros.users.models.CreatePreferenceRequest
-import com.eros.users.models.CreateUserRequest
 import com.eros.users.models.DateIntentions
+import com.eros.users.models.DisplayableField
 import com.eros.users.models.EducationLevel
 import com.eros.users.models.Ethnicity
 import com.eros.users.models.Gender
@@ -16,9 +14,11 @@ import com.eros.users.models.RelationshipType
 import com.eros.users.models.SexualOrientation
 import com.eros.users.models.Trait
 import com.eros.users.models.User
+import com.eros.users.models.UserPreference
 import com.eros.users.table.Cities
 import com.eros.users.table.UserCitiesPreference
 import com.eros.users.table.UserPreferences
+import com.eros.users.table.Users
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
@@ -29,6 +29,7 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.assertNotNull
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
@@ -36,6 +37,7 @@ import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import kotlin.test.assertEquals
 
 @Testcontainers
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -67,7 +69,7 @@ class PreferenceRepositoryImplTest {
 
         // Use regular transaction for schema creation (doesn't conflict)
         transaction {
-            SchemaUtils.create(Cities, UserCitiesPreference,UserPreferences)
+            SchemaUtils.create(Users, Cities, UserCitiesPreference, UserPreferences)
         }
     }
 
@@ -80,83 +82,101 @@ class PreferenceRepositoryImplTest {
 
         // Clear the tables before each test.
         transaction {
-            Cities.deleteAll()
-            UserCitiesPreference.deleteAll()
             UserPreferences.deleteAll()
+            UserCitiesPreference.deleteAll()
+            Cities.deleteAll()
+            Users.deleteAll()
         }
     }
 
     @AfterAll
     fun tearDown() {
         transaction {
-            SchemaUtils.drop(Cities, UserCitiesPreference,UserPreferences)
+            SchemaUtils.drop(UserPreferences, UserCitiesPreference, Cities, Users)
         }
     }
 
-    fun createCity(cityName : String) : City{
-        val city : City
+    fun createCity(cityName: String): City {
+        val city: City
         runBlocking {
-            city = cityRepository.createCity(CreateCityRequest(cityName))
+            city = cityRepository.create(City(0L, cityName, fixedInstant, fixedInstant))
         }
         return city
     }
 
-    fun createUser() : User{
-        val user : User
-        runBlocking {
-            // Create user123
-            user = UserRepositoryImpl().createUser(
-                CreateUserRequest(
-                    userId = "user123",
-                    firstName = "John",
-                    lastName = "Doe",
-                    email = "john@example.com",
-                    heightCm = 175,
-                    dateOfBirth = LocalDate.of(1990, 1, 1),
-                    city = "New York",
-                    educationLevel = EducationLevel.UNIVERSITY,
-                    gender = Gender.MALE,
-                    preferredLanguage = Language.ENGLISH,
-                    interests = listOf("Reading", "Hiking", "Movies", "Music", "Travel"),
-                    traits = listOf(Trait.ADVENTUROUS, Trait.HONEST, Trait.KIND),
-                    ethnicity = listOf(Ethnicity.MIDDLE_EASTERN),
-                    dateIntentions = DateIntentions.SERIOUS_DATING,
-                    relationshipType = RelationshipType.MONOGAMOUS,
-                    kidsPreference = KidsPreference.OPEN_TO_KIDS,
-                    sexualOrientation = SexualOrientation.STRAIGHT
-                )
+    fun createUser(): User = runBlocking {
+        UserRepositoryImpl(clock).create(
+            User(
+                userId = "user123",
+                firstName = "John",
+                lastName = "Doe",
+                email = "john@example.com",
+                heightCm = 175,
+                dateOfBirth = LocalDate.of(1990, 1, 1),
+                city = "New York",
+                educationLevel = EducationLevel.UNIVERSITY,
+                gender = Gender.MALE,
+                occupation = "",
+                bio = "",
+                interests = listOf("Reading", "Hiking", "Movies", "Music", "Travel"),
+                traits = listOf(Trait.ADVENTUROUS, Trait.HONEST, Trait.KIND),
+                preferredLanguage = Language.ENGLISH,
+                spokenLanguages = DisplayableField(listOf(Language.ENGLISH), false),
+                religion = DisplayableField(null, false),
+                politicalView = DisplayableField(null, false),
+                alcoholConsumption = DisplayableField(null, false),
+                smokingStatus = DisplayableField(null, false),
+                diet = DisplayableField(null, false),
+                dateIntentions = DisplayableField(DateIntentions.SERIOUS_DATING, false),
+                relationshipType = DisplayableField(RelationshipType.MONOGAMOUS, false),
+                kidsPreference = DisplayableField(KidsPreference.OPEN_TO_KIDS, false),
+                sexualOrientation = DisplayableField(SexualOrientation.STRAIGHT, false),
+                pronouns = DisplayableField(null, false),
+                starSign = DisplayableField(null, false),
+                ethnicity = DisplayableField(listOf(Ethnicity.MIDDLE_EASTERN), false),
+                brainAttributes = DisplayableField(null, false),
+                brainDescription = DisplayableField(null, false),
+                bodyAttributes = DisplayableField(null, false),
+                bodyDescription = DisplayableField(null, false),
+                createdAt = fixedInstant,
+                updatedAt = fixedInstant
             )
-        }
-        return user
+        )
     }
 
 
     @Test
-    fun createUserPreferences(){
+    fun createUserPreferences() {
 
         // Create test user
-        val user = createUser()
+        createUser()
 
         // Create Test City
-        val city = createCity( "TestCity")
+        val city = createCity("TestCity")
 
-        val request = CreatePreferenceRequest(
-            "user123",
-            listOf(Gender.FEMALE, Gender.NON_BINARY),
-            25,
-            35,
-            160,
-            180,
-            listOf(Ethnicity.MIDDLE_EASTERN, Ethnicity.PACIFIC_ISLANDER),
-            listOf(Language.ENGLISH, Language.SPANISH),
-            listOf(Activity.ESCAPE_ROOMS, Activity.BEACH),
-            5,
-            listOf(1L),
+        val preference = UserPreference(
+            id = 0L,
+            userId = "user123",
+            genderIdentities = listOf(Gender.FEMALE, Gender.NON_BINARY),
+            ageRangeMin = 25,
+            ageRangeMax = 35,
+            heightRangeMin = 160,
+            heightRangeMax = 180,
+            ethnicity = listOf(Ethnicity.MIDDLE_EASTERN, Ethnicity.PACIFIC_ISLANDER),
+            dateLanguages = listOf(Language.ENGLISH, Language.SPANISH),
+            dateActivities = listOf(Activity.ESCAPE_ROOMS, Activity.BEACH),
+            dateLimit = 5,
+            dateCities = listOf(city),
+            createdAt = fixedInstant,
+            updatedAt = fixedInstant
         )
 
-        runBlocking {
-            preferenceRepository.createPreferences(request)
+        val createdUser = runBlocking {
+            preferenceRepository.create(preference)
         }
+
+        assertNotNull(createdUser)
+        assertEquals(preference.userId, createdUser.userId)
     }
 
 }
