@@ -152,47 +152,53 @@ data class CreateUserRequest(
     val educationLevel: EducationLevel,
     val gender: Gender,
     val preferredLanguage: Language,
-    
+
     // Optional fields
     val occupation: String? = null,
     val bio: String = "",
     val interests: List<String>,
     val traits: List<Trait>,
-    val spokenLanguages: List<Language>? = null,
-    val religion: Religion? = null,
-    val politicalView: PoliticalView? = null,
-    val alcoholConsumption: AlcoholConsumption? = null,
-    val smokingStatus: SmokingStatus? = null,
-    val diet: Diet? = null,
-    val dateIntentions: DateIntentions,
-    val relationshipType: RelationshipType,
-    val kidsPreference: KidsPreference,
-    val sexualOrientation: SexualOrientation,
-    val pronouns: Pronouns? = null,
-    val starSign: StarSign? = null,
-    val ethnicity: List<Ethnicity>,
-    val brainAttributes: List<BrainAttribute>? = null,
-    val brainDescription: String? = null,
-    val bodyAttributes: List<BodyAttribute>? = null,
-    val bodyDescription: String? = null
+
+    // Displayable fields — client controls both value and visibility
+    val spokenLanguages: DisplayableField<List<Language>>,
+    val religion: DisplayableField<Religion?>,
+    val politicalView: DisplayableField<PoliticalView?>,
+    val alcoholConsumption: DisplayableField<AlcoholConsumption?>,
+    val smokingStatus: DisplayableField<SmokingStatus?>,
+    val diet: DisplayableField<Diet?>,
+    val dateIntentions: DisplayableField<DateIntentions>,
+    val relationshipType: DisplayableField<RelationshipType>,
+    val kidsPreference: DisplayableField<KidsPreference>,
+    val sexualOrientation: DisplayableField<SexualOrientation>,
+    val pronouns: DisplayableField<Pronouns?>,
+    val starSign: DisplayableField<StarSign?>,
+    val ethnicity: DisplayableField<List<Ethnicity>>,
+    val brainAttributes: DisplayableField<List<BrainAttribute>?>,
+    val brainDescription: DisplayableField<String?>,
+    val bodyAttributes: DisplayableField<List<BodyAttribute>?>,
+    val bodyDescription: DisplayableField<String?>
 ) {
     init {
         require(interests.size in 5..10) { "Interests must be between 5 and 10 items" }
         require(traits.size in 3..10) { "Traits must be between 3 and 10 items" }
-        require( bio.length <= 300) { "Bio must not exceed 300 characters" }
+        require(bio.length <= 300) { "Bio must not exceed 300 characters" }
         require(heightCm > 0) { "Height must be positive" }
         require(firstName.isNotBlank()) { "First name is required" }
         require(lastName.isNotBlank()) { "Last name is required" }
         require(email.isNotBlank()) { "Email is required" }
         require(city.isNotBlank()) { "City is required" }
-        require(brainDescription == null || brainDescription.length <= 200) { "Brain description must not exceed 200 characters" }
-        require(bodyDescription == null || bodyDescription.length <= 200) { "Body description must not exceed 200 characters" }
-
+        require(brainDescription.field == null || brainDescription.field.length <= 200) { "Brain description must not exceed 200 characters" }
+        require(bodyDescription.field == null || bodyDescription.field.length <= 200) { "Body description must not exceed 200 characters" }
     }
 }
 
 /**
- * Request DTO for updating user profile
+ * Request DTO for updating user profile.
+ *
+ * All fields are optional — only non-null fields are applied to the existing profile.
+ * Displayable fields use [DisplayableField] so the client can update a value, its
+ * visibility, or both in a single request. A null displayable field means "leave this
+ * field unchanged".
  */
 @Serializable
 data class UpdateUserRequest(
@@ -207,23 +213,25 @@ data class UpdateUserRequest(
     val interests: List<String>? = null,
     val traits: List<Trait>? = null,
     val preferredLanguage: Language? = null,
-    val spokenLanguages: List<Language>? = null,
-    val religion: Religion? = null,
-    val politicalView: PoliticalView? = null,
-    val alcoholConsumption: AlcoholConsumption? = null,
-    val smokingStatus: SmokingStatus? = null,
-    val diet: Diet? = null,
-    val dateIntentions: DateIntentions? = null,
-    val relationshipType: RelationshipType? = null,
-    val kidsPreference: KidsPreference? = null,
-    val sexualOrientation: SexualOrientation? = null,
-    val pronouns: Pronouns? = null,
-    val starSign: StarSign? = null,
-    val ethnicity: List<Ethnicity>? = null,
-    val brainAttributes: List<BrainAttribute>? = null,
-    val brainDescription: String? = null,
-    val bodyAttributes: List<BodyAttribute>? = null,
-    val bodyDescription: String? = null
+
+    // Displayable fields — null means "do not update", non-null replaces both value and display flag
+    val spokenLanguages: DisplayableField<List<Language>>? = null,
+    val religion: DisplayableField<Religion?>? = null,
+    val politicalView: DisplayableField<PoliticalView?>? = null,
+    val alcoholConsumption: DisplayableField<AlcoholConsumption?>? = null,
+    val smokingStatus: DisplayableField<SmokingStatus?>? = null,
+    val diet: DisplayableField<Diet?>? = null,
+    val dateIntentions: DisplayableField<DateIntentions>? = null,
+    val relationshipType: DisplayableField<RelationshipType>? = null,
+    val kidsPreference: DisplayableField<KidsPreference>? = null,
+    val sexualOrientation: DisplayableField<SexualOrientation>? = null,
+    val pronouns: DisplayableField<Pronouns?>? = null,
+    val starSign: DisplayableField<StarSign?>? = null,
+    val ethnicity: DisplayableField<List<Ethnicity>>? = null,
+    val brainAttributes: DisplayableField<List<BrainAttribute>?>? = null,
+    val brainDescription: DisplayableField<String?>? = null,
+    val bodyAttributes: DisplayableField<List<BodyAttribute>?>? = null,
+    val bodyDescription: DisplayableField<String?>? = null
 ) {
     init {
         if (interests != null) {
@@ -238,14 +246,14 @@ data class UpdateUserRequest(
         if (heightCm != null) {
             require(heightCm > 0) { "Height must be positive" }
         }
-        if (brainDescription != null) {
-            require(brainDescription.length <= 100) { "Brain description must not exceed 100 characters" }
+        if (brainDescription?.field != null) {
+            require(brainDescription.field.length <= 100) { "Brain description must not exceed 100 characters" }
         }
-        if (bodyDescription != null) {
-            require(bodyDescription.length <= 100) { "Body description must not exceed 100 characters" }
+        if (bodyDescription?.field != null) {
+            require(bodyDescription.field.length <= 100) { "Body description must not exceed 100 characters" }
         }
         if (ethnicity != null) {
-            require(ethnicity.isNotEmpty()) { "Ethnicity must not be empty" }
+            require(ethnicity.field.isNotEmpty()) { "Ethnicity must not be empty" }
         }
     }
 }
