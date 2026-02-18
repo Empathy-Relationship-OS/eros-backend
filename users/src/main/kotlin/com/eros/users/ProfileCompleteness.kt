@@ -15,6 +15,9 @@ private const val SCORE_INTERESTS = 5
 // User QA (10)
 private const val SCORE_QA = 5
 
+// Minimum score a profile has from required fields.
+private const val MIN_PROFILE_SCORE = 50
+
 // Minimum quantity for achieving max score.
 private const val TRAITS_QUANTITY = 5
 private const val INTERESTS_QUANTITY = 5
@@ -63,7 +66,7 @@ class ProfileCompleteness {
         val coreIdentityScore = calculateCoreIdentityScore(user)
         val userQAScore = calculateQAScore(userQA)
 
-        val totalScore = (photoScore + coreIdentityScore + userQAScore)
+        val totalScore = (photoScore + coreIdentityScore + userQAScore + MIN_PROFILE_SCORE)
 
         return CompletenessBreakdown(
             photoScore = photoScore,

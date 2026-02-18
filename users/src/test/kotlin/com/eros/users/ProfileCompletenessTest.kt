@@ -22,27 +22,29 @@ import com.eros.users.models.SmokingStatus
 import com.eros.users.models.StarSign
 import com.eros.users.models.Trait
 import com.eros.users.models.User
+import com.eros.users.models.UserMediaCollection
 import com.eros.users.models.UserMediaItem
+import com.eros.users.models.UserQACollection
 import com.eros.users.models.UserQAItem
 import java.time.Instant
 import java.time.LocalDate
 
 import org.junit.jupiter.api.Test
 import java.time.LocalDateTime
+import kotlin.test.assertTrue
 
 class ProfileCompletenessTest {
 
-    //TODO: Test cases
-    /*
     @Test
     fun `completeness calculation`(){
         val user = createTestUser()
         val userMedia = createMediaList(3)
+        val userMediaCollection = UserMediaCollection(user.userId, userMedia, userMedia.size)
         val userQA = createQAList(1)
-        ProfileCompleteness().calculateCompleteness(user, userMedia, userQA)
-
+        val userQACollection = UserQACollection(user.userId, userQA, userQA.size)
+        val completeness = ProfileCompleteness().calculateCompleteness(user, userMediaCollection, userQACollection)
+        assertTrue(completeness == 65)
     }
-     */
 
 
     // Helper function to create test users with defaults
