@@ -43,7 +43,7 @@ class ProfileCompleteness {
      * Scoring breakdown (max 100):
      *   - Photos:              20 pts  (scales with photo count)
      *   - Core identity:       20 pts  (bio, occupation, traits, interests)
-     *   - User QA:             10 pts  (number of QA's)
+     *   - User QA:             10 pts  (More than 1 QA)
      *
      * @param user The user's profile domain model
      * @param userMedia The user's media collection
