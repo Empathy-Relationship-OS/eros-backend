@@ -16,6 +16,13 @@ import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.response.respond
 import java.sql.SQLException
 
+/**
+ * This function determines how exceptions are returned.
+ *
+ * Each exception is defined with:
+ * - [HttpStatusCode] HTTP Status code
+ * - [ApiError] - Object contain the error type and error message.
+ */
 fun Application.configureExceptionHandling() {
     install(StatusPages) {
         exception<UnauthorizedException> { call, cause ->

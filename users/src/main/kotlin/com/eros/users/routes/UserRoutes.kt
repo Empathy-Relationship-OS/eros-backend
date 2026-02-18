@@ -42,17 +42,20 @@ fun Route.userRoutes(userService: UserService) {
     authenticate("firebase-auth") {
 
         /**
-         * POST /users
-         *
-         * Creates a new user profile.
-         *
-         * Request Headers:
-         * - Authorization: Bearer <firebase-id-token>
-         *
-         * Request Body: CreateUserRequest JSON
-         * Response: User JSON
+         * Base route /users.
          */
         route("/users") {
+            /**
+             * POST /users
+             *
+             * Creates a new user profile.
+             *
+             * Request Headers:
+             * - Authorization: Bearer <firebase-id-token>
+             *
+             * Request Body: CreateUserRequest JSON
+             * Response: User JSON
+             */
             post{
                 val principal = call.requireFirebasePrincipal()
                 val request = call.receive<CreateUserRequest>()
