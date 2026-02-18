@@ -1,7 +1,7 @@
 package com.eros.database
 
 import io.ktor.server.config.*
-import kotlin.test.Test
+import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 
 /**

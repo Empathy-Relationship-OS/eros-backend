@@ -43,6 +43,9 @@ dependencies {
     // Logging
     implementation(libs.logback.classic)
 
+    // Firebase
+    implementation(libs.firebase.admin)
+
     // Testing
     testImplementation(libs.ktor.server.test.host)
     testImplementation(libs.kotlin.test.junit)

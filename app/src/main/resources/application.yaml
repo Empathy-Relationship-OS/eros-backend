@@ -5,17 +5,9 @@ ktor:
     deployment:
         port: 8080
 
-jwt:
-  secret: ${JWT_SECRET:}
-  issuer: ${JWT_ISSUER:eros-backend}
-  audience: ${JWT_AUDIENCE:eros-users}
-  realm: ${JWT_REALM:eros-api}
-
-oauth:
-  callbackUrl: ${OAUTH_CALLBACK_URL:http://localhost:8080/callback}
-  google:
-    clientId: ${GOOGLE_CLIENT_ID:}
-    clientSecret: ${GOOGLE_CLIENT_SECRET:}
+firebase:
+  serviceAccountPath: ${FIREBASE_SERVICE_ACCOUNT_PATH:./firebase-service-account.json}
+  projectId: ${FIREBASE_PROJECT_ID:your-project-id}
 
 database:
   host: ${DB_HOST:localhost}
@@ -26,3 +18,10 @@ database:
   poolSize: ${DB_POOL_SIZE:10}
   maxLifetime: ${DB_MAX_LIFETIME:600000}
   connectionTimeout: ${DB_CONNECTION_TIMEOUT:30000}
+
+twilio:
+  accountSid: ${TWILIO_ACCOUNT_SID:dev}
+  authToken: ${TWILIO_AUTH_TOKEN:dev}
+  phoneNumber: ${TWILIO_PHONE_NUMBER:MOCK_NUMBER}
+  mockMode: ${TWILIO_MOCK_MODE:true}
+  verifyServiceId: ${TWILIO_VERIFY_SERVICE_ID:dev}

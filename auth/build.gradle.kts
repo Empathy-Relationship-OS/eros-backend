@@ -15,8 +15,8 @@ dependencies {
     implementation(libs.ktor.serialization.kotlinx.json)
     implementation(libs.ktor.server.config.yaml)
 
-    // JWT
-    implementation(libs.java.jwt)
+    // Firebase
+    implementation(libs.firebase.admin)
 
     // DB Dependencies
     implementation(libs.exposed.core)
@@ -34,6 +34,15 @@ dependencies {
     testRuntimeOnly(libs.junit.platform.launcher)
     testImplementation(libs.flyway.core)
     testImplementation(libs.flyway.database.postgresql)
+
+    // OPT and SMS
+    implementation(libs.twilio)
+
+    // Mock SMS Logging
+    implementation(libs.logback.classic)
+
+    // .env
+    implementation(libs.dotenv.kotlin)
 }
 
 tasks.test {
