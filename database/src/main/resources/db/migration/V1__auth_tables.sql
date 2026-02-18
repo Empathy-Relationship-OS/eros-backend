@@ -51,15 +51,15 @@ CREATE TABLE users (
     diet_display BOOLEAN NOT NULL DEFAULT FALSE,
 
     -- Relationship goals
-    date_intentions VARCHAR(50),
+    date_intentions VARCHAR(50) NOT NULL,
     date_intentions_display BOOLEAN NOT NULL DEFAULT FALSE,
-    relationship_type VARCHAR(50),
+    relationship_type VARCHAR(50) NOT NULL,
     relationship_type_display BOOLEAN NOT NULL DEFAULT FALSE,
-    kids_preference VARCHAR(50),
+    kids_preference VARCHAR(50) NOT NULL,
     kids_preference_display BOOLEAN NOT NULL DEFAULT FALSE,
 
     -- Identity
-    sexual_orientation VARCHAR(50),
+    sexual_orientation VARCHAR(50) NOT NULL,
     sexual_orientation_display BOOLEAN NOT NULL DEFAULT FALSE,
     pronouns VARCHAR(50),
     pronouns_display BOOLEAN NOT NULL DEFAULT FALSE,

@@ -12,7 +12,7 @@ import kotlin.test.assertTrue
 class UserTest {
 
     @Nested
-    inner class `getAge` {
+    inner class GetAge {
 
         @Test
         fun `should calculate correct age when birthday has passed this year`() {
@@ -60,7 +60,7 @@ class UserTest {
     }
 
     @Nested
-    inner class `getFullName` {
+    inner class GetFullName {
 
         @Test
         fun `should concatenate first and last name`() {
@@ -71,7 +71,7 @@ class UserTest {
     }
 
     @Nested
-    inner class `isDeleted` {
+    inner class IsDeleted {
 
         @Test
         fun `should return false when deletedAt is null`() {
@@ -89,7 +89,7 @@ class UserTest {
     }
 
     @Nested
-    inner class `hasValidInterestsCount` {
+    inner class HasValidInterestsCount {
 
         @Test
         fun `should return true when interests count is 5`() {
@@ -128,7 +128,7 @@ class UserTest {
     }
 
     @Nested
-    inner class `hasValidTraitsCount` {
+    inner class HasValidTraitsCount {
 
         @Test
         fun `should return true when traits count is 3`() {
@@ -167,7 +167,7 @@ class UserTest {
     }
 
     @Nested
-    inner class `hasValidBio` {
+    inner class HasValidBio {
 
         @Test
         fun `should return true when bio is empty`() {
@@ -199,7 +199,7 @@ class UserTest {
     }
 
     @Nested
-    inner class `hasMinimumRequiredFields` {
+    inner class HasMinimumRequiredFields {
 
         @Test
         fun `should return true when all required fields are valid`() {
@@ -279,21 +279,7 @@ class UserTest {
         @Test
         fun `should throw exception when interests count is less than 5`() {
             val exception = assertThrows<IllegalArgumentException> {
-                CreateUserRequest(
-                    userId = "test-id",
-                    firstName = "John",
-                    lastName = "Doe",
-                    email = "test@example.com",
-                    heightCm = 180,
-                    dateOfBirth = LocalDate.of(1990, 1, 1),
-                    city = "London",
-                    educationLevel = EducationLevel.UNIVERSITY,
-                    gender = Gender.MALE,
-                    preferredLanguage = Language.ENGLISH,
-                    interests = listOf("A", "B", "C", "D"),
-                    traits = List(3) { Trait.entries[it] },
-                    ethnicity = listOf(Ethnicity.BLACK_AFRICAN_DESCENT)
-                )
+                createValidCreateUserRequest(interests = listOf("A", "B", "C", "D"))
             }
             assertEquals("Interests must be between 5 and 10 items", exception.message)
         }
@@ -301,21 +287,7 @@ class UserTest {
         @Test
         fun `should throw exception when interests count is more than 10`() {
             val exception = assertThrows<IllegalArgumentException> {
-                CreateUserRequest(
-                    userId = "test-id",
-                    firstName = "John",
-                    lastName = "Doe",
-                    email = "test@example.com",
-                    heightCm = 180,
-                    dateOfBirth = LocalDate.of(1990, 1, 1),
-                    city = "London",
-                    educationLevel = EducationLevel.UNIVERSITY,
-                    gender = Gender.MALE,
-                    preferredLanguage = Language.ENGLISH,
-                    interests = List(11) { "Interest$it" },
-                    traits = List(3) { Trait.entries[it] },
-                    ethnicity = listOf(Ethnicity.BLACK_AFRICAN_DESCENT)
-                )
+                createValidCreateUserRequest(interests = List(11) { "Interest$it" })
             }
             assertEquals("Interests must be between 5 and 10 items", exception.message)
         }
@@ -323,21 +295,7 @@ class UserTest {
         @Test
         fun `should throw exception when traits count is less than 3`() {
             val exception = assertThrows<IllegalArgumentException> {
-                CreateUserRequest(
-                    userId = "test-id",
-                    firstName = "John",
-                    lastName = "Doe",
-                    email = "test@example.com",
-                    heightCm = 180,
-                    dateOfBirth = LocalDate.of(1990, 1, 1),
-                    city = "London",
-                    educationLevel = EducationLevel.UNIVERSITY,
-                    gender = Gender.MALE,
-                    preferredLanguage = Language.ENGLISH,
-                    interests = List(5) { "Interest$it" },
-                    traits = listOf(Trait.HONEST, Trait.KIND),
-                    ethnicity = listOf(Ethnicity.BLACK_AFRICAN_DESCENT)
-                )
+                createValidCreateUserRequest(traits = listOf(Trait.HONEST, Trait.KIND))
             }
             assertEquals("Traits must be between 3 and 10 items", exception.message)
         }
@@ -345,22 +303,7 @@ class UserTest {
         @Test
         fun `should throw exception when bio exceeds 300 characters`() {
             val exception = assertThrows<IllegalArgumentException> {
-                CreateUserRequest(
-                    userId = "test-id",
-                    firstName = "John",
-                    lastName = "Doe",
-                    email = "test@example.com",
-                    heightCm = 180,
-                    dateOfBirth = LocalDate.of(1990, 1, 1),
-                    city = "London",
-                    educationLevel = EducationLevel.UNIVERSITY,
-                    gender = Gender.MALE,
-                    preferredLanguage = Language.ENGLISH,
-                    bio = "a".repeat(301),
-                    interests = List(5) { "Interest$it" },
-                    traits = List(3) { Trait.entries[it] },
-                    ethnicity = listOf(Ethnicity.BLACK_AFRICAN_DESCENT)
-                )
+                createValidCreateUserRequest(bio = "a".repeat(301))
             }
             assertEquals("Bio must not exceed 300 characters", exception.message)
         }
@@ -368,21 +311,7 @@ class UserTest {
         @Test
         fun `should throw exception when heightCm is zero or negative`() {
             val exception = assertThrows<IllegalArgumentException> {
-                CreateUserRequest(
-                    userId = "test-id",
-                    firstName = "John",
-                    lastName = "Doe",
-                    email = "test@example.com",
-                    heightCm = 0,
-                    dateOfBirth = LocalDate.of(1990, 1, 1),
-                    city = "London",
-                    educationLevel = EducationLevel.UNIVERSITY,
-                    gender = Gender.MALE,
-                    preferredLanguage = Language.ENGLISH,
-                    interests = List(5) { "Interest$it" },
-                    traits = List(3) { Trait.entries[it] },
-                    ethnicity = listOf(Ethnicity.BLACK_AFRICAN_DESCENT)
-                )
+                createValidCreateUserRequest(heightCm = 0)
             }
             assertEquals("Height must be positive", exception.message)
         }
@@ -390,21 +319,7 @@ class UserTest {
         @Test
         fun `should throw exception when firstName is blank`() {
             val exception = assertThrows<IllegalArgumentException> {
-                CreateUserRequest(
-                    userId = "test-id",
-                    firstName = "  ",
-                    lastName = "Doe",
-                    email = "test@example.com",
-                    heightCm = 180,
-                    dateOfBirth = LocalDate.of(1990, 1, 1),
-                    city = "London",
-                    educationLevel = EducationLevel.UNIVERSITY,
-                    gender = Gender.MALE,
-                    preferredLanguage = Language.ENGLISH,
-                    interests = List(5) { "Interest$it" },
-                    traits = List(3) { Trait.entries[it] },
-                    ethnicity = listOf(Ethnicity.BLACK_AFRICAN_DESCENT)
-                )
+                createValidCreateUserRequest(firstName = "  ")
             }
             assertEquals("First name is required", exception.message)
         }
@@ -412,21 +327,8 @@ class UserTest {
         @Test
         fun `should throw exception when brainDescription exceeds 200 characters`() {
             val exception = assertThrows<IllegalArgumentException> {
-                CreateUserRequest(
-                    userId = "test-id",
-                    firstName = "John",
-                    lastName = "Doe",
-                    email = "test@example.com",
-                    heightCm = 180,
-                    dateOfBirth = LocalDate.of(1990, 1, 1),
-                    city = "London",
-                    educationLevel = EducationLevel.UNIVERSITY,
-                    gender = Gender.MALE,
-                    preferredLanguage = Language.ENGLISH,
-                    interests = List(5) { "Interest$it" },
-                    traits = List(3) { Trait.entries[it] },
-                    ethnicity = listOf(Ethnicity.BLACK_AFRICAN_DESCENT),
-                    brainDescription = "a".repeat(201)
+                createValidCreateUserRequest(
+                    brainDescription = DisplayableField("a".repeat(201), false)
                 )
             }
             assertEquals("Brain description must not exceed 200 characters", exception.message)
@@ -434,21 +336,7 @@ class UserTest {
 
         @Test
         fun `should create request successfully with valid data`() {
-            val request = CreateUserRequest(
-                userId = "test-id",
-                firstName = "John",
-                lastName = "Doe",
-                email = "test@example.com",
-                heightCm = 180,
-                dateOfBirth = LocalDate.of(1990, 1, 1),
-                city = "London",
-                educationLevel = EducationLevel.UNIVERSITY,
-                gender = Gender.MALE,
-                preferredLanguage = Language.ENGLISH,
-                interests = List(5) { "Interest$it" },
-                traits = List(3) { Trait.entries[it] },
-                ethnicity = listOf(Ethnicity.BLACK_AFRICAN_DESCENT)
-            )
+            val request = createValidCreateUserRequest()
 
             assertEquals("test-id", request.userId)
             assertEquals("John", request.firstName)
@@ -493,7 +381,7 @@ class UserTest {
         @Test
         fun `should throw exception when brainDescription exceeds 100 characters`() {
             val exception = assertThrows<IllegalArgumentException> {
-                UpdateUserRequest(brainDescription = "a".repeat(101))
+                UpdateUserRequest(brainDescription = DisplayableField("a".repeat(101), false))
             }
             assertEquals("Brain description must not exceed 100 characters", exception.message)
         }
@@ -501,7 +389,7 @@ class UserTest {
         @Test
         fun `should throw exception when bodyDescription exceeds 100 characters`() {
             val exception = assertThrows<IllegalArgumentException> {
-                UpdateUserRequest(bodyDescription = "a".repeat(101))
+                UpdateUserRequest(bodyDescription = DisplayableField("a".repeat(101), false))
             }
             assertEquals("Body description must not exceed 100 characters", exception.message)
         }
@@ -509,7 +397,7 @@ class UserTest {
         @Test
         fun `should throw exception when ethnicity list is empty`() {
             val exception = assertThrows<IllegalArgumentException> {
-                UpdateUserRequest(ethnicity = emptyList())
+                UpdateUserRequest(ethnicity = DisplayableField(emptyList(), false))
             }
             assertEquals("Ethnicity must not be empty", exception.message)
         }
@@ -533,6 +421,73 @@ class UserTest {
             assertEquals(null, request.firstName)
             assertEquals(null, request.bio)
         }
+    }
+
+    // Helper function to create valid CreateUserRequest with sensible defaults
+    private fun createValidCreateUserRequest(
+        userId: String = "test-id",
+        firstName: String = "John",
+        lastName: String = "Doe",
+        email: String = "test@example.com",
+        heightCm: Int = 180,
+        dateOfBirth: LocalDate = LocalDate.of(1990, 1, 1),
+        city: String = "London",
+        educationLevel: EducationLevel = EducationLevel.UNIVERSITY,
+        gender: Gender = Gender.MALE,
+        preferredLanguage: Language = Language.ENGLISH,
+        bio: String = "",
+        interests: List<String> = List(5) { "Interest$it" },
+        traits: List<Trait> = List(3) { Trait.entries[it] },
+        spokenLanguages: DisplayableField<List<Language>> = DisplayableField(listOf(Language.ENGLISH), false),
+        religion: DisplayableField<Religion?> = DisplayableField(null, false),
+        politicalView: DisplayableField<PoliticalView?> = DisplayableField(null, false),
+        alcoholConsumption: DisplayableField<AlcoholConsumption?> = DisplayableField(null, false),
+        smokingStatus: DisplayableField<SmokingStatus?> = DisplayableField(null, false),
+        diet: DisplayableField<Diet?> = DisplayableField(null, false),
+        dateIntentions: DisplayableField<DateIntentions> = DisplayableField(DateIntentions.SERIOUS_DATING, false),
+        relationshipType: DisplayableField<RelationshipType> = DisplayableField(RelationshipType.MONOGAMOUS, false),
+        kidsPreference: DisplayableField<KidsPreference> = DisplayableField(KidsPreference.OPEN_TO_KIDS, false),
+        sexualOrientation: DisplayableField<SexualOrientation> = DisplayableField(SexualOrientation.STRAIGHT, false),
+        pronouns: DisplayableField<Pronouns?> = DisplayableField(null, false),
+        starSign: DisplayableField<StarSign?> = DisplayableField(null, false),
+        ethnicity: DisplayableField<List<Ethnicity>> = DisplayableField(listOf(Ethnicity.BLACK_AFRICAN_DESCENT), false),
+        brainAttributes: DisplayableField<List<BrainAttribute>?> = DisplayableField(null, false),
+        brainDescription: DisplayableField<String?> = DisplayableField(null, false),
+        bodyAttributes: DisplayableField<List<BodyAttribute>?> = DisplayableField(null, false),
+        bodyDescription: DisplayableField<String?> = DisplayableField(null, false)
+    ): CreateUserRequest {
+        return CreateUserRequest(
+            userId = userId,
+            firstName = firstName,
+            lastName = lastName,
+            email = email,
+            heightCm = heightCm,
+            dateOfBirth = dateOfBirth,
+            city = city,
+            educationLevel = educationLevel,
+            gender = gender,
+            preferredLanguage = preferredLanguage,
+            bio = bio,
+            interests = interests,
+            traits = traits,
+            spokenLanguages = spokenLanguages,
+            religion = religion,
+            politicalView = politicalView,
+            alcoholConsumption = alcoholConsumption,
+            smokingStatus = smokingStatus,
+            diet = diet,
+            dateIntentions = dateIntentions,
+            relationshipType = relationshipType,
+            kidsPreference = kidsPreference,
+            sexualOrientation = sexualOrientation,
+            pronouns = pronouns,
+            starSign = starSign,
+            ethnicity = ethnicity,
+            brainAttributes = brainAttributes,
+            brainDescription = brainDescription,
+            bodyAttributes = bodyAttributes,
+            bodyDescription = bodyDescription
+        )
     }
 
     // Helper function to create test users with defaults

@@ -4,7 +4,6 @@ package com.eros.users.repository
 import com.eros.users.models.*
 import com.eros.users.table.Cities
 import com.eros.users.table.UserCitiesPreference
-import com.eros.users.table.UserPreferences
 import com.eros.users.table.Users
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.v1.jdbc.Database
@@ -51,7 +50,7 @@ class UserCitiesRepositoryImplTest {
 
         // Use regular transaction for schema creation
         transaction {
-            SchemaUtils.create(Cities, UserCitiesPreference)
+            SchemaUtils.create(Users, Cities, UserCitiesPreference)
         }
     }
 
@@ -60,7 +59,6 @@ class UserCitiesRepositoryImplTest {
         clock = Clock.fixed(fixedInstant, ZoneId.of("UTC"))
         repository = UserCitiesRepositoryImpl(clock)
 
-        // Create UserRepository to insert test users
         val userRepository = UserRepositoryImpl(clock)
 
         transaction {
@@ -86,87 +84,35 @@ class UserCitiesRepositoryImplTest {
             }
         }
 
-        // Create test users
+        // Create test users via repository (service layer handles DTO→domain mapping)
         runBlocking {
-            // Create user123
-            userRepository.createUser(
-                CreateUserRequest(
-                    userId = "user123",
-                    firstName = "John",
-                    lastName = "Doe",
-                    email = "john@example.com",
-                    heightCm = 175,
-                    dateOfBirth = LocalDate.of(1990, 1, 1),
-                    city = "New York",
-                    educationLevel = EducationLevel.UNIVERSITY,
-                    gender = Gender.MALE,
-                    preferredLanguage = Language.ENGLISH,
-                    interests = listOf("Reading", "Hiking", "Movies", "Music", "Travel"),
-                    traits = listOf(Trait.ADVENTUROUS, Trait.HONEST, Trait.KIND),
-                    ethnicity = listOf(Ethnicity.MIDDLE_EASTERN)
-                )
-            )
-
-            // Create user456
-            userRepository.createUser(
-                CreateUserRequest(
-                    userId = "user456",
-                    firstName = "Jane",
-                    lastName = "Smith",
-                    email = "jane@example.com",
-                    heightCm = 165,
-                    dateOfBirth = LocalDate.of(1992, 5, 15),
-                    city = "Los Angeles",
-                    educationLevel = EducationLevel.UNIVERSITY,
-                    gender = Gender.FEMALE,
-                    preferredLanguage = Language.ENGLISH,
-                    interests = listOf("Yoga", "Cooking", "Art", "Photography", "Fashion"),
-                    traits = listOf(Trait.CREATIVE, Trait.EMPATHETIC, Trait.OUTGOING),
-                    ethnicity = listOf(Ethnicity.PACIFIC_ISLANDER)
-                )
-            )
-
-            // Create user789
-            userRepository.createUser(
-                CreateUserRequest(
-                    userId = "user789",
-                    firstName = "Alex",
-                    lastName = "Johnson",
-                    email = "alex@example.com",
-                    heightCm = 180,
-                    dateOfBirth = LocalDate.of(1988, 10, 20),
-                    city = "Chicago",
-                    educationLevel = EducationLevel.APPRENTICESHIP,
-                    gender = Gender.NON_BINARY,
-                    preferredLanguage = Language.ENGLISH,
-                    interests = listOf("Gaming", "Tech", "Running", "Coffee", "Coding"),
-                    traits = listOf(Trait.CREATIVE, Trait.AMBITIOUS, Trait.OUTGOING),
-                    ethnicity = listOf(Ethnicity.HISPANIC_LATINO, Ethnicity.SOUTHEAST_ASIAN)
-                )
-            )
+            userRepository.create(createTestUser("user123", "John", "Doe", "john@example.com", "New York"))
+            userRepository.create(createTestUser("user456", "Jane", "Smith", "jane@example.com", "Los Angeles"))
+            userRepository.create(createTestUser("user789", "Alex", "Johnson", "alex@example.com", "Chicago"))
         }
     }
 
     @AfterAll
     fun tearDown() {
         transaction {
-            SchemaUtils.drop(Cities, UserCitiesPreference)
+            SchemaUtils.drop(UserCitiesPreference, Cities, Users)
         }
     }
 
     @Test
     fun `should add single city preference successfully`() = runBlocking {
 
-        val city = CityRepositoryImpl().createCity(CreateCityRequest("Blah"))
+        val city = CityRepositoryImpl(clock).create(City(0L, "Blah", fixedInstant, fixedInstant))
 
-        val request = CreateUserCityPreferenceRequest(
+        val preference = UserCityPreference(
             userId = "user123",
-            cityId = city.cityId
+            cityId = city.cityId,
+            createdAt = fixedInstant
         )
 
-        val result = repository.addUserCityPreference(request)
+        val result = repository.addUserCityPreference(preference)
 
-        assertNotEquals(result,null)
+        assertNotEquals(result, null)
         assertEquals("user123", result.userId)
         assertEquals(city.cityId, result.cityId)
         assertEquals(fixedInstant, result.createdAt)
@@ -175,15 +121,59 @@ class UserCitiesRepositoryImplTest {
     @Test
     fun `should create preference with correct timestamp`() = runBlocking {
         // Given
-        val request = CreateUserCityPreferenceRequest(
+        val preference = UserCityPreference(
             userId = "user456",
-            cityId = 2L
+            cityId = 2L,
+            createdAt = fixedInstant
         )
 
         // When
-        val result = repository.addUserCityPreference(request)
+        val result = repository.addUserCityPreference(preference)
 
         // Then
         assertEquals(fixedInstant, result.createdAt)
     }
+
+    // Helper to build a minimal User domain object for seeding tests
+    private fun createTestUser(
+        userId: String,
+        firstName: String,
+        lastName: String,
+        email: String,
+        city: String
+    ): User = User(
+        userId = userId,
+        firstName = firstName,
+        lastName = lastName,
+        email = email,
+        heightCm = 175,
+        dateOfBirth = LocalDate.of(1990, 1, 1),
+        city = city,
+        educationLevel = EducationLevel.UNIVERSITY,
+        gender = Gender.MALE,
+        occupation = "",
+        bio = "",
+        interests = listOf("Reading", "Hiking", "Movies", "Music", "Travel"),
+        traits = listOf(Trait.ADVENTUROUS, Trait.HONEST, Trait.KIND),
+        preferredLanguage = Language.ENGLISH,
+        spokenLanguages = DisplayableField(listOf(Language.ENGLISH), false),
+        religion = DisplayableField(null, false),
+        politicalView = DisplayableField(null, false),
+        alcoholConsumption = DisplayableField(null, false),
+        smokingStatus = DisplayableField(null, false),
+        diet = DisplayableField(null, false),
+        dateIntentions = DisplayableField(DateIntentions.SERIOUS_DATING, false),
+        relationshipType = DisplayableField(RelationshipType.MONOGAMOUS, false),
+        kidsPreference = DisplayableField(KidsPreference.OPEN_TO_KIDS, false),
+        sexualOrientation = DisplayableField(SexualOrientation.STRAIGHT, false),
+        pronouns = DisplayableField(null, false),
+        starSign = DisplayableField(null, false),
+        ethnicity = DisplayableField(listOf(Ethnicity.BLACK_AFRICAN_DESCENT), false),
+        brainAttributes = DisplayableField(null, false),
+        brainDescription = DisplayableField(null, false),
+        bodyAttributes = DisplayableField(null, false),
+        bodyDescription = DisplayableField(null, false),
+        createdAt = fixedInstant,
+        updatedAt = fixedInstant
+    )
 }
