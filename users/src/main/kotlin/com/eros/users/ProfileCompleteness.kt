@@ -78,7 +78,7 @@ class ProfileCompleteness {
 
 
     /**
-     * Photos: 30 points.
+     * Photos: 20 points.
      */
     private fun calculatePhotoScore(userMedia: UserMediaCollection): Int {
         return if (userMedia.totalCount >= PHOTOS_REQUIRED) {
@@ -90,7 +90,7 @@ class ProfileCompleteness {
 
 
 /**
- * Core identity: 50 points.
+ * Core identity: 20 points.
  */
 private fun calculateCoreIdentityScore(user: User): Int {
     var score = 0
