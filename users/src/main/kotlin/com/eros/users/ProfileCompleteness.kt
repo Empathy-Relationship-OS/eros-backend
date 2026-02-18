@@ -81,35 +81,28 @@ class ProfileCompleteness {
      * Photos: 20 points.
      */
     private fun calculatePhotoScore(userMedia: UserMediaCollection): Int {
-        return if (userMedia.totalCount >= PHOTOS_REQUIRED) {
-            SCORE_PHOTOS
-        } else
-            0
+        return if (userMedia.totalCount >= PHOTOS_REQUIRED) SCORE_PHOTOS else 0
     }
-}
 
 
-/**
- * Core identity: 20 points.
- */
-private fun calculateCoreIdentityScore(user: User): Int {
-    var score = 0
+    /**
+     * Core identity: 20 points.
+     */
+    private fun calculateCoreIdentityScore(user: User): Int {
+        var score = 0
 
-    if (user.bio.isNotBlank() && user.hasValidBio()) score += SCORE_BIO
-    if (user.traits.size >= TRAITS_QUANTITY) score += SCORE_TRAITS
-    if (user.interests.size >= INTERESTS_QUANTITY) score += SCORE_INTERESTS
+        if (user.bio.isNotBlank() && user.hasValidBio()) score += SCORE_BIO
+        if (user.traits.size >= TRAITS_QUANTITY) score += SCORE_TRAITS
+        if (user.interests.size >= INTERESTS_QUANTITY) score += SCORE_INTERESTS
 
-    return score
-}
+        return score
+    }
 
 
-/**
- * UserQA : 10 Points
- */
-private fun calculateQAScore(userQA: UserQACollection): Int {
-    return if (userQA.totalCount > 1) {
-        SCORE_QA
-    } else {
-        0
+    /**
+     * UserQA : 10 Points
+     */
+    private fun calculateQAScore(userQA: UserQACollection): Int {
+        return if (userQA.totalCount > 1) SCORE_QA else 0
     }
 }
