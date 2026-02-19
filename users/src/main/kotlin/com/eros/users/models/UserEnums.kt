@@ -683,7 +683,7 @@ enum class MediaType {
 }
 
 /**
- * Reach Level - for how flexable a user's preferences are used for matching.
+ * Reach Level - for how flexible a user's preferences are used for matching.
  */
 enum class ReachLevel(string: String) {
     OPEN_MINDED("OPEN_MINDED"),
