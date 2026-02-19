@@ -10,6 +10,11 @@ dependencies {
     // Kotlin serialization
     implementation(libs.ktor.serialization.kotlinx.json)
 
+    implementation(libs.exposed.core)
+
+    implementation(libs.ktor.server.status.pages)
+    implementation(libs.ktor.server.core)
+
     // Testing
     testImplementation(libs.kotlin.test.junit)
 }

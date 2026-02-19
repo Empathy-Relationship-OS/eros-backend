@@ -18,6 +18,8 @@ fun Application.configureRouting() {
             else ValidationResult.Valid
         }
     }
+    // Commented out as only 1 instance of status page allowed.
+    /*
     install(StatusPages) {
         // Handle specific application exceptions
         // Authentication failures are handled by the Authentication plugin's challenge mechanism
@@ -36,6 +38,7 @@ fun Application.configureRouting() {
             )
         }
     }
+    */
 
     // Initialize repositories
     val userRepository = UserRepositoryImpl()
