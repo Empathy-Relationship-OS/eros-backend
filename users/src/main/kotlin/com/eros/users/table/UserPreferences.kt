@@ -44,6 +44,7 @@ object UserPreferences : Table("user_preferences") {
     val dateLanguages = array<String>("date_languages")
     val dateActivities = array<String>("date_activities")
     val dateLimit = integer("date_limit").nullable()
+    val reachLevel = varchar("reach_level", 128)
 
     // Timestamps
     val createdAt = timestamp("created_at").clientDefault { Instant.now() }

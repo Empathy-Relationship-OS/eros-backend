@@ -37,6 +37,7 @@ class PreferenceRepositoryImpl(
         dateLanguages = this[UserPreferences.dateLanguages].map { Language.valueOf(it) },
         dateActivities = this[UserPreferences.dateActivities].map { Activity.valueOf(it) },
         dateLimit = this[UserPreferences.dateLimit],
+        reachLevel = ReachLevel.valueOf(this[UserPreferences.reachLevel]),
         createdAt = this[UserPreferences.createdAt],
         updatedAt = this[UserPreferences.updatedAt]
     )
@@ -53,6 +54,7 @@ class PreferenceRepositoryImpl(
             this[UserPreferences.dateLanguages] = entity.dateLanguages.map { it.name }
             this[UserPreferences.dateActivities] = entity.dateActivities.map { it.name }
             this[UserPreferences.dateLimit] = entity.dateLimit
+            this[UserPreferences.reachLevel] = entity.reachLevel.name
             this[UserPreferences.createdAt] = entity.createdAt
             this[UserPreferences.updatedAt] = Instant.now(clock)
         }
