@@ -10,6 +10,7 @@ import com.eros.users.models.Ethnicity
 import com.eros.users.models.Gender
 import com.eros.users.models.KidsPreference
 import com.eros.users.models.Language
+import com.eros.users.models.ReachLevel
 import com.eros.users.models.RelationshipType
 import com.eros.users.models.SexualOrientation
 import com.eros.users.models.Trait
@@ -167,6 +168,7 @@ class PreferenceRepositoryImplTest {
             dateActivities = listOf(Activity.ESCAPE_ROOMS, Activity.BEACH),
             dateLimit = 5,
             dateCities = listOf(city),
+            reachLevel = ReachLevel.OPEN_MINDED,
             createdAt = fixedInstant,
             updatedAt = fixedInstant
         )

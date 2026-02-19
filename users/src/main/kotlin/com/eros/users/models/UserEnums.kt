@@ -681,3 +681,12 @@ enum class MediaType {
     PHOTO,
     VIDEO
 }
+
+/**
+ * Reach Level - for how flexable a user's preferences are used for matching.
+ */
+enum class ReachLevel(string: String) {
+    OPEN_MINDED("OPEN_MINDED"),
+    BALANCED("BALANCED"),
+    SELECTIVE("SELECTIVE")
+}
