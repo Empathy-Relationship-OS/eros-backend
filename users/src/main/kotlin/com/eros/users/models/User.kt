@@ -27,6 +27,17 @@ data class User(
     // Optional profile fields
     val occupation: String,
     val bio: String = "",
+
+    // Generated fields.
+    val profileStatus: ProfileStatus,
+    val eloScore: Int,
+    val badges: List<Badge>,
+    val completeness: Int,
+    val coordinatesLongitude: Double,
+    val coordinatesLatitude: Double,
+    val role: Role,
+    val photoVerificationStatus: VerificationStatus,
+
     
     // Hobbies & Interests (5-10 required)
     // These combine all interest categories: Activity, Interest, Entertainment, Creative, MusicGenre, FoodAndDrink, Sport
@@ -153,6 +164,9 @@ data class CreateUserRequest(
     val gender: Gender,
     val preferredLanguage: Language,
 
+    val coordinatesLatitude: Double,
+    val coordinatesLongitude: Double,
+
     // Optional fields
     val occupation: String? = null,
     val bio: String = "",
@@ -213,6 +227,16 @@ data class UpdateUserRequest(
     val interests: List<String>? = null,
     val traits: List<Trait>? = null,
     val preferredLanguage: Language? = null,
+
+    val profileStatus: ProfileStatus? = null,
+    val eloScore: Int? = null,
+    val badges: List<Badge>? = null,
+    val completeness : Int? = null,
+    val coordinatesLatitude: Double? = null,
+    val coordinatesLongitude: Double? = null,
+    val role: Role? = null,
+    val photoVerificationStatus: VerificationStatus? = null,
+
 
     // Displayable fields — null means "do not update", non-null replaces both value and display flag
     val spokenLanguages: DisplayableField<List<Language>>? = null,

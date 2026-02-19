@@ -31,6 +31,16 @@ object Users : Table("users") {
     val city = varchar("city", 100)
     val educationLevel = varchar("education_level", 50) // EducationLevel enum
     val gender = varchar("gender", 50) // Gender enum
+
+    // Generated fields.
+    val profileStatus = varchar("profile_status", 32) // ProfileStatus enum
+    val eloScore = integer("elo_score").default(1000) // User elo
+    val badges = array<String>("badges") // Badge enum
+    val completeness = integer("completeness") // Integer 50-100
+    val coordinates_longitude = double("coordinates_longitude") // Long and Lat doubles.
+    val coordinates_latitude = double("coordinates_latitude") // Long and Lat doubles.
+    val role = varchar("role", 32) // Role enum.
+    val photoVerificationStatus = varchar("photo_verification_status", 32) // Verification Enum
     
     // Optional profile fields
     val occupation = varchar("occupation", 100).nullable()
@@ -115,6 +125,14 @@ fun ResultRow.toDTO() = User(
     city = this[Users.city],
     educationLevel = EducationLevel.valueOf(this[Users.educationLevel]),
     gender = Gender.valueOf(this[Users.gender]),
+    profileStatus = ProfileStatus.valueOf(this[Users.profileStatus]),
+    eloScore = this[Users.eloScore],
+    badges = this[Users.badges].toList().map {Badge.valueOf(it)},
+    completeness = this[Users.completeness],
+    coordinatesLongitude = this[Users.coordinates_longitude],
+    coordinatesLatitude = this[Users.coordinates_latitude],
+    role = Role.valueOf(this[Users.role]),
+    photoVerificationStatus = VerificationStatus.valueOf(this[Users.photoVerificationStatus]),
     occupation = this[Users.occupation] ?: "",
     bio = this[Users.bio] ?: "",
     interests = this[Users.interests].toList(),

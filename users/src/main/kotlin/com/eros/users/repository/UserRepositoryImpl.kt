@@ -90,6 +90,14 @@ class UserRepositoryImpl(
             this[Users.bodyDescriptionDisplay] = entity.bodyDescription.display
             this[Users.createdAt] = entity.createdAt
             this[Users.updatedAt] = Instant.now(clock)
+            this[Users.profileStatus] = entity.profileStatus.name
+            this[Users.eloScore] = entity.eloScore
+            this[Users.badges] = entity.badges.map { it.name }
+            this[Users.completeness] = entity.completeness
+            this[Users.coordinates_latitude] = entity.coordinatesLatitude
+            this[Users.coordinates_longitude] = entity.coordinatesLongitude
+            this[Users.role] = entity.role.name
+            this[Users.photoVerificationStatus] = entity.photoVerificationStatus.name
         }
     }
 

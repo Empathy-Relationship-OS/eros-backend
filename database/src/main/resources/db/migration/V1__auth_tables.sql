@@ -22,6 +22,16 @@ CREATE TABLE users (
     occupation VARCHAR(100),
     bio VARCHAR(300),
 
+    -- Generated fields
+    profile_status VARCHAR(50) NOT NULL,
+    elo_score INTEGER NOT NULL,
+    badges TEXT[] NOT NULL,
+    completeness INTEGER NOT NULL,
+    coordinates_latitude DOUBLE PRECISION NOT NULL,
+    coordinates_longitude DOUBLE PRECISION NOT NULL,
+    role VARCHAR(50) NOT NULL,
+    photo_verification_status VARCHAR(50) NOT NULL,
+
     -- Hobbies & Interests (PostgreSQL TEXT[] array)
     -- Combined: Activity, Interest, Entertainment, Creative, MusicGenre, FoodAndDrink, Sport
     -- Min 5, Max 10

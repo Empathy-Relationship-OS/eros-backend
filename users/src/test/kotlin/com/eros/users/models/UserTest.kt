@@ -3,6 +3,7 @@ package com.eros.users.models
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import org.testcontainers.shaded.org.bouncycastle.oer.its.ieee1609dot2.basetypes.Longitude
 import java.time.Instant
 import java.time.LocalDate
 import kotlin.test.assertEquals
@@ -454,7 +455,9 @@ class UserTest {
         brainAttributes: DisplayableField<List<BrainAttribute>?> = DisplayableField(null, false),
         brainDescription: DisplayableField<String?> = DisplayableField(null, false),
         bodyAttributes: DisplayableField<List<BodyAttribute>?> = DisplayableField(null, false),
-        bodyDescription: DisplayableField<String?> = DisplayableField(null, false)
+        bodyDescription: DisplayableField<String?> = DisplayableField(null, false),
+        coordinatesLongitude: Double = 52.001,
+        coordinatesLatitude: Double = 3.451,
     ): CreateUserRequest {
         return CreateUserRequest(
             userId = userId,
@@ -486,7 +489,9 @@ class UserTest {
             brainAttributes = brainAttributes,
             brainDescription = brainDescription,
             bodyAttributes = bodyAttributes,
-            bodyDescription = bodyDescription
+            bodyDescription = bodyDescription,
+            coordinatesLongitude = coordinatesLongitude,
+            coordinatesLatitude = coordinatesLatitude,
         )
     }
 
@@ -525,7 +530,15 @@ class UserTest {
         bodyDescription: DisplayableField<String?> = DisplayableField(null, false),
         createdAt: Instant = Instant.now(),
         updatedAt: Instant = Instant.now(),
-        deletedAt: Instant? = null
+        deletedAt: Instant? = null,
+        profileStatus: ProfileStatus = ProfileStatus.ACTIVE,
+        eloScore : Int = 1000,
+        completeness: Int = 50,
+        coordinatesLongitude: Double = 52.001,
+        coordinatesLatitude: Double = 3.451,
+        badges: List<Badge> = listOf(Badge.NEW_USER),
+        role : Role = Role.USER,
+        photoVerificationStatus: VerificationStatus = VerificationStatus.VERIFIED
     ): User {
         return User(
             userId = userId,
@@ -561,7 +574,16 @@ class UserTest {
             bodyDescription = bodyDescription,
             createdAt = createdAt,
             updatedAt = updatedAt,
-            deletedAt = deletedAt
+            deletedAt = deletedAt,
+
+            profileStatus = profileStatus,
+            eloScore = eloScore,
+            badges = badges,
+            completeness = completeness,
+            coordinatesLongitude = coordinatesLongitude,
+            coordinatesLatitude = coordinatesLatitude,
+            role = role,
+            photoVerificationStatus = photoVerificationStatus
         )
     }
 }
