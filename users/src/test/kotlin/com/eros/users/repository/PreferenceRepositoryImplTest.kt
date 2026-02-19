@@ -16,6 +16,7 @@ import com.eros.users.models.SexualOrientation
 import com.eros.users.models.Trait
 import com.eros.users.models.User
 import com.eros.users.models.UserPreference
+import com.eros.users.service.PreferenceService
 import com.eros.users.table.Cities
 import com.eros.users.table.UserCitiesPreference
 import com.eros.users.table.UserPreferences
@@ -39,6 +40,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 @Testcontainers
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -143,6 +145,43 @@ class PreferenceRepositoryImplTest {
                 updatedAt = fixedInstant
             )
         )
+        UserRepositoryImpl(clock).create(
+            User(
+                userId = "user456",
+                firstName = "Pete",
+                lastName = "Georgian",
+                email = "p.g@example.com",
+                heightCm = 192,
+                dateOfBirth = LocalDate.of(1991, 1, 1),
+                city = "Liverpool",
+                educationLevel = EducationLevel.UNIVERSITY,
+                gender = Gender.FEMALE,
+                occupation = "",
+                bio = "",
+                interests = listOf("Reading", "Hiking", "Movies", "Music", "Travel"),
+                traits = listOf(Trait.ADVENTUROUS, Trait.HONEST, Trait.KIND),
+                preferredLanguage = Language.ENGLISH,
+                spokenLanguages = DisplayableField(listOf(Language.ENGLISH), false),
+                religion = DisplayableField(null, false),
+                politicalView = DisplayableField(null, false),
+                alcoholConsumption = DisplayableField(null, false),
+                smokingStatus = DisplayableField(null, false),
+                diet = DisplayableField(null, false),
+                dateIntentions = DisplayableField(DateIntentions.SERIOUS_DATING, false),
+                relationshipType = DisplayableField(RelationshipType.MONOGAMOUS, false),
+                kidsPreference = DisplayableField(KidsPreference.OPEN_TO_KIDS, false),
+                sexualOrientation = DisplayableField(SexualOrientation.STRAIGHT, false),
+                pronouns = DisplayableField(null, false),
+                starSign = DisplayableField(null, false),
+                ethnicity = DisplayableField(listOf(Ethnicity.MIDDLE_EASTERN), false),
+                brainAttributes = DisplayableField(null, false),
+                brainDescription = DisplayableField(null, false),
+                bodyAttributes = DisplayableField(null, false),
+                bodyDescription = DisplayableField(null, false),
+                createdAt = fixedInstant,
+                updatedAt = fixedInstant
+            )
+        )
     }
 
 
@@ -160,9 +199,27 @@ class PreferenceRepositoryImplTest {
             userId = "user123",
             genderIdentities = listOf(Gender.FEMALE, Gender.NON_BINARY),
             ageRangeMin = 25,
-            ageRangeMax = 35,
+            ageRangeMax = 55,
             heightRangeMin = 160,
-            heightRangeMax = 180,
+            heightRangeMax = 200,
+            ethnicity = listOf(Ethnicity.MIDDLE_EASTERN, Ethnicity.PACIFIC_ISLANDER),
+            dateLanguages = listOf(Language.ENGLISH, Language.SPANISH),
+            dateActivities = listOf(Activity.ESCAPE_ROOMS, Activity.BEACH),
+            dateLimit = 5,
+            dateCities = listOf(city),
+            reachLevel = ReachLevel.OPEN_MINDED,
+            createdAt = fixedInstant,
+            updatedAt = fixedInstant
+        )
+
+        val preference2 = UserPreference(
+            id = 0L,
+            userId = "user456",
+            genderIdentities = listOf(Gender.MALE, Gender.NON_BINARY),
+            ageRangeMin = 18,
+            ageRangeMax = 80,
+            heightRangeMin = 160,
+            heightRangeMax = 200,
             ethnicity = listOf(Ethnicity.MIDDLE_EASTERN, Ethnicity.PACIFIC_ISLANDER),
             dateLanguages = listOf(Language.ENGLISH, Language.SPANISH),
             dateActivities = listOf(Activity.ESCAPE_ROOMS, Activity.BEACH),
@@ -176,9 +233,24 @@ class PreferenceRepositoryImplTest {
         val createdUser = runBlocking {
             preferenceRepository.create(preference)
         }
+        val createdUser2 = runBlocking {preferenceRepository.create(preference2)}
 
         assertNotNull(createdUser)
         assertEquals(preference.userId, createdUser.userId)
+        assertEquals(preference2.userId, createdUser2.userId)
+    }
+
+    @Test
+    fun `valid one-way preference matching`(){
+
+        createUserPreferences()
+
+        val matches = runBlocking {
+            PreferenceService(preferenceRepository).matchesUser("user123", "user456")
+        }
+
+        assertTrue(matches , "User's don't match when they should.")
+
     }
 
 }
