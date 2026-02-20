@@ -24,7 +24,8 @@ data class FirebaseUserPrincipal(
     val email: String?,
     val phoneNumber: String?,
     val emailVerified: Boolean,
-    val token: FirebaseToken
+    val token: FirebaseToken,
+    val role: String?
 )
 
 /**
@@ -49,7 +50,8 @@ object FirebaseAuthService {
             email = decodedToken.email,
             phoneNumber = decodedToken.claims["phone_number"] as? String,
             emailVerified = decodedToken.isEmailVerified,
-            token = decodedToken
+            token = decodedToken,
+            role = decodedToken.claims["role"] as? String
         )
     }
 

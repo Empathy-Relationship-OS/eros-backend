@@ -1,13 +1,18 @@
 package com.eros.users.routes
 
 import com.eros.auth.extensions.requireFirebasePrincipal
-import com.eros.auth.firebase.FirebaseUserPrincipal
+import com.eros.auth.extensions.requireRoles
 import com.eros.common.errors.BadRequestException
 import com.eros.common.errors.ConflictException
 import com.eros.common.errors.ForbiddenException
 import com.eros.common.errors.NotFoundException
 import com.eros.users.models.CreateUserRequest
+import com.eros.users.models.MediaType
+import com.eros.users.models.PublicProfileResponse
+import com.eros.users.models.Role
 import com.eros.users.models.UpdateUserRequest
+import com.eros.users.models.UserMediaCollection
+import com.eros.users.models.UserMediaItem
 import com.eros.users.service.UserService
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -16,8 +21,7 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.serialization.Serializable
-import org.jetbrains.exposed.v1.exceptions.ExposedSQLException
-import java.sql.SQLException
+import java.time.LocalDateTime
 
 /**
  * Response model for user existence check
@@ -45,6 +49,7 @@ fun Route.userRoutes(userService: UserService) {
          * Base route /users.
          */
         route("/users") {
+            requireRoles("ADMIN", "USER", "EMPLOYEE")
             /**
              * POST /users
              *
@@ -56,7 +61,7 @@ fun Route.userRoutes(userService: UserService) {
              * Request Body: CreateUserRequest JSON
              * Response: User JSON
              */
-            post{
+            post {
                 val principal = call.requireFirebasePrincipal()
                 val request = call.receive<CreateUserRequest>()
 
@@ -69,6 +74,67 @@ fun Route.userRoutes(userService: UserService) {
                 val user = userService.createUser(request)
                 call.respond(HttpStatusCode.Created, user)
             }
+
+
+            //TODO:REMOVE ONCE MEDIASERVICE HAS BEEN CREATED / PUSHED
+            fun createMediaItem(
+                id: Long = 1L,
+                userId: String = "user-123",
+                mediaUrl: String = "https://example.com/photo${id}.jpg",
+                mediaType: MediaType = MediaType.PHOTO,
+                displayOrder: Int = 1,
+                isPrimary: Boolean = false
+            ): UserMediaItem {
+                return UserMediaItem(
+                    id = id,
+                    userId = userId,
+                    mediaUrl = mediaUrl,
+                    mediaType = mediaType,
+                    displayOrder = displayOrder,
+                    isPrimary = isPrimary,
+                    createdAt = LocalDateTime.now(),
+                    updatedAt = LocalDateTime.now()
+                )
+            }
+            fun createMediaList(count: Int): List<UserMediaItem> {
+                return (1..count).map { index ->
+                    createMediaItem(id = index.toLong(), displayOrder = index, isPrimary = index==1)
+                }
+            }
+
+            /**
+             * GET /users/{id}/public
+             *
+             * Retrieves a user's public profile by ID.
+             *
+             * Request Headers:
+             * - Authorization: Bearer <firebase-id-token>
+             *
+             * Response: User JSON
+             */
+            get("/id/{id}/public"){
+                //todo: Alter with matches, and media collection
+                val principal = call.requireFirebasePrincipal()
+                val targetUserId = call.parameters["id"]
+                    ?: throw BadRequestException("User ID is required")
+
+                if (principal.uid != targetUserId) {
+                    val hasMatch = true//matchService.hasMatch(principal.uid, targetUserId)
+                    if (!hasMatch) throw ForbiddenException("You do not have access to this profile")
+                }
+
+                val user = userService.findByUserId(targetUserId)
+                    ?: throw NotFoundException("User profile not found")
+
+                if (principal.role == Role.ADMIN.name) {
+                    call.respond(HttpStatusCode.OK, user)
+                } else {
+                    val media = UserMediaCollection(user.userId,createMediaList(2),2)//userMediaService.getMediaForUser(targetUserId)
+                    val sharedInterests = listOf("Walks","Shopping","Running")//matchService.getSharedInterests(principal.uid, targetUserId)
+                    call.respond(HttpStatusCode.OK, PublicProfileResponse.from(user, media, sharedInterests))
+                }
+            }
+
 
             /**
              * GET /users/me
@@ -107,20 +173,20 @@ fun Route.userRoutes(userService: UserService) {
             /**
              * GET /users/{id}
              *
-             * Retrieves a user profile by ID.
+             * Retrieves a user full profile by ID.
              *
              * Request Headers:
              * - Authorization: Bearer <firebase-id-token>
              *
              * Response: User JSON
              */
-            get("/{id}") {
-                val userId = call.parameters["id"]
-                    ?: throw BadRequestException("User ID is required")
-                val user = userService.findByUserId(userId)
-                    ?: throw NotFoundException("User profile not found")
+            get("/id/{id}") {
+                val principal = call.requireFirebasePrincipal()
+                val userId = call.parameters["id"] ?: throw BadRequestException("User ID is required")
+                val user = userService.findByUserId(userId) ?: throw NotFoundException("User profile not found")
                 call.respond(HttpStatusCode.OK, user)
             }
+
 
             /**
              * PUT /users/me
