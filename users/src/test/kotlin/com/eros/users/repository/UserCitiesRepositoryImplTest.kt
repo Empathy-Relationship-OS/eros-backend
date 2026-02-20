@@ -182,6 +182,6 @@ class UserCitiesRepositoryImplTest {
         coordinatesLongitude = 45.3246,
         coordinatesLatitude = -314.6,
         role = Role.USER,
-        photoVerificationStatus = ValidationStatus.VALIDATED
+        photoValidationStatus = ValidationStatus.VALIDATED
     )
 }
