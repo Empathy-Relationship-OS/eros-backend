@@ -31,12 +31,12 @@ data class User(
     // Generated fields.
     val profileStatus: ProfileStatus,
     val eloScore: Int,
-    val badges: List<Badge>,
+    val badges: Set<Badge>?,
     val completeness: Int,
     val coordinatesLongitude: Double,
     val coordinatesLatitude: Double,
     val role: Role,
-    val photoVerificationStatus: VerificationStatus,
+    val photoValidationStatus: ValidationStatus,
 
     
     // Hobbies & Interests (5-10 required)
@@ -230,12 +230,16 @@ data class UpdateUserRequest(
 
     val profileStatus: ProfileStatus? = null,
     val eloScore: Int? = null,
-    val badges: List<Badge>? = null,
+    val goodExperienceBadge : Boolean? = null,
+    val trustedBadge : Boolean? = null,
+    val verifiedPhotoBadge : Boolean? = null,
     val completeness : Int? = null,
     val coordinatesLatitude: Double? = null,
     val coordinatesLongitude: Double? = null,
     val role: Role? = null,
-    val photoVerificationStatus: VerificationStatus? = null,
+    val photoValidationStatus: ValidationStatus? = null,
+
+
 
 
     // Displayable fields — null means "do not update", non-null replaces both value and display flag

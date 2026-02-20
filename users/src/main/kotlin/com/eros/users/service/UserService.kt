@@ -6,8 +6,9 @@ import com.eros.users.models.ProfileStatus
 import com.eros.users.models.Role
 import com.eros.users.models.UpdateUserRequest
 import com.eros.users.models.User
-import com.eros.users.models.VerificationStatus
+import com.eros.users.models.ValidationStatus
 import com.eros.users.repository.UserRepository
+import com.eros.users.table.badgeHelper
 import java.time.Clock
 import java.time.Instant
 
@@ -71,9 +72,9 @@ class UserService(
 
             //todo: Check these values
             eloScore = 1000,
-            photoVerificationStatus = VerificationStatus.UNVERIFIED,
+            photoValidationStatus = ValidationStatus.UNVALIDATED,
             profileStatus = ProfileStatus.ACTIVE,
-            badges = listOf(Badge.NEW_USER),
+            badges = null,
             role = Role.USER,
             coordinatesLongitude = request.coordinatesLongitude,
             coordinatesLatitude = request.coordinatesLatitude,
@@ -127,9 +128,12 @@ class UserService(
             bodyDescription = request.bodyDescription ?: existing.bodyDescription,
 
             eloScore = request.eloScore ?: existing.eloScore,
-            photoVerificationStatus = request.photoVerificationStatus ?: existing.photoVerificationStatus,
+            photoValidationStatus = request.photoValidationStatus ?: existing.photoValidationStatus,
             profileStatus = request.profileStatus ?: existing.profileStatus,
-            badges = request.badges ?: existing.badges,
+            badges =
+                request.takeIf { it.verifiedPhotoBadge != null || it.goodExperienceBadge != null || it.trustedBadge != null }?.let {
+                    badgeHelper((it.verifiedPhotoBadge ?: false) to Badge.VERIFIED, (it.goodExperienceBadge ?: false) to Badge.GOOD_XP, (it.trustedBadge ?: false) to Badge.TRUSTED)
+                } ?: existing.badges,
             role = request.role ?: existing.role,
             coordinatesLongitude = request.coordinatesLongitude ?: existing.coordinatesLongitude,
             coordinatesLatitude = request.coordinatesLatitude ?: existing.coordinatesLatitude,

@@ -2,7 +2,6 @@ package com.eros.users.repository
 
 
 import com.eros.users.models.Activity
-import com.eros.users.models.Badge
 import com.eros.users.models.City
 import com.eros.users.models.DateIntentions
 import com.eros.users.models.DisplayableField
@@ -19,7 +18,7 @@ import com.eros.users.models.SexualOrientation
 import com.eros.users.models.Trait
 import com.eros.users.models.User
 import com.eros.users.models.UserPreference
-import com.eros.users.models.VerificationStatus
+import com.eros.users.models.ValidationStatus
 import com.eros.users.service.PreferenceService
 import com.eros.users.table.Cities
 import com.eros.users.table.UserCitiesPreference
@@ -149,12 +148,12 @@ class PreferenceRepositoryImplTest {
                 updatedAt = fixedInstant,
                 profileStatus = ProfileStatus.ACTIVE,
                 eloScore = 1000,
-                badges = listOf(Badge.NEW_USER),
+                badges = setOf(),
                 completeness = 75,
                 coordinatesLongitude = 45.3246,
                 coordinatesLatitude = -314.6,
                 role = Role.USER,
-                photoVerificationStatus = VerificationStatus.VERIFIED
+                photoValidationStatus = ValidationStatus.VALIDATED
             )
         )
         UserRepositoryImpl(clock).create(
@@ -194,12 +193,12 @@ class PreferenceRepositoryImplTest {
                 updatedAt = fixedInstant,
                 profileStatus = ProfileStatus.ACTIVE,
                 eloScore = 1000,
-                badges = listOf(Badge.NEW_USER),
+                badges = setOf(),
                 completeness = 75,
                 coordinatesLongitude = 45.3246,
                 coordinatesLatitude = -314.6,
                 role = Role.USER,
-                photoVerificationStatus = VerificationStatus.VERIFIED
+                photoValidationStatus = ValidationStatus.VALIDATED
             )
         )
     }

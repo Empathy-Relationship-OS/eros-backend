@@ -3,7 +3,6 @@ package com.eros.users.models
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.testcontainers.shaded.org.bouncycastle.oer.its.ieee1609dot2.basetypes.Longitude
 import java.time.Instant
 import java.time.LocalDate
 import kotlin.test.assertEquals
@@ -536,9 +535,9 @@ class UserTest {
         completeness: Int = 50,
         coordinatesLongitude: Double = 52.001,
         coordinatesLatitude: Double = 3.451,
-        badges: List<Badge> = listOf(Badge.NEW_USER),
+        badges: Set<Badge> = setOf(),
         role : Role = Role.USER,
-        photoVerificationStatus: VerificationStatus = VerificationStatus.VERIFIED
+        photoValidationStatus: ValidationStatus = ValidationStatus.VALIDATED
     ): User {
         return User(
             userId = userId,
@@ -583,7 +582,7 @@ class UserTest {
             coordinatesLongitude = coordinatesLongitude,
             coordinatesLatitude = coordinatesLatitude,
             role = role,
-            photoVerificationStatus = photoVerificationStatus
+            photoValidationStatus = photoValidationStatus
         )
     }
 }

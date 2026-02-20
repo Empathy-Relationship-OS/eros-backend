@@ -1,9 +1,9 @@
 package com.eros.users
 
 import com.eros.users.models.AlcoholConsumption
+import com.eros.users.models.Badge
 import com.eros.users.models.BodyAttribute
 import com.eros.users.models.BrainAttribute
-import com.eros.users.models.CreateUserRequest
 import com.eros.users.models.DateIntentions
 import com.eros.users.models.Diet
 import com.eros.users.models.DisplayableField
@@ -15,9 +15,11 @@ import com.eros.users.models.Language
 import com.eros.users.models.MediaType
 import com.eros.users.models.PoliticalView
 import com.eros.users.models.PredefinedQuestion
+import com.eros.users.models.ProfileStatus
 import com.eros.users.models.Pronouns
 import com.eros.users.models.RelationshipType
 import com.eros.users.models.Religion
+import com.eros.users.models.Role
 import com.eros.users.models.SexualOrientation
 import com.eros.users.models.SmokingStatus
 import com.eros.users.models.StarSign
@@ -27,16 +29,8 @@ import com.eros.users.models.UserMediaCollection
 import com.eros.users.models.UserMediaItem
 import com.eros.users.models.UserQACollection
 import com.eros.users.models.UserQAItem
-import com.eros.users.repository.CityRepositoryImpl
-import com.eros.users.repository.PreferenceRepositoryImpl
-import com.eros.users.repository.UserCitiesRepositoryImpl
-import com.eros.users.repository.UserRepositoryImpl
-import com.eros.users.service.UserService
-import com.eros.users.table.Cities
-import com.eros.users.table.UserCitiesPreference
-import com.eros.users.table.UserPreferences
+import com.eros.users.models.ValidationStatus
 import com.eros.users.table.Users
-import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.deleteAll
@@ -51,9 +45,8 @@ import org.junit.jupiter.api.TestInstance
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
-import java.time.Clock
+import java.time.Instant
 import java.time.LocalDateTime
-import java.time.ZoneId
 import kotlin.test.assertTrue
 
 @Testcontainers
@@ -100,8 +93,8 @@ class ProfileCompletenessTest {
     }
 
     @Test
-    fun `completeness calculation`(){
-        val user = cTU()
+    fun `completeness calculation`() {
+        val user = creatTestUser()
         val userMedia = createMediaList(3)
         val userMediaCollection = UserMediaCollection(user.userId, userMedia, userMedia.size)
         val userQA = createQAList(2)
@@ -110,15 +103,8 @@ class ProfileCompletenessTest {
         assertTrue(completeness == 65)
     }
 
-    private fun cTU() : User {
-        return runBlocking {
-            UserService(userRepository = UserRepositoryImpl()).createUser(createTestCreateUserRequest())
-        }
-    }
-
-
     // Helper function to create test users with defaults
-    private fun createTestCreateUserRequest(
+    private fun creatTestUser(
         userId: String = "test-user-id",
         firstName: String = "John",
         lastName: String = "Doe",
@@ -131,7 +117,7 @@ class ProfileCompletenessTest {
         preferredLanguage: Language = Language.ENGLISH,
         coordinatesLatitude: Double = 51.5074,
         coordinatesLongitude: Double = -0.1278,
-        occupation: String? = null,
+        occupation: String = "toilet seat inspector",
         bio: String = "",
         interests: List<String> = List(5) { "Interest$it" },
         traits: List<Trait> = List(3) { Trait.entries[it] },
@@ -151,9 +137,17 @@ class ProfileCompletenessTest {
         brainAttributes: DisplayableField<List<BrainAttribute>?> = DisplayableField(null, false),
         brainDescription: DisplayableField<String?> = DisplayableField(null, false),
         bodyAttributes: DisplayableField<List<BodyAttribute>?> = DisplayableField(null, false),
-        bodyDescription: DisplayableField<String?> = DisplayableField(null, false)
-    ): CreateUserRequest {
-        return CreateUserRequest(
+        bodyDescription: DisplayableField<String?> = DisplayableField(null, false),
+        profileStatus: ProfileStatus = ProfileStatus.ACTIVE,
+        eloScore: Int = 1000,
+        badges: Set<Badge>? = null,
+        completeness: Int = 58,
+        role: Role = Role.USER,
+        photoValidationStatus: ValidationStatus = ValidationStatus.UNVALIDATED,
+        createdAt: Instant = Instant.now(),
+        updatedAt: Instant = Instant.now(),
+    ): User {
+        return User(
             userId = userId,
             firstName = firstName,
             lastName = lastName,
@@ -186,7 +180,15 @@ class ProfileCompletenessTest {
             brainAttributes = brainAttributes,
             brainDescription = brainDescription,
             bodyAttributes = bodyAttributes,
-            bodyDescription = bodyDescription
+            bodyDescription = bodyDescription,
+            profileStatus = profileStatus,
+            eloScore = eloScore,
+            badges = badges,
+            completeness = completeness,
+            role = role,
+            photoValidationStatus = photoValidationStatus,
+            createdAt = createdAt,
+            updatedAt = updatedAt,
         )
     }
 

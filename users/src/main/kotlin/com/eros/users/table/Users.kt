@@ -9,7 +9,7 @@ import java.time.Instant
 
 /**
  * Main user profile table
- * 
+ *
  * Stores core user information including:
  * - Basic profile (name, email, physical attributes)
  * - Personality (interests, traits via TEXT[] arrays)
@@ -21,7 +21,7 @@ import java.time.Instant
 object Users : Table("users") {
     // Primary key - Firebase user ID
     val userId = varchar("user_id", 128)
-    
+
     // Required fields
     val firstName = varchar("first_name", 100)
     val lastName = varchar("last_name", 100)
@@ -35,27 +35,29 @@ object Users : Table("users") {
     // Generated fields.
     val profileStatus = varchar("profile_status", 32) // ProfileStatus enum
     val eloScore = integer("elo_score").default(1000) // User elo
-    val badges = array<String>("badges") // Badge enum
+    val trustedBadge = bool("trusted_badge").default(false)
+    val goodExperienceBadge = bool("good_experience_badge").default(false)
+    val verifiedPhotoBadge = bool("verified_photos").default(false)
     val completeness = integer("completeness") // Integer 50-100
     val coordinates_longitude = double("coordinates_longitude") // Long and Lat doubles.
     val coordinates_latitude = double("coordinates_latitude") // Long and Lat doubles.
     val role = varchar("role", 32) // Role enum.
-    val photoVerificationStatus = varchar("photo_verification_status", 32) // Verification Enum
-    
+    val photoValidationStatus = varchar("photo_validation_status", 32) // Verification Enum
+
     // Optional profile fields
     val occupation = varchar("occupation", 100).nullable()
     val bio = varchar("bio", 300).nullable()
-    
+
     // Hobbies & Interests (stored as TEXT[] - PostgreSQL array)
     // Combined: Activity, Interest, Entertainment, Creative, MusicGenre, FoodAndDrink, Sport
     // Min 5, Max 10
     val interests = array<String>("interests")
-    
+
     // Personality Traits (stored as TEXT[] - PostgreSQL array)
     // Includes both personality traits and lifestyle traits
     // Min 3, Max 10
     val traits = array<String>("traits")
-    
+
     // Languages
     val preferredLanguage = varchar("preferred_language", 50) // Language enum
     val spokenLanguages = array<String>("spoken_languages") // Language enum array
@@ -127,12 +129,16 @@ fun ResultRow.toDTO() = User(
     gender = Gender.valueOf(this[Users.gender]),
     profileStatus = ProfileStatus.valueOf(this[Users.profileStatus]),
     eloScore = this[Users.eloScore],
-    badges = this[Users.badges].toList().map {Badge.valueOf(it)},
+    badges = badgeHelper(
+        this[Users.verifiedPhotoBadge] to Badge.VERIFIED,
+        this[Users.goodExperienceBadge] to Badge.GOOD_XP,
+        this[Users.trustedBadge] to Badge.TRUSTED
+    ),
     completeness = this[Users.completeness],
     coordinatesLongitude = this[Users.coordinates_longitude],
     coordinatesLatitude = this[Users.coordinates_latitude],
     role = Role.valueOf(this[Users.role]),
-    photoVerificationStatus = VerificationStatus.valueOf(this[Users.photoVerificationStatus]),
+    photoValidationStatus = ValidationStatus.valueOf(this[Users.photoValidationStatus]),
     occupation = this[Users.occupation] ?: "",
     bio = this[Users.bio] ?: "",
     interests = this[Users.interests].toList(),
@@ -175,7 +181,8 @@ fun ResultRow.toDTO() = User(
         display = this[Users.kidsPreferenceDisplay]
     ),
     sexualOrientation = DisplayableField(
-        field = this[Users.sexualOrientation]?.let { SexualOrientation.valueOf(it) } ?: SexualOrientation.PREFER_NOT_TO_SAY,
+        field = this[Users.sexualOrientation]?.let { SexualOrientation.valueOf(it) }
+            ?: SexualOrientation.PREFER_NOT_TO_SAY,
         display = this[Users.sexualOrientationDisplay]
     ),
     pronouns = DisplayableField(
@@ -210,3 +217,13 @@ fun ResultRow.toDTO() = User(
     updatedAt = this[Users.updatedAt],
     deletedAt = this[Users.deletedAt]
 )
+
+/**
+ * Helper function to populate a set with available badges.
+ *
+ * @return Set of badge(s) containing Badge enum, otherwise null
+ */
+fun badgeHelper(vararg pairs: Pair<Boolean, Badge>): Set<Badge>? =
+    pairs.mapNotNull { (condition, badge) ->
+        badge.takeIf { condition }
+    }.toSet().ifEmpty { null }

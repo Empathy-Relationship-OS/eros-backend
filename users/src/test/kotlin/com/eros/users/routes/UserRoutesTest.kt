@@ -674,12 +674,12 @@ class UserRoutesTest {
             deletedAt = null,
             profileStatus = ProfileStatus.ACTIVE,
             eloScore = 1000,
-            badges = listOf(Badge.NEW_USER),
+            badges = setOf(),
             completeness = 75,
             coordinatesLongitude = 45.3246,
             coordinatesLatitude = -314.6,
             role = Role.USER,
-            photoVerificationStatus = VerificationStatus.VERIFIED
+            photoValidationStatus = ValidationStatus.VALIDATED
         )
     }
 }

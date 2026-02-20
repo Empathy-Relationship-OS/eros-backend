@@ -694,20 +694,19 @@ enum class ReachLevel(string: String) {
 /**
  * Verification Status
  */
-enum class VerificationStatus {
-    UNVERIFIED,
+enum class ValidationStatus {
+    UNVALIDATED,
     PENDING,
-    VERIFIED
+    VALIDATED
 }
 
 /**
  * Badges for user profiles.
  */
 enum class Badge {
-    TRUSTED_USER,      // 10+ completed dates
-    FLAKY,             // High cancel rate
-    NEW_USER,          // < 7 days
-    VERIFIED_PHOTO     // ID verification
+    TRUSTED,     // 10+ completed dates
+    GOOD_XP,     // Good date experience
+    VERIFIED     // ID verification
 }
 
 /**
@@ -716,13 +715,15 @@ enum class Badge {
 enum class Role{
     USER,
     EMPLOYEE,
-    ADMIN
+    ADMIN,
+    BUSINESS
 }
 
 /**
  * ProfileStatus
  */
-enum class ProfileStatus{
+enum class ProfileStatus {
     SLEEP_MODE,
-    ACTIVE
+    ACTIVE,
+    FROZEN
 }

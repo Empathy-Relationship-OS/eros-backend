@@ -4,7 +4,7 @@
 -- Backend handles: user profile data, business logic, Firebase UID as primary key
 
 -- Users table: Complete user profile using Firebase UID as primary key
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     -- Primary key - Firebase user ID
     user_id VARCHAR(128) PRIMARY KEY,
 
@@ -24,13 +24,15 @@ CREATE TABLE users (
 
     -- Generated fields
     profile_status VARCHAR(50) NOT NULL,
-    elo_score INTEGER NOT NULL,
-    badges TEXT[] NOT NULL,
-    completeness INTEGER NOT NULL,
+    elo_score INTEGER DEFAULT 1000 NOT NULL,
+    trusted_badge BOOLEAN DEFAULT FALSE NOT NULL,
+    good_experience_badge BOOLEAN DEFAULT FALSE NOT NULL,
+    verified_photos BOOLEAN DEFAULT FALSE NOT NULL,
+    profileCompleteness INTEGER NOT NULL,
     coordinates_latitude DOUBLE PRECISION NOT NULL,
     coordinates_longitude DOUBLE PRECISION NOT NULL,
     role VARCHAR(50) NOT NULL,
-    photo_verification_status VARCHAR(50) NOT NULL,
+    photo_validation_status VARCHAR(50) NOT NULL,
 
     -- Hobbies & Interests (PostgreSQL TEXT[] array)
     -- Combined: Activity, Interest, Entertainment, Creative, MusicGenre, FoodAndDrink, Sport
@@ -124,3 +126,10 @@ COMMENT ON COLUMN users.email IS 'User email address (unique, synced from Fireba
 COMMENT ON COLUMN users.interests IS 'User interests array (5-10 items required)';
 COMMENT ON COLUMN users.traits IS 'Personality traits array (3-10 items required)';
 COMMENT ON COLUMN users.deleted_at IS 'Soft delete timestamp (NULL = active user)';
+COMMENT ON COLUMN users.trusted_badge IS 'Boolean for active/trusted user';
+COMMENT ON COLUMN users.good_experience_badge IS 'Boolean for if a user has good date experiences';
+COMMENT ON COLUMN users.verified_photos IS 'Boolean for if users photos have been VERIFIED';
+COMMENT ON COLUMN users.profile_status IS 'Status of the account - Active, Sleep_Mode, Frozen';
+COMMENT ON COLUMN users.profileCompleteness IS 'Int 50-100 indicating how complete user profile is';
+COMMENT ON COLUMN users.role IS 'Type of Account - User,Business,Admin,Employee';
+COMMENT ON COLUMN users.photo_validation_status IS 'Boolean if photo is validated to be safe';
