@@ -10,12 +10,15 @@ import com.eros.users.models.Ethnicity
 import com.eros.users.models.Gender
 import com.eros.users.models.KidsPreference
 import com.eros.users.models.Language
+import com.eros.users.models.ProfileStatus
 import com.eros.users.models.ReachLevel
 import com.eros.users.models.RelationshipType
+import com.eros.users.models.Role
 import com.eros.users.models.SexualOrientation
 import com.eros.users.models.Trait
 import com.eros.users.models.User
 import com.eros.users.models.UserPreference
+import com.eros.users.models.ValidationStatus
 import com.eros.users.service.PreferenceService
 import com.eros.users.table.Cities
 import com.eros.users.table.UserCitiesPreference
@@ -142,7 +145,15 @@ class PreferenceRepositoryImplTest {
                 bodyAttributes = DisplayableField(null, false),
                 bodyDescription = DisplayableField(null, false),
                 createdAt = fixedInstant,
-                updatedAt = fixedInstant
+                updatedAt = fixedInstant,
+                profileStatus = ProfileStatus.ACTIVE,
+                eloScore = 1000,
+                badges = setOf(),
+                completeness = 75,
+                coordinatesLongitude = 45.3246,
+                coordinatesLatitude = -314.6,
+                role = Role.USER,
+                photoValidationStatus = ValidationStatus.VALIDATED
             )
         )
         UserRepositoryImpl(clock).create(
@@ -179,7 +190,15 @@ class PreferenceRepositoryImplTest {
                 bodyAttributes = DisplayableField(null, false),
                 bodyDescription = DisplayableField(null, false),
                 createdAt = fixedInstant,
-                updatedAt = fixedInstant
+                updatedAt = fixedInstant,
+                profileStatus = ProfileStatus.ACTIVE,
+                eloScore = 1000,
+                badges = setOf(),
+                completeness = 75,
+                coordinatesLongitude = 45.3246,
+                coordinatesLatitude = -314.6,
+                role = Role.USER,
+                photoValidationStatus = ValidationStatus.VALIDATED
             )
         )
     }

@@ -627,7 +627,9 @@ class UserRoutesTest {
             brainAttributes = DisplayableField(null, false),
             brainDescription = DisplayableField(null, false),
             bodyAttributes = DisplayableField(null, false),
-            bodyDescription = DisplayableField(null, false)
+            bodyDescription = DisplayableField(null, false),
+            coordinatesLongitude = 45.3246,
+            coordinatesLatitude = -314.6,
         )
     }
 
@@ -669,7 +671,15 @@ class UserRoutesTest {
             bodyDescription = DisplayableField(null, false),
             createdAt = Instant.now(),
             updatedAt = Instant.now(),
-            deletedAt = null
+            deletedAt = null,
+            profileStatus = ProfileStatus.ACTIVE,
+            eloScore = 1000,
+            badges = setOf(),
+            completeness = 75,
+            coordinatesLongitude = 45.3246,
+            coordinatesLatitude = -314.6,
+            role = Role.USER,
+            photoValidationStatus = ValidationStatus.VALIDATED
         )
     }
 }

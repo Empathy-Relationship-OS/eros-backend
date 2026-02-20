@@ -690,3 +690,40 @@ enum class ReachLevel(string: String) {
     BALANCED("BALANCED"),
     SELECTIVE("SELECTIVE")
 }
+
+/**
+ * Verification Status
+ */
+enum class ValidationStatus {
+    UNVALIDATED,
+    PENDING,
+    VALIDATED
+}
+
+/**
+ * Badges for user profiles.
+ */
+enum class Badge {
+    TRUSTED,     // 10+ completed dates
+    GOOD_XP,     // Good date experience
+    VERIFIED     // ID verification
+}
+
+/**
+ * Roles for users.
+ */
+enum class Role{
+    USER,
+    EMPLOYEE,
+    ADMIN,
+    BUSINESS
+}
+
+/**
+ * ProfileStatus
+ */
+enum class ProfileStatus {
+    SLEEP_MODE,
+    ACTIVE,
+    FROZEN
+}

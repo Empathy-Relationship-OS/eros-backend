@@ -1,9 +1,14 @@
 package com.eros.users.service
 
+import com.eros.users.models.Badge
 import com.eros.users.models.CreateUserRequest
+import com.eros.users.models.ProfileStatus
+import com.eros.users.models.Role
 import com.eros.users.models.UpdateUserRequest
 import com.eros.users.models.User
+import com.eros.users.models.ValidationStatus
 import com.eros.users.repository.UserRepository
+import com.eros.users.table.badgeHelper
 import java.time.Clock
 import java.time.Instant
 
@@ -63,7 +68,18 @@ class UserService(
             bodyAttributes = request.bodyAttributes,
             bodyDescription = request.bodyDescription,
             createdAt = now,
-            updatedAt = now
+            updatedAt = now,
+
+            //todo: Check these values
+            eloScore = 1000,
+            photoValidationStatus = ValidationStatus.UNVALIDATED,
+            profileStatus = ProfileStatus.ACTIVE,
+            badges = null,
+            role = Role.USER,
+            coordinatesLongitude = request.coordinatesLongitude,
+            coordinatesLatitude = request.coordinatesLatitude,
+            completeness = 50
+
         )
         return userRepository.create(user)
     }
@@ -109,7 +125,19 @@ class UserService(
             brainAttributes = request.brainAttributes ?: existing.brainAttributes,
             brainDescription = request.brainDescription ?: existing.brainDescription,
             bodyAttributes = request.bodyAttributes ?: existing.bodyAttributes,
-            bodyDescription = request.bodyDescription ?: existing.bodyDescription
+            bodyDescription = request.bodyDescription ?: existing.bodyDescription,
+
+            eloScore = request.eloScore ?: existing.eloScore,
+            photoValidationStatus = request.photoValidationStatus ?: existing.photoValidationStatus,
+            profileStatus = request.profileStatus ?: existing.profileStatus,
+            badges =
+                request.takeIf { it.verifiedPhotoBadge != null || it.goodExperienceBadge != null || it.trustedBadge != null }?.let {
+                    badgeHelper((it.verifiedPhotoBadge ?: false) to Badge.VERIFIED, (it.goodExperienceBadge ?: false) to Badge.GOOD_XP, (it.trustedBadge ?: false) to Badge.TRUSTED)
+                } ?: existing.badges,
+            role = request.role ?: existing.role,
+            coordinatesLongitude = request.coordinatesLongitude ?: existing.coordinatesLongitude,
+            coordinatesLatitude = request.coordinatesLatitude ?: existing.coordinatesLatitude,
+            completeness = request.completeness ?: existing.completeness
         )
         return userRepository.update(userId, merged)
     }

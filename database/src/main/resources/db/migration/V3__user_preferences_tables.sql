@@ -3,7 +3,7 @@
 -- Junction tables handle user city preference
 
 -- Main user preferences table
-CREATE TABLE user_preferences (
+CREATE TABLE IF NOT EXISTS user_preferences (
     id BIGSERIAL PRIMARY KEY,
     user_id VARCHAR(128) NOT NULL UNIQUE REFERENCES users(user_id) ON DELETE CASCADE,
 
@@ -36,7 +36,7 @@ CREATE INDEX idx_user_preferences_user_id ON user_preferences(user_id);
 CREATE INDEX idx_user_preferences_age_range ON user_preferences(age_range_min, age_range_max);
 
 -- Junction table: User city preferences
-CREATE TABLE user_cities_preference (
+CREATE TABLE IF NOT EXISTS user_cities_preference (
     user_id VARCHAR(128) NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
     city_id BIGINT NOT NULL REFERENCES cities(id) ON DELETE CASCADE,
     -- Timestamps

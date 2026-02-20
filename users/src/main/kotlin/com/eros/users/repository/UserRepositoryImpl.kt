@@ -2,6 +2,7 @@ package com.eros.users.repository
 
 import com.eros.database.dbQuery
 import com.eros.database.repository.BaseDAOImpl
+import com.eros.users.models.Badge
 import com.eros.users.models.User
 import com.eros.users.table.Users
 import com.eros.users.table.toDTO
@@ -90,6 +91,16 @@ class UserRepositoryImpl(
             this[Users.bodyDescriptionDisplay] = entity.bodyDescription.display
             this[Users.createdAt] = entity.createdAt
             this[Users.updatedAt] = Instant.now(clock)
+            this[Users.profileStatus] = entity.profileStatus.name
+            this[Users.eloScore] = entity.eloScore
+            this[Users.trustedBadge] = entity.badges?.contains(Badge.TRUSTED) ?: false
+            this[Users.verifiedPhotoBadge] = entity.badges?.contains(Badge.VERIFIED) ?: false
+            this[Users.goodExperienceBadge] = entity.badges?.contains(Badge.GOOD_XP) ?: false
+            this[Users.completeness] = entity.completeness
+            this[Users.coordinates_latitude] = entity.coordinatesLatitude
+            this[Users.coordinates_longitude] = entity.coordinatesLongitude
+            this[Users.role] = entity.role.name
+            this[Users.photoValidationStatus] = entity.photoValidationStatus.name
         }
     }
 
