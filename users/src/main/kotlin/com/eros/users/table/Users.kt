@@ -42,7 +42,7 @@ object Users : Table("users") {
     val coordinates_longitude = double("coordinates_longitude") // Long and Lat doubles.
     val coordinates_latitude = double("coordinates_latitude") // Long and Lat doubles.
     val role = varchar("role", 32) // Role enum.
-    val photoValidationStatus = varchar("photo_validation_status", 32) // Verification Enum
+    val photoValidationStatus = varchar("photo_validation_status", 32) // ValidationStatus Enum
 
     // Optional profile fields
     val occupation = varchar("occupation", 100).nullable()
