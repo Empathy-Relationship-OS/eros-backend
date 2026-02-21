@@ -6,6 +6,7 @@ import com.eros.common.errors.BadRequestException
 import com.eros.common.errors.ConflictException
 import com.eros.common.errors.ForbiddenException
 import com.eros.common.errors.NotFoundException
+import com.eros.users.ProfileAccessControl
 import com.eros.users.models.CreateUserRequest
 import com.eros.users.models.MediaType
 import com.eros.users.models.PublicProfileResponse
@@ -118,22 +119,17 @@ fun Route.userRoutes(userService: UserService) {
                 val targetUserId = call.parameters["id"]
                     ?: throw BadRequestException("User ID is required")
 
-                if (principal.uid != targetUserId) {
-                    val hasMatch = true//matchService.hasMatch(principal.uid, targetUserId)
-                    if (!hasMatch) throw ForbiddenException("You do not have access to this profile")
-                }
+                // Ensure the user has access to the account or not.
+                ProfileAccessControl.hasPublicProfileAccess(principal.uid, targetUserId)
 
                 val user = userService.findByUserId(targetUserId)
                     ?: throw NotFoundException("User profile not found")
 
-                if (principal.role == Role.ADMIN.name) {
-                    call.respond(HttpStatusCode.OK, user)
-                } else {
-                    //todo: Alter with media service
-                    val media = UserMediaCollection(user.userId,createMediaList(2),2)//userMediaService.getMediaForUser(targetUserId)
-                    //todo: Alter with match service
-                    val sharedInterests = listOf("Walks","Shopping","Running")//matchService.getSharedInterests(principal.uid, targetUserId)
-                    call.respond(HttpStatusCode.OK, PublicProfileResponse.from(user, media, sharedInterests))
+                //todo: Alter with media service
+                val media = UserMediaCollection(user.userId,createMediaList(2),2)//userMediaService.getMediaForUser(targetUserId)
+                //todo: Alter with match service
+                val sharedInterests = listOf("Walks","Shopping","Running")//matchService.getSharedInterests(principal.uid, targetUserId)
+                call.respond(HttpStatusCode.OK, PublicProfileResponse.from(user, media, sharedInterests))
                 }
             }
 
