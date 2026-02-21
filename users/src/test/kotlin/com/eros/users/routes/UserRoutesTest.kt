@@ -586,7 +586,9 @@ class UserRoutesTest {
             }
 
             routing {
-                userRoutes(mockUserService)
+                authenticate("firebase-auth") {
+                    userProfileRoutes(mockUserService)
+                }
             }
         }
     }

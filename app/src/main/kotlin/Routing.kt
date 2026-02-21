@@ -3,12 +3,13 @@ package com.eros
 import com.eros.common.config.S3Config
 import com.eros.users.repository.PhotoRepositoryImpl
 import com.eros.users.repository.UserRepositoryImpl
-import com.eros.users.routes.photoRoutes
-import com.eros.users.routes.userRoutes
+import com.eros.users.routes.userPhotoRoutes
+import com.eros.users.routes.userProfileRoutes
 import com.eros.users.service.PhotoService
 import com.eros.users.service.UserService
 import io.ktor.http.*
 import io.ktor.server.application.*
+import io.ktor.server.auth.*
 import io.ktor.server.plugins.requestvalidation.*
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.response.*
@@ -60,10 +61,13 @@ fun Application.configureRouting() {
             call.respondText("Hello World!")
         }
 
-        // User routes (Firebase authenticated)
-        userRoutes(userService)
+        // All /users routes require Firebase authentication
+        authenticate("firebase-auth") {
+            // User profile routes
+            userProfileRoutes(userService)
 
-        // Photo routes (Firebase authenticated)
-        photoRoutes(photoService)
+            // Photo management routes
+            userPhotoRoutes(photoService)
+        }
     }
 }

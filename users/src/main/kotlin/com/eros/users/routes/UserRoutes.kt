@@ -29,22 +29,15 @@ data class UserExistsResponse(
 )
 
 /**
- * Configure user routes.
+ * Configure user profile routes under /users.
  *
  * These routes handle user profile CRUD operations.
  * All routes require Firebase authentication.
  *
  * @param userService Service for user data operations
  */
-fun Route.userRoutes(userService: UserService) {
-
-    // All user routes require Firebase authentication
-    authenticate("firebase-auth") {
-
-        /**
-         * Base route /users.
-         */
-        route("/users") {
+fun Route.userProfileRoutes(userService: UserService) {
+    route("/users") {
             /**
              * POST /users
              *
@@ -160,6 +153,5 @@ fun Route.userRoutes(userService: UserService) {
                 call.application.log.info("User account deleted: ${principal.uid}")
                 call.respond(HttpStatusCode.NoContent)
             }
-        }
     }
 }
