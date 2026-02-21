@@ -681,3 +681,49 @@ enum class MediaType {
     PHOTO,
     VIDEO
 }
+
+/**
+ * Reach Level - for how flexible a user's preferences are used for matching.
+ */
+enum class ReachLevel(string: String) {
+    OPEN_MINDED("OPEN_MINDED"),
+    BALANCED("BALANCED"),
+    SELECTIVE("SELECTIVE")
+}
+
+/**
+ * Verification Status
+ */
+enum class ValidationStatus {
+    UNVALIDATED,
+    PENDING,
+    VALIDATED
+}
+
+/**
+ * Badges for user profiles.
+ */
+enum class Badge {
+    TRUSTED,     // 10+ completed dates
+    GOOD_XP,     // Good date experience
+    VERIFIED     // ID verification
+}
+
+/**
+ * Roles for users.
+ */
+enum class Role{
+    USER,
+    EMPLOYEE,
+    ADMIN,
+    BUSINESS
+}
+
+/**
+ * ProfileStatus
+ */
+enum class ProfileStatus {
+    SLEEP_MODE,
+    ACTIVE,
+    FROZEN
+}

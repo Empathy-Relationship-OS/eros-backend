@@ -45,11 +45,39 @@ data class UserPreference(
     // For collecting user city preferences from UserCitiesPreferences table
     val dateCities: List<City>,
 
+    val reachLevel: ReachLevel,
+
     // Timestamps
     val createdAt: Instant,
     val updatedAt: Instant
+){
+    /**
+     * Function to determine if another user matches the preferences of a user.
+     *
+     * @param otherProfile User object of the user that is being checked for compatibility.
+     * @param otherPreference UserPreference object of user that is being checked for compatibility to get their
+     *                        preferences on cities to ensure a valid location can be used.
+     *
+     * @return Boolean `true` if the other profile matches the preferences, otherwise `false`.
+     */
+    fun matchesUser(otherProfile: User, otherPreference: UserPreference): Boolean {
+        //todo: Alter to include reach level / other nonnull values.
 
-)
+        // Check gender compatibility
+        if (otherProfile.gender !in genderIdentities) return false
+
+        // Check age range
+        if (otherProfile.getAge() !in ageRangeMin..ageRangeMax) return false
+
+        // Check height range
+        if (otherProfile.heightCm !in heightRangeMin..heightRangeMax) return false
+
+        // Check city overlap
+        if (dateCities.none { it in otherPreference.dateCities }) return false
+
+        return true
+    }
+}
 
 /**
  * Request payload for creating a new user preference record.
@@ -86,6 +114,7 @@ data class CreatePreferenceRequest(
     val dateActivities: List<Activity>,
     val dateLimit: Int?,
     val dateCities: List<Long>,  // Array of CityId's
+    val reachLevel: ReachLevel
 )
 
 /**
@@ -125,4 +154,5 @@ data class UpdatePreferenceRequest(
     val dateActivities: List<Activity>,
     val dateLimit: Int?,
     val dateCities: List<Long>, // Array of CityId's
+    val reachLevel: ReachLevel
 )

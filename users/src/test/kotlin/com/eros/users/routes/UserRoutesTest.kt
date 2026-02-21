@@ -1,6 +1,7 @@
 package com.eros.users.routes
 
 import com.eros.auth.firebase.FirebaseUserPrincipal
+import com.eros.common.plugins.configureExceptionHandling
 import com.eros.users.models.*
 import com.eros.users.service.UserService
 import io.ktor.client.call.body
@@ -164,7 +165,7 @@ class UserRoutesTest {
             }
 
             assertEquals(HttpStatusCode.InternalServerError, response.status)
-            assertTrue(response.bodyAsText().contains("Failed to create user profile"))
+            assertTrue(response.bodyAsText().contains("An unexpected error occurred"))
         }
     }
 
@@ -553,6 +554,7 @@ class UserRoutesTest {
 
     private fun ApplicationTestBuilder.setupTestApp() {
         application {
+            configureExceptionHandling()
             // Install server-side content negotiation
             install(ServerContentNegotiation) {
                 json(Json {
@@ -625,7 +627,9 @@ class UserRoutesTest {
             brainAttributes = DisplayableField(null, false),
             brainDescription = DisplayableField(null, false),
             bodyAttributes = DisplayableField(null, false),
-            bodyDescription = DisplayableField(null, false)
+            bodyDescription = DisplayableField(null, false),
+            coordinatesLongitude = 45.3246,
+            coordinatesLatitude = -314.6,
         )
     }
 
@@ -667,7 +671,15 @@ class UserRoutesTest {
             bodyDescription = DisplayableField(null, false),
             createdAt = Instant.now(),
             updatedAt = Instant.now(),
-            deletedAt = null
+            deletedAt = null,
+            profileStatus = ProfileStatus.ACTIVE,
+            eloScore = 1000,
+            badges = setOf(),
+            completeness = 75,
+            coordinatesLongitude = 45.3246,
+            coordinatesLatitude = -314.6,
+            role = Role.USER,
+            photoValidationStatus = ValidationStatus.VALIDATED
         )
     }
 }

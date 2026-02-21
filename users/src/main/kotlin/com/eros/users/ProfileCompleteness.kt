@@ -13,7 +13,7 @@ private const val SCORE_TRAITS = 5
 private const val SCORE_INTERESTS = 5
 
 // User QA (10)
-private const val SCORE_QA = 5
+private const val SCORE_QA = 10
 
 // Minimum score a profile has from required fields.
 private const val MIN_PROFILE_SCORE = 50
