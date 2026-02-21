@@ -42,7 +42,6 @@ fun Route.userProfileRoutes(userService: UserService) {
          * Base route /users.
          */
         route("/users") {
-            requireRoles("ADMIN", "USER", "EMPLOYEE")
             /**
              * POST /users
              *

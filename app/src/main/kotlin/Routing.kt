@@ -1,5 +1,6 @@
 package com.eros
 
+import com.eros.auth.extensions.requireRoles
 import com.eros.common.config.S3Config
 import com.eros.users.repository.PhotoRepositoryImpl
 import com.eros.users.repository.UserRepositoryImpl
@@ -23,27 +24,6 @@ fun Application.configureRouting() {
             else ValidationResult.Valid
         }
     }
-    // Commented out as only 1 instance of status page allowed.
-    /*
-    install(StatusPages) {
-        // Handle specific application exceptions
-        // Authentication failures are handled by the Authentication plugin's challenge mechanism
-        exception<IllegalArgumentException> { call, cause ->
-            call.respondText(text = "400: ${cause.message}" , status = HttpStatusCode.BadRequest)
-        }
-        exception<IllegalStateException> { call, cause ->
-            call.respondText(text = "500: ${cause.message}" , status = HttpStatusCode.InternalServerError)
-        }
-        // Catch-all handler for any uncaught exceptions
-        exception<Throwable> { call, cause ->
-            call.application.log.error("Unhandled exception", cause)
-            call.respondText(
-                text = "500: Internal Server Error - ${cause.message ?: "An unexpected error occurred"}",
-                status = HttpStatusCode.InternalServerError
-            )
-        }
-    }
-    */
 
     // Initialize repositories
     val userRepository = UserRepositoryImpl()
@@ -63,6 +43,7 @@ fun Application.configureRouting() {
 
         // All /users routes require Firebase authentication
         authenticate("firebase-auth") {
+            requireRoles("ADMIN", "USER", "EMPLOYEE")
             // User profile routes
             userProfileRoutes(userService)
 
