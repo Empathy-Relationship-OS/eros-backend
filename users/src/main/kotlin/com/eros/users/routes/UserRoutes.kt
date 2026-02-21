@@ -97,9 +97,10 @@ fun Route.userRoutes(userService: UserService) {
                     updatedAt = LocalDateTime.now()
                 )
             }
+
             fun createMediaList(count: Int): List<UserMediaItem> {
                 return (1..count).map { index ->
-                    createMediaItem(id = index.toLong(), displayOrder = index, isPrimary = index==1)
+                    createMediaItem(id = index.toLong(), displayOrder = index, isPrimary = index == 1)
                 }
             }
 
@@ -113,7 +114,7 @@ fun Route.userRoutes(userService: UserService) {
              *
              * Response: User JSON
              */
-            get("/id/{id}/public"){
+            get("/id/{id}/public") {
                 //todo: Alter with matches, and media collection
                 val principal = call.requireFirebasePrincipal()
                 val targetUserId = call.parameters["id"]
@@ -126,11 +127,15 @@ fun Route.userRoutes(userService: UserService) {
                     ?: throw NotFoundException("User profile not found")
 
                 //todo: Alter with media service
-                val media = UserMediaCollection(user.userId,createMediaList(2),2)//userMediaService.getMediaForUser(targetUserId)
+                val media = UserMediaCollection(
+                    user.userId,
+                    createMediaList(2),
+                    2
+                )//userMediaService.getMediaForUser(targetUserId)
                 //todo: Alter with match service
-                val sharedInterests = listOf("Walks","Shopping","Running")//matchService.getSharedInterests(principal.uid, targetUserId)
+                val sharedInterests =
+                    listOf("Walks", "Shopping", "Running")//matchService.getSharedInterests(principal.uid, targetUserId)
                 call.respond(HttpStatusCode.OK, PublicProfileResponse.from(user, media, sharedInterests))
-                }
             }
 
 
