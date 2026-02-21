@@ -76,6 +76,7 @@ fun Route.userPhotoRoutes(photoService: PhotoService) {
              *
              * Response: UserMediaCollection JSON
              */
+            // TODO user gets profile not directly, but from the PublicProfile. Should only be used for admin purposes
             get {
                 val principal = call.requireFirebasePrincipal()
                 val collection = photoService.getUserMedia(principal.uid)
@@ -103,25 +104,25 @@ fun Route.userPhotoRoutes(photoService: PhotoService) {
                 call.respond(HttpStatusCode.NoContent)
             }
 
-            /**
-             * PUT /users/me/photos/{photoId}/primary
-             *
-             * Sets the specified photo as the user's primary photo.
-             *
-             * Request Headers:
-             * - Authorization: Bearer <firebase-id-token>
-             *
-             * Response: Updated UserMediaItem JSON
-             */
-            put("/{photoId}/primary") {
-                val principal = call.requireFirebasePrincipal()
-                val photoId = call.parameters["photoId"]?.toLongOrNull()
-                    ?: throw BadRequestException("Photo ID must be a number")
-
-                val updated = photoService.setPrimaryPhoto(principal.uid, photoId)
-                    ?: throw NotFoundException("Photo not found")
-
-                call.respond(HttpStatusCode.OK, updated)
-            }
+//            /**
+//             * PUT /users/me/photos/{photoId}/primary
+//             *
+//             * Sets the specified photo as the user's primary photo.
+//             *
+//             * Request Headers:
+//             * - Authorization: Bearer <firebase-id-token>
+//             *
+//             * Response: Updated UserMediaItem JSON
+//             */
+//            put("/{photoId}/primary") {
+//                val principal = call.requireFirebasePrincipal()
+//                val photoId = call.parameters["photoId"]?.toLongOrNull()
+//                    ?: throw BadRequestException("Photo ID must be a number")
+//
+//                val updated = photoService.setPrimaryPhoto(principal.uid, photoId)
+//                    ?: throw NotFoundException("Photo not found")
+//
+//                call.respond(HttpStatusCode.OK, updated)
+//            }
     }
 }

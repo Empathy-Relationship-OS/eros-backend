@@ -131,6 +131,7 @@ class PhotoRepositoryImpl(
             it[UserMedia.isPrimary] = true
             it[UserMedia.updatedAt] = Instant.now(clock)
         }
+
         if (rows == 0) null
         else UserMedia.selectAll()
             .where { UserMedia.id eq id }
