@@ -3,12 +3,14 @@ package com.eros.users.service
 import com.eros.users.models.Badge
 import com.eros.users.models.CreateUserRequest
 import com.eros.users.models.ProfileStatus
+import com.eros.users.models.PublicProfileResponse
 import com.eros.users.models.Role
 import com.eros.users.models.UpdateUserRequest
 import com.eros.users.models.User
 import com.eros.users.models.ValidationStatus
 import com.eros.users.repository.UserRepository
 import com.eros.users.table.badgeHelper
+import com.google.firebase.auth.FirebaseAuth
 import java.time.Clock
 import java.time.Instant
 
@@ -81,6 +83,8 @@ class UserService(
             completeness = 50
 
         )
+        val claims = mapOf("role" to user.role)
+        FirebaseAuth.getInstance().setCustomUserClaims(user.userId, claims)
         return userRepository.create(user)
     }
 
