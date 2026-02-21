@@ -129,7 +129,9 @@ fun Route.userRoutes(userService: UserService) {
                 if (principal.role == Role.ADMIN.name) {
                     call.respond(HttpStatusCode.OK, user)
                 } else {
+                    //todo: Alter with media service
                     val media = UserMediaCollection(user.userId,createMediaList(2),2)//userMediaService.getMediaForUser(targetUserId)
+                    //todo: Alter with match service
                     val sharedInterests = listOf("Walks","Shopping","Running")//matchService.getSharedInterests(principal.uid, targetUserId)
                     call.respond(HttpStatusCode.OK, PublicProfileResponse.from(user, media, sharedInterests))
                 }

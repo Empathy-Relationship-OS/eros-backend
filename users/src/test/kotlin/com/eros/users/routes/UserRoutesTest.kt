@@ -740,7 +740,7 @@ class UserRoutesTest {
             pronouns = DisplayableField(Pronouns.HE_HIM, true),
             starSign = DisplayableField(StarSign.GEMINI, true),
             ethnicity = DisplayableField(listOf(Ethnicity.BLACK_AFRICAN_DESCENT), true),
-            brainAttributes = DisplayableField(listOf(BrainAttribute.NEURODIVERGENT, BrainAttribute.NEURODIVERGENT), true),
+            brainAttributes = DisplayableField(listOf(BrainAttribute.LEARNING_DISABILITY, BrainAttribute.NEURODIVERGENT), true),
             brainDescription = DisplayableField("Maybe this is string?", true),
             bodyAttributes = DisplayableField(listOf(BodyAttribute.WHEELCHAIR), true),
             bodyDescription = DisplayableField("Is this a string?", true),
