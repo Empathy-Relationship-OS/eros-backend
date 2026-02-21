@@ -166,7 +166,7 @@ fun Route.userProfileRoutes(userService: UserService) {
              * Request Body: UpdateUserRequest JSON
              * Response: User JSON
              */
-            put("/me") {
+            patch("/me") {
                 val principal = call.requireFirebasePrincipal()
                 val request = call.receive<UpdateUserRequest>()
                 val user = userService.updateUser(principal.uid, request)
