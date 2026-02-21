@@ -10,6 +10,11 @@ dependencies {
     // Ktor config (ApplicationConfig used in S3Config.fromApplicationConfig)
     implementation(libs.ktor.server.config.yaml)
 
+    implementation(libs.exposed.core)
+
+    implementation(libs.ktor.server.status.pages)
+    implementation(libs.ktor.server.core)
+
     // Kotlin serialization
     implementation(libs.ktor.serialization.kotlinx.json)
 
