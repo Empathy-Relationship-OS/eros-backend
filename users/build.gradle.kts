@@ -27,6 +27,9 @@ dependencies {
     implementation(libs.exposed.java.time)
     implementation(libs.postgresql)
 
+    // AWS S3
+    implementation(libs.aws.s3)
+
     // Testing
     testImplementation(libs.kotlin.test.junit)
     testImplementation(libs.ktor.server.test.host)

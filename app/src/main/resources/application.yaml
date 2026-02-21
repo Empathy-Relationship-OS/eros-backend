@@ -25,3 +25,11 @@ twilio:
   phoneNumber: ${TWILIO_PHONE_NUMBER:MOCK_NUMBER}
   mockMode: ${TWILIO_MOCK_MODE:true}
   verifyServiceId: ${TWILIO_VERIFY_SERVICE_ID:dev}
+
+aws:
+  region: ${AWS_REGION:eu-west-2}
+  accessKeyId: ${AWS_ACCESS_KEY_ID:}
+  secretAccessKey: ${AWS_SECRET_ACCESS_KEY:}
+  s3BucketName: ${AWS_S3_BUCKET_NAME:eros-photos}
+  cdnBaseUrl: ${AWS_CDN_BASE_URL:}
+  presignedUrlTtlMinutes: ${AWS_PRESIGNED_URL_TTL_MINUTES:15}

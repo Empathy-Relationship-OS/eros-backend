@@ -1,8 +1,12 @@
 package com.eros
 
+import com.eros.common.config.S3Config
+import com.eros.users.repository.PhotoRepositoryImpl
 import com.eros.users.repository.UserRepositoryImpl
-import com.eros.users.service.UserService
+import com.eros.users.routes.photoRoutes
 import com.eros.users.routes.userRoutes
+import com.eros.users.service.PhotoService
+import com.eros.users.service.UserService
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.plugins.requestvalidation.*
@@ -39,9 +43,14 @@ fun Application.configureRouting() {
 
     // Initialize repositories
     val userRepository = UserRepositoryImpl()
+    val photoRepository = PhotoRepositoryImpl()
+
+    // Initialize configs
+    val s3Config = S3Config.fromApplicationConfig(environment.config)
 
     // Initialize services
     val userService = UserService(userRepository)
+    val photoService = PhotoService(photoRepository, s3Config)
 
     routing {
         get("/") {
@@ -50,5 +59,8 @@ fun Application.configureRouting() {
 
         // User routes (Firebase authenticated)
         userRoutes(userService)
+
+        // Photo routes (Firebase authenticated)
+        photoRoutes(photoService)
     }
 }
