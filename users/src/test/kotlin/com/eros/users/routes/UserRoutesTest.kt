@@ -317,7 +317,7 @@ class UserRoutesTest {
 
             coEvery { mockUserService.findByUserId(userId) } returns user
 
-            val response = client.get("/users/$userId") {
+            val response = client.get("/users/id/$userId") {
                 setAuthenticatedUser("some-authenticated-user")
             }
 
@@ -336,7 +336,7 @@ class UserRoutesTest {
 
             coEvery { mockUserService.findByUserId(userId) } returns null
 
-            val response = client.get("/users/$userId") {
+            val response = client.get("/users/id/$userId") {
                 setAuthenticatedUser("some-authenticated-user")
             }
 
@@ -349,7 +349,7 @@ class UserRoutesTest {
             setupTestApp()
             val client = configuredClient()
 
-            val response = client.get("/users/some-id")
+            val response = client.get("/users/id/some-id")
 
             assertEquals(HttpStatusCode.Unauthorized, response.status)
         }
@@ -363,7 +363,7 @@ class UserRoutesTest {
 
             coEvery { mockUserService.findByUserId(userId) } throws RuntimeException("DB error")
 
-            val response = client.get("/users/$userId") {
+            val response = client.get("/users/id/$userId") {
                 setAuthenticatedUser("some-authenticated-user")
             }
 
@@ -537,6 +537,30 @@ class UserRoutesTest {
         }
     }
 
+    @Nested
+    inner class `GET users PUBLIC` {
+
+        @Test
+        fun `basic user test`() = testApplication{
+            setupTestApp()
+            val client = configuredClient()
+
+            val user = createCompleteTestUser()
+            val userId = user.userId
+
+            coEvery { mockUserService.findByUserId(userId) } returns user
+
+            val response = client.get("/users/id/${userId}/public") {
+                setAuthenticatedUser(userId)
+            }
+
+            println(response.bodyAsText())
+            assertEquals(HttpStatusCode.OK, response.status)
+
+        }
+    }
+
+
     // Helper functions
 
     /**
@@ -579,7 +603,8 @@ class UserRoutesTest {
                             email = "$userId@example.com",
                             phoneNumber = null,
                             emailVerified = true,
-                            token = mockToken
+                            token = mockToken,
+                            role = "USER"
                         )
                     }
                 }
@@ -615,7 +640,7 @@ class UserRoutesTest {
             religion = DisplayableField(null, false),
             politicalView = DisplayableField(null, false),
             alcoholConsumption = DisplayableField(null, false),
-            smokingStatus = DisplayableField(null, false),
+            smokingStatus = DisplayableField(SmokingStatus.NEVER, true),
             diet = DisplayableField(null, false),
             dateIntentions = DisplayableField(DateIntentions.SERIOUS_DATING, false),
             relationshipType = DisplayableField(RelationshipType.MONOGAMOUS, false),
@@ -656,7 +681,7 @@ class UserRoutesTest {
             religion = DisplayableField(null, false),
             politicalView = DisplayableField(null, false),
             alcoholConsumption = DisplayableField(null, false),
-            smokingStatus = DisplayableField(null, false),
+            smokingStatus = DisplayableField(SmokingStatus.NEVER, true),
             diet = DisplayableField(null, false),
             dateIntentions = DisplayableField(DateIntentions.SERIOUS_DATING, false),
             relationshipType = DisplayableField(RelationshipType.MONOGAMOUS, false),
@@ -675,6 +700,56 @@ class UserRoutesTest {
             profileStatus = ProfileStatus.ACTIVE,
             eloScore = 1000,
             badges = setOf(),
+            completeness = 75,
+            coordinatesLongitude = 45.3246,
+            coordinatesLatitude = -314.6,
+            role = Role.USER,
+            photoValidationStatus = ValidationStatus.VALIDATED
+        )
+    }
+
+    private fun createCompleteTestUser(
+        userId: String = "test-user-id",
+        firstName: String = "John"
+    ): User {
+        return User(
+            userId = userId,
+            firstName = firstName,
+            lastName = "Doe",
+            email = "john.doe@example.com",
+            heightCm = 180,
+            dateOfBirth = LocalDate.of(1990, 1, 1),
+            city = "London",
+            educationLevel = EducationLevel.UNIVERSITY,
+            gender = Gender.MALE,
+            occupation = "Engineer",
+            bio = "Test bio",
+            interests = List(5) { "Interest$it" },
+            traits = List(3) { Trait.entries[it] },
+            preferredLanguage = Language.ENGLISH,
+            spokenLanguages = DisplayableField(listOf(Language.ENGLISH), true),
+            religion = DisplayableField(Religion.CHRISTIANITY,true),
+            politicalView = DisplayableField(PoliticalView.MODERATE, true),
+            alcoholConsumption = DisplayableField(AlcoholConsumption.SOMETIMES, true),
+            smokingStatus = DisplayableField(SmokingStatus.NEVER, true),
+            diet = DisplayableField(Diet.HALAL, true),
+            dateIntentions = DisplayableField(DateIntentions.SERIOUS_DATING, true),
+            relationshipType = DisplayableField(RelationshipType.MONOGAMOUS, true),
+            kidsPreference = DisplayableField(KidsPreference.OPEN_TO_KIDS, true),
+            sexualOrientation = DisplayableField(SexualOrientation.STRAIGHT, true),
+            pronouns = DisplayableField(Pronouns.HE_HIM, true),
+            starSign = DisplayableField(StarSign.GEMINI, true),
+            ethnicity = DisplayableField(listOf(Ethnicity.BLACK_AFRICAN_DESCENT), true),
+            brainAttributes = DisplayableField(listOf(BrainAttribute.LEARNING_DISABILITY, BrainAttribute.NEURODIVERGENT), true),
+            brainDescription = DisplayableField("Maybe this is string?", true),
+            bodyAttributes = DisplayableField(listOf(BodyAttribute.WHEELCHAIR), true),
+            bodyDescription = DisplayableField("Is this a string?", true),
+            createdAt = Instant.now(),
+            updatedAt = Instant.now(),
+            deletedAt = null,
+            profileStatus = ProfileStatus.ACTIVE,
+            eloScore = 1000,
+            badges = setOf(Badge.VERIFIED, Badge.TRUSTED, Badge.GOOD_XP),
             completeness = 75,
             coordinatesLongitude = 45.3246,
             coordinatesLatitude = -314.6,
