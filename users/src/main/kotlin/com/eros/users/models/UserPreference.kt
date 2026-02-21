@@ -1,5 +1,7 @@
 package com.eros.users.models
 
+import com.eros.common.serializers.InstantSerializer
+import kotlinx.serialization.Serializable
 import java.time.Instant
 
 /**
@@ -23,6 +25,7 @@ import java.time.Instant
  * @property createdAt Timestamp when the preference record was created
  * @property updatedAt Timestamp when the preference record was last modified
  */
+@Serializable
 data class UserPreference(
 
     val id: Long,
@@ -48,7 +51,9 @@ data class UserPreference(
     val reachLevel: ReachLevel,
 
     // Timestamps
+    @Serializable(with = InstantSerializer::class)
     val createdAt: Instant,
+    @Serializable(with = InstantSerializer::class)
     val updatedAt: Instant
 ){
     /**
@@ -97,6 +102,7 @@ data class UserPreference(
  * @property dateLimit Optional limit on the number of dates per period (null means unlimited)
  * @property dateCities List of city IDs where the user is willing to date
  */
+@Serializable
 data class CreatePreferenceRequest(
 
     val userId: String,
@@ -136,6 +142,7 @@ data class CreatePreferenceRequest(
  * @property dateLimit Optional limit on the number of dates per period (null means unlimited)
  * @property dateCities List of city IDs where the user is willing to date
  */
+@Serializable
 data class UpdatePreferenceRequest(
     val id: Long,
 

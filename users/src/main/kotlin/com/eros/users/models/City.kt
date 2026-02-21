@@ -1,5 +1,7 @@
 package com.eros.users.models
 
+import com.eros.common.serializers.InstantSerializer
+import kotlinx.serialization.Serializable
 import java.time.Instant
 
 /**
@@ -10,6 +12,7 @@ import java.time.Instant
  * @param createdAt - Time of creation.
  * @param updatedAt - Time of late update.
  */
+@Serializable
 data class City(
     // City id.
     val cityId : Long,
@@ -18,7 +21,9 @@ data class City(
     val cityName : String,
 
     // Timestamps
+    @Serializable(with = InstantSerializer::class)
     val createdAt: Instant,
+    @Serializable(with = InstantSerializer::class)
     val updatedAt: Instant,
 )
 
@@ -28,6 +33,7 @@ data class City(
  * @param cityName - Name of the city to be added.
  *
  */
+@Serializable
 data class CreateCityRequest(
     val cityName : String
 )
@@ -39,6 +45,7 @@ data class CreateCityRequest(
  * @param newCityName - New name of the city of [cityId]
  *
  */
+@Serializable
 data class UpdateCityRequest(
     val cityId : Long,
     val newCityName : String
