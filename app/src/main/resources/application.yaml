@@ -6,7 +6,7 @@ ktor:
         port: 8080
 
 firebase:
-  serviceAccountPath: ${FIREBASE_SERVICE_ACCOUNT_PATH:./firebase-service-account.json}
+  serviceAccountPath: ${FIREBASE_SERVICE_ACCOUNT_PATH:firebase-service-account.json}
   projectId: ${FIREBASE_PROJECT_ID:your-project-id}
 
 database:
