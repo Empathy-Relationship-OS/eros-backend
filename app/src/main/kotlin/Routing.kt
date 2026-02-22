@@ -41,14 +41,14 @@ fun Application.configureRouting() {
             call.respondText("Hello World!")
         }
 
-        // All /users routes require Firebase authentication
+        // All routes require Firebase authentication
         authenticate("firebase-auth") {
-            requireRoles("ADMIN", "USER", "EMPLOYEE")
-            // User profile routes
+            // User profile routes (handles role requirements internally)
             userProfileRoutes(userService)
 
-            // Photo management routes
+            // Photo management routes (all require roles)
             userPhotoRoutes(photoService)
+
         }
     }
 }

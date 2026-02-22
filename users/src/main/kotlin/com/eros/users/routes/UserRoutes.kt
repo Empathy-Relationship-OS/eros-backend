@@ -1,6 +1,7 @@
 package com.eros.users.routes
 
 import com.eros.auth.extensions.requireFirebasePrincipal
+import com.eros.auth.extensions.requireRoles
 import com.eros.common.errors.BadRequestException
 import com.eros.common.errors.ConflictException
 import com.eros.common.errors.ForbiddenException
@@ -33,50 +34,70 @@ data class UserExistsResponse(
  *
  * These routes handle user profile CRUD operations.
  * All routes require Firebase authentication.
+ * User creation (POST /users) and existence check (GET /users/exists) do not require a role.
+ * All other routes require ADMIN, USER, or EMPLOYEE role.
  *
  * @param userService Service for user data operations
  */
 fun Route.userProfileRoutes(userService: UserService) {
+    route("/users") {
+        /**
+         * POST /users
+         *
+         * Creates a new user profile.
+         * NO ROLE REQUIRED - New users don't have roles until profile is created.
+         *
+         * Request Headers:
+         * - Authorization: Bearer <firebase-id-token>
+         *
+         * Request Body: CreateUserRequest JSON
+         * Response: User JSON
+         */
+        post {
+            val principal = call.requireFirebasePrincipal()
+            val request = call.receive<CreateUserRequest>()
+
+            if (request.userId != principal.uid)
+                throw ForbiddenException("Cannot create profile for another user")
+
+            if (userService.userExists(request.userId))
+                throw ConflictException("User profile already exists")
+
+            // Create user in database
+            val user = userService.createUser(request)
+
+            // Sync Firebase custom claims
+            try {
+                val claims = mapOf("role" to user.role.name)
+                FirebaseAuth.getInstance().setCustomUserClaims(user.userId, claims)
+            } catch (e: Exception) {
+                // Log but don't fail - claims can be synced later or retried
+                call.application.log.error("Failed to set Firebase custom claims for user ${user.userId}", e)
+            }
+
+            call.respond(HttpStatusCode.Created, user)
+        }
 
         /**
-         * Base route /users.
+         * GET /users/exists
+         *
+         * Checks if the current authenticated user has a profile.
+         * NO ROLE REQUIRED - Needed to determine if user should create profile.
+         *
+         * Request Headers:
+         * - Authorization: Bearer <firebase-id-token>
+         *
+         * Response: UserExistsResponse JSON
          */
-        route("/users") {
-            /**
-             * POST /users
-             *
-             * Creates a new user profile.
-             *
-             * Request Headers:
-             * - Authorization: Bearer <firebase-id-token>
-             *
-             * Request Body: CreateUserRequest JSON
-             * Response: User JSON
-             */
-            post {
-                val principal = call.requireFirebasePrincipal()
-                val request = call.receive<CreateUserRequest>()
+        get("/exists") {
+            val principal = call.requireFirebasePrincipal()
+            val exists = userService.userExists(principal.uid)
+            call.respond(HttpStatusCode.OK, UserExistsResponse(exists = exists, userId = principal.uid))
+        }
 
-                if (request.userId != principal.uid)
-                    throw ForbiddenException("Cannot create profile for another user")
-
-                if (userService.userExists(request.userId))
-                    throw ConflictException("User profile already exists")
-
-                // Create user in database
-                val user = userService.createUser(request)
-
-                // Sync Firebase custom claims
-                try {
-                    val claims = mapOf("role" to user.role.name)
-                    FirebaseAuth.getInstance().setCustomUserClaims(user.userId, claims)
-                } catch (e: Exception) {
-                    // Log but don't fail - claims can be synced later or retried
-                    call.application.log.error("Failed to set Firebase custom claims for user ${user.userId}", e)
-                }
-
-                call.respond(HttpStatusCode.Created, user)
-            }
+        // All routes below require a role (user must have created profile first)
+        route("/") {
+            requireRoles("ADMIN", "USER", "EMPLOYEE")
 
             /**
              * GET /users/{id}/public
@@ -113,7 +134,6 @@ fun Route.userProfileRoutes(userService: UserService) {
                 call.respond(HttpStatusCode.OK, PublicProfileResponse.from(user, media, sharedInterests))
             }
 
-
             /**
              * GET /users/me
              *
@@ -132,23 +152,6 @@ fun Route.userProfileRoutes(userService: UserService) {
             }
 
             /**
-             * GET /users/exists
-             *
-             * Checks if the current authenticated user has a profile.
-             *
-             * Request Headers:
-             * - Authorization: Bearer <firebase-id-token>
-             *
-             * Response: UserExistsResponse JSON
-             */
-            get("/exists") {
-                val principal = call.requireFirebasePrincipal()
-                val exists = userService.userExists(principal.uid)
-                call.respond(HttpStatusCode.OK, UserExistsResponse(exists = exists, userId = principal.uid))
-            }
-
-
-            /**
              * GET /users/{id}
              *
              * Retrieves a user full profile by ID.
@@ -165,9 +168,8 @@ fun Route.userProfileRoutes(userService: UserService) {
                 call.respond(HttpStatusCode.OK, user)
             }
 
-
             /**
-             * PUT /users/me
+             * PATCH /users/me
              *
              * Updates the current authenticated user's profile.
              *
@@ -205,4 +207,5 @@ fun Route.userProfileRoutes(userService: UserService) {
                 call.respond(HttpStatusCode.NoContent)
             }
         }
+    }
 }
