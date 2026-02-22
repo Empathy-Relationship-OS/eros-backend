@@ -578,7 +578,7 @@ class UserTest {
             profileStatus = profileStatus,
             eloScore = eloScore,
             badges = badges,
-            completeness = completeness,
+            profileCompleteness = completeness,
             coordinatesLongitude = coordinatesLongitude,
             coordinatesLatitude = coordinatesLatitude,
             role = role,

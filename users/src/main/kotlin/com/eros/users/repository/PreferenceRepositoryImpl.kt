@@ -37,7 +37,8 @@ class PreferenceRepositoryImpl(
         dateLanguages = this[UserPreferences.dateLanguages].map { Language.valueOf(it) },
         dateActivities = this[UserPreferences.dateActivities].map { Activity.valueOf(it) },
         dateLimit = this[UserPreferences.dateLimit],
-        reachLevel = ReachLevel.valueOf(this[UserPreferences.reachLevel]),
+        reachLevel = runCatching { ReachLevel.valueOf(this[UserPreferences.reachLevel]) }
+            .getOrElse { ReachLevel.BALANCED }, // TODO log + rethrow as a domain exception,
         createdAt = this[UserPreferences.createdAt],
         updatedAt = this[UserPreferences.updatedAt]
     )

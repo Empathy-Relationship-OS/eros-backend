@@ -163,13 +163,13 @@ class PhotoServiceTest {
 
         @Test
         fun `should throw IllegalArgumentException for unsupported content type`() = runTest {
-            val request = PresignedUploadRequest(
-                fileName = "file.jpg",
-                contentType   = "image/gif",
-                fileSizeBytes = 1_000_000L,
-                displayOrder  = 1
-            )
             val ex = assertThrows<IllegalArgumentException> {
+                val request = PresignedUploadRequest(
+                    fileName = "file.jpg",
+                    contentType   = "image/gif",
+                    fileSizeBytes = 1_000_000L,
+                    displayOrder  = 1
+                )
                 service.generatePresignedUploadUrl("uid-1", request)
             }
             assert(ex.message!!.contains("Unsupported file type"))
@@ -329,6 +329,32 @@ class PhotoServiceTest {
                 service.confirmUpload("uid-1", request)
             }
             assert(ex.message!!.contains("Upload not found in S3"))
+        }
+
+        @Test
+        fun `should throw IllegalArgumentException when object key does not belong to user`() = runTest {
+            // Attacker trying to confirm upload with another user's object key
+            val request = ConfirmUploadRequest(
+                objectKey    = "photos/other-user/malicious.jpg",
+                displayOrder = 1
+            )
+            val ex = assertThrows<IllegalArgumentException> {
+                service.confirmUpload("uid-1", request)
+            }
+            assertEquals("Object key must belong to the authenticated user", ex.message)
+        }
+
+        @Test
+        fun `should throw IllegalArgumentException when object key has wrong format`() = runTest {
+            // Object key not following the expected photos/userId/ format
+            val request = ConfirmUploadRequest(
+                objectKey    = "invalid/path/file.jpg",
+                displayOrder = 1
+            )
+            val ex = assertThrows<IllegalArgumentException> {
+                service.confirmUpload("uid-1", request)
+            }
+            assertEquals("Object key must belong to the authenticated user", ex.message)
         }
     }
 

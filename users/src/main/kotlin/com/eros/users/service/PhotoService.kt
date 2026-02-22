@@ -69,7 +69,7 @@ class PhotoService(
             "image/heif" to "heic"
         )
 
-        fun buildS3Client(config: S3Config): S3Client {
+        internal fun buildS3Client(config: S3Config): S3Client {
             val builder = S3Client.builder()
                 .region(Region.of(config.region))
 
@@ -85,7 +85,7 @@ class PhotoService(
             return builder.build()
         }
 
-        fun buildS3Presigner(config: S3Config): S3Presigner {
+        internal fun buildS3Presigner(config: S3Config): S3Presigner {
             val builder = S3Presigner.builder()
                 .region(Region.of(config.region))
 
@@ -161,7 +161,22 @@ class PhotoService(
     // -------------------------------------------------------------------------
     // Step 2 — confirm upload
     // -------------------------------------------------------------------------
-
+    // TODO this comment once we have transaction on db's resolved
+    /**
+     * Verify each finding against the current code and only fix it if needed.
+     *
+     * In `@users/src/main/kotlin/com/eros/users/service/PhotoService.kt` around lines
+     * 175 - 209, The current confirmUpload flow deletes the old photo from S3
+     * (deleteFromS3) and removes its DB row (photoRepository.deleteById) before
+     * inserting the new record (photoRepository.insert), risking data loss if insert
+     * fails; change confirmUpload to perform DB work inside a transaction (wrap
+     * photoRepository.findByDisplayOrder, deleteById, insert, and setPrimary in a
+     * single transactional unit) and defer S3 deletes until after the transaction
+     * commits (use a post-commit hook or enqueue the old object's keys for async
+     * deletion) so that deleteFromS3 and thumbnail deletion occur only after the DB
+     * insert and setPrimary succeed (keep verifyS3ObjectExists and
+     * s3Config.publicUrlFor checks before the transaction).
+     */
     /**
      * Confirms a completed upload:
      * 1. Verifies the S3 object exists via HeadObject.
@@ -176,6 +191,11 @@ class PhotoService(
         userId: String,
         request: ConfirmUploadRequest
     ): UserMediaItem {
+        // Verify ownership: object key must belong to the authenticated user
+        require(request.objectKey.startsWith("photos/$userId/")) {
+            "Object key must belong to the authenticated user"
+        }
+
         // Verify the file was actually uploaded to S3
         verifyS3ObjectExists(request.objectKey)
 
@@ -330,7 +350,8 @@ class PhotoService(
             s3Client.headObject(request)
         } catch (e: NoSuchKeyException) {
             throw IllegalArgumentException(
-                "Upload not found in S3. Ensure the file was uploaded before confirming."
+                "Upload not found in S3. Ensure the file was uploaded before confirming.",
+                e
             )
         }
     }

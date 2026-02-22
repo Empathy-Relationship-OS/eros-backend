@@ -32,8 +32,8 @@ CREATE TABLE IF NOT EXISTS user_preferences (
 );
 
 -- Indexes for user_preferences
-CREATE INDEX idx_user_preferences_user_id ON user_preferences(user_id);
-CREATE INDEX idx_user_preferences_age_range ON user_preferences(age_range_min, age_range_max);
+CREATE INDEX IF NOT EXISTS idx_user_preferences_user_id ON user_preferences(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_preferences_age_range ON user_preferences(age_range_min, age_range_max);
 
 -- Junction table: User city preferences
 CREATE TABLE IF NOT EXISTS user_cities_preference (
@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS user_cities_preference (
     PRIMARY KEY (user_id, city_id)
 );
 -- Indexes for junction table
-CREATE INDEX idx_user_cities_preference_city_id ON user_cities_preference(city_id);
+CREATE INDEX IF NOT EXISTS idx_user_cities_preference_city_id ON user_cities_preference(city_id);
 
 -- Comments for documentation
 COMMENT ON TABLE user_preferences IS 'Main user dating preferences (one record per user)';

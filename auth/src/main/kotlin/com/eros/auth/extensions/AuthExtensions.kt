@@ -2,11 +2,10 @@ package com.eros.auth.extensions
 
 import com.eros.auth.firebase.FirebaseUserPrincipal
 import com.eros.auth.plugins.RoleAuthorization
-import com.eros.common.errors.ForbiddenException
 import com.eros.common.errors.UnauthorizedException
-import io.ktor.server.application.ApplicationCall
-import io.ktor.server.auth.principal
-import io.ktor.server.routing.Route
+import io.ktor.server.application.*
+import io.ktor.server.auth.*
+import io.ktor.server.routing.*
 
 fun ApplicationCall.requireFirebasePrincipal(): FirebaseUserPrincipal =
     principal<FirebaseUserPrincipal>() ?: throw UnauthorizedException()

@@ -96,7 +96,7 @@ class UserRepositoryImpl(
             this[Users.trustedBadge] = entity.badges?.contains(Badge.TRUSTED) ?: false
             this[Users.verifiedPhotoBadge] = entity.badges?.contains(Badge.VERIFIED) ?: false
             this[Users.goodExperienceBadge] = entity.badges?.contains(Badge.GOOD_XP) ?: false
-            this[Users.completeness] = entity.completeness
+            this[Users.profileCompleteness] = entity.profileCompleteness
             this[Users.coordinates_latitude] = entity.coordinatesLatitude
             this[Users.coordinates_longitude] = entity.coordinatesLongitude
             this[Users.role] = entity.role.name

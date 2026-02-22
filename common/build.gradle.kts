@@ -19,7 +19,7 @@ dependencies {
     implementation(libs.ktor.serialization.kotlinx.json)
 
     // AWS S3 (S3Config uses AWS SDK types)
-    api(libs.aws.s3)
+    implementation(libs.aws.s3)
 
     // Testing
     testImplementation(libs.kotlin.test.junit)

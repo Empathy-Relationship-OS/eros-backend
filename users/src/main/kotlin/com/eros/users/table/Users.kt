@@ -38,7 +38,7 @@ object Users : Table("users") {
     val trustedBadge = bool("trusted_badge").default(false)
     val goodExperienceBadge = bool("good_experience_badge").default(false)
     val verifiedPhotoBadge = bool("verified_photos").default(false)
-    val completeness = integer("completeness") // Integer 50-100
+    val profileCompleteness = integer("profile_completeness") // Integer 50-100
     val coordinates_longitude = double("coordinates_longitude") // Long and Lat doubles.
     val coordinates_latitude = double("coordinates_latitude") // Long and Lat doubles.
     val role = varchar("role", 32) // Role enum.
@@ -134,7 +134,7 @@ fun ResultRow.toDTO() = User(
         this[Users.goodExperienceBadge] to Badge.GOOD_XP,
         this[Users.trustedBadge] to Badge.TRUSTED
     ),
-    completeness = this[Users.completeness],
+    profileCompleteness = this[Users.profileCompleteness],
     coordinatesLongitude = this[Users.coordinates_longitude],
     coordinatesLatitude = this[Users.coordinates_latitude],
     role = Role.valueOf(this[Users.role]),

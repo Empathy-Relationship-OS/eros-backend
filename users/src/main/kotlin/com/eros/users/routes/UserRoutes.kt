@@ -7,6 +7,7 @@ import com.eros.common.errors.ConflictException
 import com.eros.common.errors.ForbiddenException
 import com.eros.common.errors.NotFoundException
 import com.eros.users.ProfileAccessControl
+import com.eros.users.models.AdminUpdateUserRequest
 import com.eros.users.models.CreateUserRequest
 import com.eros.users.models.PublicProfileResponse
 import com.eros.users.models.UpdateUserRequest
@@ -192,6 +193,37 @@ fun Route.userProfileRoutes(userService: UserService) {
 
                 call.application.log.info("User account deleted: ${principal.uid}")
                 call.respond(HttpStatusCode.NoContent)
+            }
+
+            // Admin-only routes
+            route("/id/{id}/admin") {
+                requireRoles("ADMIN", "EMPLOYEE")
+
+                /**
+                 * PATCH /users/id/{id}/admin
+                 *
+                 * Updates server-managed fields for a user (admin-only).
+                 *
+                 * This endpoint allows ADMIN and EMPLOYEE roles to modify sensitive fields
+                 * such as role, ELO score, badges, profile status, and validation status.
+                 *
+                 * Request Headers:
+                 * - Authorization: Bearer <firebase-id-token> (must have ADMIN or EMPLOYEE role)
+                 *
+                 * Request Body: AdminUpdateUserRequest JSON
+                 * Response: User JSON
+                 */
+                patch {
+                    val targetUserId = call.parameters["id"]
+                        ?: throw BadRequestException("User ID is required")
+
+                    val request = call.receive<AdminUpdateUserRequest>()
+                    val user = userService.adminUpdateUser(targetUserId, request)
+                        ?: throw NotFoundException("User profile not found")
+
+                    call.application.log.info("Admin update performed on user $targetUserId by ${call.requireFirebasePrincipal().uid}")
+                    call.respond(HttpStatusCode.OK, user)
+                }
             }
         }
 }

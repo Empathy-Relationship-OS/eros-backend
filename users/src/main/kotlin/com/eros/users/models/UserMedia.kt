@@ -54,8 +54,21 @@ data class PresignedUploadRequest(
     val displayOrder: Int,     // 1-6 — where this photo should appear
     val isPrimary: Boolean = false
 ) {
+    companion object {
+        private val ALLOWED_CONTENT_TYPES = setOf(
+            "image/jpeg", "image/png", "image/heic", "image/webp", "image/png"
+        )
+        private const val MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024L // 10 MB
+    }
     init {
         require(displayOrder in 1..6) { "Display order must be between 1 and 6" }
+        require(fileName.isNotBlank()) { "File name is required" }
+        require(contentType in ALLOWED_CONTENT_TYPES) {
+            "Content type must be one of: $ALLOWED_CONTENT_TYPES"
+        }
+        require(fileSizeBytes in 1..MAX_FILE_SIZE_BYTES) {
+            "File size must be between 1 byte and $MAX_FILE_SIZE_BYTES bytes"
+        }
     }
 }
 

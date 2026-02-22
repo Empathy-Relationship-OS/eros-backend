@@ -14,7 +14,7 @@ import org.testcontainers.junit.jupiter.Testcontainers
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
-import kotlin.test.assertTrue
+import kotlin.test.assertEquals
 
 @Testcontainers
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -61,17 +61,17 @@ class ProfileCompletenessTest {
 
     @Test
     fun `completeness calculation`() {
-        val user = creatTestUser()
+        val user = createTestUser()
         val userMedia = createMediaList(3)
         val userMediaCollection = UserMediaCollection(user.userId, userMedia, userMedia.size)
         val userQA = createQAList(2)
         val userQACollection = UserQACollection(user.userId, userQA, userQA.size)
         val completeness = ProfileCompleteness().calculateCompleteness(user, userMediaCollection, userQACollection)
-        assertTrue(completeness == 65)
+        assertEquals(completeness, 65)
     }
 
     // Helper function to create test users with defaults
-    private fun creatTestUser(
+    private fun createTestUser(
         userId: String = "test-user-id",
         firstName: String = "John",
         lastName: String = "Doe",
@@ -151,7 +151,7 @@ class ProfileCompletenessTest {
             profileStatus = profileStatus,
             eloScore = eloScore,
             badges = badges,
-            completeness = completeness,
+            profileCompleteness = completeness,
             role = role,
             photoValidationStatus = photoValidationStatus,
             createdAt = createdAt,
