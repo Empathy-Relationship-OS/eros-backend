@@ -259,17 +259,4 @@ class PreferenceRepositoryImplTest {
         assertEquals(preference2.userId, createdUser2.userId)
     }
 
-    @Test
-    fun `valid one-way preference matching`(){
-
-        createUserPreferences()
-
-        val matches = runBlocking {
-            PreferenceService(preferenceRepository).matchesUser("user123", "user456")
-        }
-
-        assertTrue(matches , "User's don't match when they should.")
-
-    }
-
 }

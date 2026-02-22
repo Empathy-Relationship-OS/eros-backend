@@ -6,6 +6,7 @@ import com.eros.users.models.*
 import com.eros.users.table.Cities
 import com.eros.users.table.UserCitiesPreference
 import com.eros.users.table.UserPreferences
+import io.ktor.server.plugins.NotFoundException
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.statements.UpdateBuilder
@@ -65,27 +66,26 @@ class PreferenceRepositoryImpl(
     // IBaseDAO overrides — also manages city preferences
     // -------------------------------------------------------------------------
 
-    override suspend fun create(entity: UserPreference): UserPreference {
-        dbQuery {
-            UserPreferences.insert { toStatement(it, entity) }
+    override suspend fun create(entity: UserPreference): UserPreference = dbQuery {
+        // Insert preference
+        UserPreferences.insert { toStatement(it, entity) }
 
-            // Call the repository method but ensure it doesn't create a new transaction
-            userCitiesRepository.addUserCityPreferencesBatchWithinTransaction(
-                userId = entity.userId,
-                cityIds = entity.dateCities.map { it.cityId }
-            )
-        }
-        return getUserPreferenceWithCities(entity.userId)
+        // Insert cities
+        userCitiesRepository.addUserCityPreferencesBatchWithinTransaction(
+            userId = entity.userId,
+            cityIds = entity.dateCities.map { it.cityId }
+        )
+
+        // Return the result (still inside transaction)
+        getUserPreferenceWithCitiesWithinTransaction(entity.userId)
     }
 
-    override suspend fun update(id: Long, entity: UserPreference): UserPreference? {
-        val rowsUpdated = dbQuery {
-            val rowsUpdated = UserPreferences.update({ UserPreferences.id eq id }) { toStatement(it, entity) }
-            userCitiesRepository.syncUserCityPreferences(entity.userId, entity.dateCities)
-            rowsUpdated
-        }
-        if (rowsUpdated == 0) return null
-        return getUserPreferenceWithCities(entity.userId)
+    override suspend fun update(id: Long, entity: UserPreference): UserPreference?  = dbQuery {
+
+        val rowsUpdated = UserPreferences.update({ UserPreferences.id eq id }) { toStatement(it, entity) }
+        if (rowsUpdated == 0) throw NotFoundException("dwa")
+        userCitiesRepository.syncUserCityPreferences(entity.userId, entity.dateCities)
+        getUserPreferenceWithCitiesWithinTransaction(entity.userId)
     }
 
     // -------------------------------------------------------------------------
@@ -107,6 +107,23 @@ class PreferenceRepositoryImpl(
                 )
             }
 
+        return preferences.toDomain().copy(dateCities = cities)
+    }
+
+    fun getUserPreferenceWithCitiesWithinTransaction(userId: String): UserPreference{
+        val preferences = UserPreferences.selectAll().where { UserPreferences.userId eq userId }.single()
+
+        val cities = (Cities innerJoin UserCitiesPreference)
+            .selectAll()
+            .where { UserCitiesPreference.userId eq userId }
+            .map { row ->
+                City(
+                    cityId = row[Cities.id],
+                    cityName = row[Cities.cityName],
+                    createdAt = row[Cities.createdAt],
+                    updatedAt = row[Cities.updatedAt]
+                )
+            }
         return preferences.toDomain().copy(dateCities = cities)
     }
 
