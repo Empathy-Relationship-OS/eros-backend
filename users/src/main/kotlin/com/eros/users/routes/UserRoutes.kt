@@ -1,7 +1,6 @@
 package com.eros.users.routes
 
 import com.eros.auth.extensions.requireFirebasePrincipal
-import com.eros.auth.extensions.requireRoles
 import com.eros.common.errors.BadRequestException
 import com.eros.common.errors.ConflictException
 import com.eros.common.errors.ForbiddenException
@@ -12,6 +11,7 @@ import com.eros.users.models.PublicProfileResponse
 import com.eros.users.models.UpdateUserRequest
 import com.eros.users.models.UserMediaCollection
 import com.eros.users.service.UserService
+import com.google.firebase.auth.FirebaseAuth
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
@@ -63,7 +63,18 @@ fun Route.userProfileRoutes(userService: UserService) {
                 if (userService.userExists(request.userId))
                     throw ConflictException("User profile already exists")
 
+                // Create user in database
                 val user = userService.createUser(request)
+
+                // Sync Firebase custom claims
+                try {
+                    val claims = mapOf("role" to user.role.name)
+                    FirebaseAuth.getInstance().setCustomUserClaims(user.userId, claims)
+                } catch (e: Exception) {
+                    // Log but don't fail - claims can be synced later or retried
+                    call.application.log.error("Failed to set Firebase custom claims for user ${user.userId}", e)
+                }
+
                 call.respond(HttpStatusCode.Created, user)
             }
 

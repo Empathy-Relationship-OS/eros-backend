@@ -1,16 +1,8 @@
 package com.eros.users.service
 
-import com.eros.users.models.Badge
-import com.eros.users.models.CreateUserRequest
-import com.eros.users.models.ProfileStatus
-import com.eros.users.models.PublicProfileResponse
-import com.eros.users.models.Role
-import com.eros.users.models.UpdateUserRequest
-import com.eros.users.models.User
-import com.eros.users.models.ValidationStatus
+import com.eros.users.models.*
 import com.eros.users.repository.UserRepository
 import com.eros.users.table.badgeHelper
-import com.google.firebase.auth.FirebaseAuth
 import java.time.Clock
 import java.time.Instant
 
@@ -34,8 +26,14 @@ class UserService(
      * @param request CreateUserRequest containing all required user profile data
      * @return The created User
      * @throws IllegalArgumentException if input validation fails
+     * @throws IllegalStateException if user already exists
      */
     suspend fun createUser(request: CreateUserRequest): User {
+        // Check if user already exists
+        if (userRepository.doesExist(request.userId)) {
+            throw IllegalStateException("User with ID ${request.userId} already exists")
+        }
+
         val now = Instant.now(clock)
         val user = User(
             userId = request.userId,
@@ -83,8 +81,6 @@ class UserService(
             completeness = 50
 
         )
-        val claims = mapOf("role" to user.role)
-        FirebaseAuth.getInstance().setCustomUserClaims(user.userId, claims)
         return userRepository.create(user)
     }
 

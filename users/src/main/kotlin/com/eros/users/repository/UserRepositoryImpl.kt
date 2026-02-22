@@ -108,8 +108,22 @@ class UserRepositoryImpl(
     // IBaseDAO overrides — domain-specific behaviour
     // -------------------------------------------------------------------------
 
-    /** Re-fetches by Firebase UID after insert instead of using selectAll().last(). */
+    /**
+     * Creates a new user and re-fetches by Firebase UID.
+     *
+     * Checks for existing user (respecting soft-delete) before insertion.
+     *
+     * @throws IllegalStateException if a user with the given ID already exists
+     */
     override suspend fun create(entity: User): User = dbQuery {
+        val hasExisted = Users.selectAll()
+            .where { (Users.userId eq entity.userId) }
+            .count() > 0
+
+        if (hasExisted) {
+            throw IllegalStateException("User with ID ${entity.userId} already exists")
+        }
+
         Users.insert { toStatement(it, entity) }
         Users.selectAll()
             .where { Users.userId eq entity.userId }
