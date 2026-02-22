@@ -6,8 +6,10 @@ import com.eros.users.models.City
 import com.eros.users.table.Cities
 import com.eros.users.table.toCityDTO
 import org.jetbrains.exposed.v1.core.ResultRow
+import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.statements.UpdateBuilder
 import org.jetbrains.exposed.v1.jdbc.insertReturning
+import org.jetbrains.exposed.v1.jdbc.selectAll
 import java.time.Clock
 import java.time.Instant
 
@@ -41,5 +43,35 @@ class CityRepositoryImpl(
             it[createdAt] = now
             it[updatedAt] = now
         }.single().toDomain()
+    }
+
+    /**
+     * Function for finding if a city exists in the Cities table with the name cityName.
+     */
+    override fun doesExist(cityName: String): Boolean {
+        return Cities.selectAll()
+            .where { Cities.cityName eq cityName }
+            .count() > 0
+    }
+
+    /**
+     * Find if a city exists in the Cities table with the provided id.
+     */
+    override suspend fun doesExist(id: Long): Boolean {
+        return super.doesExist(id)
+    }
+
+    /**
+     * Delete the City with the provided id.
+     */
+    override suspend fun delete(id: Long): Int {
+        return super.delete(id)
+    }
+
+    /**
+     * Function to retrieve a city by the id.
+     */
+    override suspend fun findById(id: Long): City? {
+        return super.findById(id)
     }
 }

@@ -9,6 +9,7 @@ import com.eros.users.table.UserPreferences
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.statements.UpdateBuilder
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
@@ -67,25 +68,23 @@ class PreferenceRepositoryImpl(
     override suspend fun create(entity: UserPreference): UserPreference {
         dbQuery {
             UserPreferences.insert { toStatement(it, entity) }
+
+            // Call the repository method but ensure it doesn't create a new transaction
+            userCitiesRepository.addUserCityPreferencesBatchWithinTransaction(
+                userId = entity.userId,
+                cityIds = entity.dateCities.map { it.cityId }
+            )
         }
-        userCitiesRepository.addUserCityPreferencesBatch(
-            userId = entity.userId,
-            cityIds = entity.dateCities.map { it.cityId }
-        )
         return getUserPreferenceWithCities(entity.userId)
     }
 
     override suspend fun update(id: Long, entity: UserPreference): UserPreference? {
         val rowsUpdated = dbQuery {
-            UserPreferences.update({ UserPreferences.id eq id }) { toStatement(it, entity) }
+            val rowsUpdated = UserPreferences.update({ UserPreferences.id eq id }) { toStatement(it, entity) }
+            userCitiesRepository.syncUserCityPreferences(entity.userId, entity.dateCities)
+            rowsUpdated
         }
         if (rowsUpdated == 0) return null
-
-        userCitiesRepository.deleteAllUserCityPreference(DeleteAllUserCityPreferenceRequest(entity.userId))
-        userCitiesRepository.addUserCityPreferencesBatch(
-            userId = entity.userId,
-            cityIds = entity.dateCities.map { it.cityId }
-        )
         return getUserPreferenceWithCities(entity.userId)
     }
 
@@ -93,8 +92,8 @@ class PreferenceRepositoryImpl(
     // PreferenceRepository extras
     // -------------------------------------------------------------------------
 
-    override suspend fun getUserPreferenceWithCities(userId: String): UserPreference = dbQuery {
-        val prefs = UserPreferences.selectAll().where { UserPreferences.userId eq userId }.single()
+    override suspend fun getUserPreferenceWithCities(userId: String): UserPreference{
+        val preferences = UserPreferences.selectAll().where { UserPreferences.userId eq userId }.single()
 
         val cities = (Cities innerJoin UserCitiesPreference)
             .selectAll()
@@ -108,6 +107,16 @@ class PreferenceRepositoryImpl(
                 )
             }
 
-        prefs.toDomain().copy(dateCities = cities)
+        return preferences.toDomain().copy(dateCities = cities)
+    }
+
+    override suspend fun userPreferencesDoesExist(userId: String): Boolean {
+        return UserPreferences.selectAll()
+            .where { UserPreferences.userId eq userId }
+            .count() > 0
+    }
+
+    override fun delete(userId: String): Int {
+        return UserPreferences.deleteWhere { UserPreferences.userId eq userId}
     }
 }

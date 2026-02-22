@@ -1,5 +1,6 @@
 package com.eros.users.repository
 
+import com.eros.users.models.City
 import com.eros.users.models.DeleteAllUserCityPreferenceRequest
 import com.eros.users.models.DeleteUserCityPreferenceRequest
 import com.eros.users.models.UserCityPreference
@@ -17,7 +18,13 @@ interface UserCitiesRepository {
 
     suspend fun addUserCityPreferencesBatch(userId: String, cityIds: List<Long>)
 
+    fun addUserCityPreferencesBatchWithinTransaction(userId: String, cityIds: List<Long>) : Boolean
+
     suspend fun deleteUserCityPreference(request: DeleteUserCityPreferenceRequest): UserCityPreference?
 
     suspend fun deleteAllUserCityPreference(request: DeleteAllUserCityPreferenceRequest): Int
+
+    fun deleteAllUserCityPreferenceWithinTransaction(request: DeleteAllUserCityPreferenceRequest): Int
+
+    fun syncUserCityPreferences(userId: String, newCityIds: List<City>)
 }

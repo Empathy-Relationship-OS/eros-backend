@@ -28,4 +28,21 @@ class CityService(
         val updated = existing.copy(cityName = request.newCityName)
         return cityRepository.update(cityId, updated)
     }
+
+    fun doesExists(cityName : String) : Boolean {
+        return cityRepository.doesExist(cityName)
+    }
+
+    suspend fun doesExists(cityId : Long) : Boolean{
+        return cityRepository.doesExist(cityId)
+    }
+
+    suspend fun deleteCity(cityId : Long) : Int{
+        return cityRepository.delete(cityId)
+    }
+
+    suspend fun findByCityId(id : Long) : City?{
+        return cityRepository.findById(id)
+    }
+
 }

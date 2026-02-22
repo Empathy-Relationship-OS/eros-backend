@@ -30,7 +30,7 @@ class UserCitiesService(
         userCityRepository.deleteUserCityPreference(request)
     }
 
-    suspend fun deleteAllUserCityPreference(request: DeleteAllUserCityPreferenceRequest) {
-        userCityRepository.deleteAllUserCityPreference(request)
+    suspend fun deleteAllUserCityPreference(request: DeleteAllUserCityPreferenceRequest) : Int{
+        return userCityRepository.deleteAllUserCityPreference(request)
     }
 }

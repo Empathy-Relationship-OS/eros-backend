@@ -12,4 +12,8 @@ interface PreferenceRepository : IBaseDAO<Long, UserPreference> {
      * @return The [UserPreference] with [UserPreference.dateCities] populated.
      */
     suspend fun getUserPreferenceWithCities(userId: String): UserPreference
+
+    suspend fun userPreferencesDoesExist(userId : String) : Boolean
+
+    fun delete(userId : String) : Int
 }
