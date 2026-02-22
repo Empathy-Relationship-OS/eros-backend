@@ -1,53 +1,42 @@
 package com.eros.users.table
 
-
 import org.jetbrains.exposed.v1.core.Table
-import org.jetbrains.exposed.v1.core.between
-import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.javatime.timestamp
+import org.jetbrains.exposed.v1.javatime.timestampWithTimeZone
 import java.time.Instant
 
 /**
- * User media table for storing photos and videos
- * 
- * Requirements:
- * - Minimum 3 media items per user
- * - Maximum 6 media items per user
- * - User-defined ordering (displayOrder 1-6)
- * - One primary photo/video
- * - S3 URLs stored
+ * User media table for storing photos (and future videos).
+ *
+ * Design:
+ * - [mediaUrl] stores the canonical public URL (S3 direct or CDN) — implementation-agnostic.
+ *   URL construction is the responsibility of the service layer (PhotoService), not the DB layer.
+ * - [thumbnailUrl] is nullable: populated asynchronously by a Lambda triggered on S3 upload.
+ * - Maximum 6 media items per user, display_order 1-6.
+ * - Exactly one primary photo enforced via partial unique index in migration V4.
  */
 object UserMedia : Table("user_media") {
-    // Primary key
-    val id = long("id").autoIncrement()
-    
-    // Foreign key to Users table
-    val userId = varchar("user_id", 128).references(Users.userId)
-    
-    // Media details
-    val mediaUrl = text("media_url") // S3 URL
-    val mediaType = varchar("media_type", 10) // MediaType enum: PHOTO, VIDEO
-    
-    // Ordering and priority
-    val displayOrder = integer("display_order") // 1-6, user-defined order
-    val isPrimary = bool("is_primary").default(false) // First photo shown
 
-    // Timestamps
-    val createdAt = timestamp("created_at").clientDefault { Instant.now() }
-    val updatedAt = timestamp("updated_at").clientDefault { Instant.now() }
-    
+    val id           = long("id").autoIncrement()
+    val userId       = varchar("user_id", 128).references(Users.userId)
+
+    /** Canonical public URL for the original file (S3 or CDN) */
+    val mediaUrl     = text("media_url")
+
+    /** Canonical public URL for the 300x300 thumbnail — written by Lambda, null until ready */
+    val thumbnailUrl = text("thumbnail_url").nullable()
+
+    val mediaType    = varchar("media_type", 10)   // MediaType enum value
+    val displayOrder = integer("display_order")     // 1-6
+    val isPrimary    = bool("is_primary").default(false)
+
+    val createdAt    = timestamp("created_at").clientDefault { Instant.now() }
+    val updatedAt    = timestamp("updated_at").clientDefault { Instant.now() }
+
     override val primaryKey = PrimaryKey(id)
-    
+
     init {
-        // Ensure only one primary media per user
-        uniqueIndex("unique_primary_media_per_user", userId, isPrimary) {
-            isPrimary eq true
-        }
-        
-        // Ensure displayOrder is unique per user
-        uniqueIndex("unique_display_order_per_user", userId, displayOrder)
-        
-        // Check constraint: displayOrder must be between 1 and 6
-        check("display_order_range") { displayOrder.between(1, 6) }
+        // Unique display order per user (mirrors DB constraint in migration V4)
+        uniqueIndex("user_media_unique_display_order", userId, displayOrder)
     }
 }

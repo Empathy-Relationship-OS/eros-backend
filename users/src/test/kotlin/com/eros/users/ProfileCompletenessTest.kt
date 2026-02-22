@@ -1,51 +1,18 @@
 package com.eros.users
 
-import com.eros.users.models.AlcoholConsumption
-import com.eros.users.models.Badge
-import com.eros.users.models.BodyAttribute
-import com.eros.users.models.BrainAttribute
-import com.eros.users.models.DateIntentions
-import com.eros.users.models.Diet
-import com.eros.users.models.DisplayableField
-import com.eros.users.models.EducationLevel
-import com.eros.users.models.Ethnicity
-import com.eros.users.models.Gender
-import com.eros.users.models.KidsPreference
-import com.eros.users.models.Language
+import com.eros.users.models.*
 import com.eros.users.models.MediaType
-import com.eros.users.models.PoliticalView
-import com.eros.users.models.PredefinedQuestion
-import com.eros.users.models.ProfileStatus
-import com.eros.users.models.Pronouns
-import com.eros.users.models.RelationshipType
-import com.eros.users.models.Religion
-import com.eros.users.models.Role
-import com.eros.users.models.SexualOrientation
-import com.eros.users.models.SmokingStatus
-import com.eros.users.models.StarSign
-import com.eros.users.models.Trait
-import com.eros.users.models.User
-import com.eros.users.models.UserMediaCollection
-import com.eros.users.models.UserMediaItem
-import com.eros.users.models.UserQACollection
-import com.eros.users.models.UserQAItem
-import com.eros.users.models.ValidationStatus
 import com.eros.users.table.Users
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.deleteAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import org.junit.jupiter.api.AfterAll
-import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.BeforeEach
-import java.time.LocalDate
-
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.*
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import java.time.Instant
+import java.time.LocalDate
 import java.time.LocalDateTime
 import kotlin.test.assertTrue
 
@@ -195,25 +162,22 @@ class ProfileCompletenessTest {
     // Helper functions
     private fun createMediaItem(
         id: Long = 1L,
-        userId: String = "user-123",
         mediaUrl: String = "https://example.com/photo.jpg",
         mediaType: MediaType = MediaType.PHOTO,
         displayOrder: Int = 1,
         isPrimary: Boolean = false
-    ): UserMediaItem {
-        return UserMediaItem(
+    ): UserMediaItemDTO {
+        return UserMediaItemDTO(
             id = id,
-            userId = userId,
             mediaUrl = mediaUrl,
+            thumbnailUrl = null,
             mediaType = mediaType,
             displayOrder = displayOrder,
-            isPrimary = isPrimary,
-            createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now()
+            isPrimary = isPrimary
         )
     }
 
-    private fun createMediaList(count: Int): List<UserMediaItem> {
+    private fun createMediaList(count: Int): List<UserMediaItemDTO> {
         return (1..count).map { index ->
             createMediaItem(id = index.toLong(), displayOrder = index)
         }

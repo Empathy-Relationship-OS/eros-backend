@@ -385,7 +385,7 @@ class UserRoutesTest {
 
             coEvery { mockUserService.updateUser(userId, updateRequest) } returns updatedUser
 
-            val response = client.put("/users/me") {
+            val response = client.patch("/users/me") {
                 setAuthenticatedUser(userId)
                 contentType(ContentType.Application.Json)
                 setBody(updateRequest)
@@ -408,7 +408,7 @@ class UserRoutesTest {
 
             coEvery { mockUserService.updateUser(userId, updateRequest) } returns null
 
-            val response = client.put("/users/me") {
+            val response = client.patch("/users/me") {
                 setAuthenticatedUser(userId)
                 contentType(ContentType.Application.Json)
                 setBody(updateRequest)
@@ -428,7 +428,7 @@ class UserRoutesTest {
 
             coEvery { mockUserService.updateUser(userId, updateRequest) } throws IllegalArgumentException("Invalid input")
 
-            val response = client.put("/users/me") {
+            val response = client.patch("/users/me") {
                 setAuthenticatedUser(userId)
                 contentType(ContentType.Application.Json)
                 setBody(updateRequest)
@@ -445,7 +445,7 @@ class UserRoutesTest {
 
             val updateRequest = UpdateUserRequest(firstName = "UpdatedName")
 
-            val response = client.put("/users/me") {
+            val response = client.patch("/users/me") {
                 contentType(ContentType.Application.Json)
                 setBody(updateRequest)
             }
@@ -463,7 +463,7 @@ class UserRoutesTest {
 
             coEvery { mockUserService.updateUser(userId, updateRequest) } throws RuntimeException("DB error")
 
-            val response = client.put("/users/me") {
+            val response = client.patch("/users/me") {
                 setAuthenticatedUser(userId)
                 contentType(ContentType.Application.Json)
                 setBody(updateRequest)
@@ -611,7 +611,9 @@ class UserRoutesTest {
             }
 
             routing {
-                userRoutes(mockUserService)
+                authenticate("firebase-auth") {
+                    userProfileRoutes(mockUserService)
+                }
             }
         }
     }
