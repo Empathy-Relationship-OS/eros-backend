@@ -1,5 +1,7 @@
 package com.eros.users.models
 
+import kotlinx.serialization.Serializable
+
 /**
  * Gender options for user profile
  */

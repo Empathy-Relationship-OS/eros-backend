@@ -286,6 +286,16 @@ data class UpdateUserRequest(
     }
 }
 
+
+/**
+ * Request DTO for change the visibility/status of a User
+ */
+@Serializable
+data class ProfileStatusUpdateRequest(
+    val profileStatus: ProfileStatus
+)
+
+
 /**
  * This is an encapsulating class for DTOs to reflect if a field should be viewable
  * on users profile
