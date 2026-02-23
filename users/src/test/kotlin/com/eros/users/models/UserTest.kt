@@ -455,8 +455,8 @@ class UserTest {
         brainDescription: DisplayableField<String?> = DisplayableField(null, false),
         bodyAttributes: DisplayableField<List<BodyAttribute>?> = DisplayableField(null, false),
         bodyDescription: DisplayableField<String?> = DisplayableField(null, false),
-        coordinatesLongitude: Double = 52.001,
-        coordinatesLatitude: Double = 3.451,
+        coordinatesLongitude: Double = -0.102,
+        coordinatesLatitude: Double = 51.503,
     ): CreateUserRequest {
         return CreateUserRequest(
             userId = userId,
@@ -533,8 +533,8 @@ class UserTest {
         profileStatus: ProfileStatus = ProfileStatus.ACTIVE,
         eloScore : Int = 1000,
         completeness: Int = 50,
-        coordinatesLongitude: Double = 52.001,
-        coordinatesLatitude: Double = 3.451,
+        coordinatesLongitude: Double = -0.102,
+        coordinatesLatitude: Double = 51.503,
         badges: Set<Badge> = setOf(),
         role : Role = Role.USER,
         photoValidationStatus: ValidationStatus = ValidationStatus.VALIDATED

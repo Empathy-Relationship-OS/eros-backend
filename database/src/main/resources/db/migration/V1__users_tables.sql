@@ -132,6 +132,6 @@ COMMENT ON COLUMN users.trusted_badge IS 'Boolean for active/trusted user';
 COMMENT ON COLUMN users.good_experience_badge IS 'Boolean for if a user has good date experiences';
 COMMENT ON COLUMN users.verified_photos IS 'Boolean for if users photos have been VERIFIED';
 COMMENT ON COLUMN users.profile_status IS 'Status of the account - Active, Sleep_Mode, Frozen';
-COMMENT ON COLUMN users.profileCompleteness IS 'Int 50-100 indicating how complete user profile is';
+COMMENT ON COLUMN users.profile_completeness IS 'Int 50-100 indicating how complete user profile is';
 COMMENT ON COLUMN users.role IS 'Type of Account - User,Business,Admin,Employee';
 COMMENT ON COLUMN users.photo_validation_status IS 'ValidationStatus enum value stored as VARCHAR(50) (e.g. PENDING, APPROVED, REJECTED)';

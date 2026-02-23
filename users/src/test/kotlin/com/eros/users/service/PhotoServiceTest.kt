@@ -27,6 +27,7 @@ import java.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class PhotoServiceTest {
 
@@ -123,8 +124,8 @@ class PhotoServiceTest {
             assertNotNull(response.uploadUrl)
             assertNotNull(response.objectKey)
             assertEquals(15L, response.expiresInMinutes)
-            assert(response.objectKey.startsWith("photos/uid-1/"))
-            assert(response.objectKey.endsWith(".jpg"))
+            assertTrue(response.objectKey.startsWith("photos/uid-1/"))
+            assertTrue(response.objectKey.endsWith(".jpg"))
         }
 
         @Test
@@ -141,7 +142,7 @@ class PhotoServiceTest {
             )
             val response = service.generatePresignedUploadUrl("uid-1", request)
 
-            assert(response.objectKey.endsWith(".png"))
+            assertTrue(response.objectKey.endsWith(".png"))
         }
 
         @Test
@@ -158,7 +159,7 @@ class PhotoServiceTest {
             )
             val response = service.generatePresignedUploadUrl("uid-1", request)
 
-            assert(response.objectKey.endsWith(".heic"))
+            assertTrue(response.objectKey.endsWith(".heic"))
         }
 
         @Test
@@ -172,7 +173,7 @@ class PhotoServiceTest {
                 )
                 service.generatePresignedUploadUrl("uid-1", request)
             }
-            assert(ex.message!!.contains("Unsupported file type"))
+            assertTrue(ex.message!!.contains("Unsupported file type"))
         }
 
         @Test
@@ -186,7 +187,7 @@ class PhotoServiceTest {
             val ex = assertThrows<IllegalArgumentException> {
                 service.generatePresignedUploadUrl("uid-1", request)
             }
-            assert(ex.message!!.contains("500 KB"))
+            assertTrue(ex.message!!.contains("500 KB"))
         }
 
         @Test
@@ -200,7 +201,7 @@ class PhotoServiceTest {
             val ex = assertThrows<IllegalArgumentException> {
                 service.generatePresignedUploadUrl("uid-1", request)
             }
-            assert(ex.message!!.contains("10 MB"))
+            assertTrue(ex.message!!.contains("10 MB"))
         }
 
         @Test
@@ -328,7 +329,7 @@ class PhotoServiceTest {
             val ex = assertThrows<IllegalArgumentException> {
                 service.confirmUpload("uid-1", request)
             }
-            assert(ex.message!!.contains("Upload not found in S3"))
+            assertTrue(ex.message!!.contains("Upload not found in S3"))
         }
 
         @Test
@@ -391,7 +392,7 @@ class PhotoServiceTest {
             val collection = service.getUserMedia("uid-1")
 
             assertEquals(0, collection.totalCount)
-            assert(collection.media.isEmpty())
+            assertTrue(collection.media.isEmpty())
         }
     }
 

@@ -2,14 +2,7 @@ package com.eros.users
 
 import com.eros.users.models.*
 import com.eros.users.models.MediaType
-import com.eros.users.table.Users
-import org.jetbrains.exposed.v1.jdbc.Database
-import org.jetbrains.exposed.v1.jdbc.SchemaUtils
-import org.jetbrains.exposed.v1.jdbc.deleteAll
-import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.junit.jupiter.api.*
-import org.testcontainers.containers.PostgreSQLContainer
-import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import java.time.Instant
 import java.time.LocalDate
@@ -19,45 +12,6 @@ import kotlin.test.assertEquals
 @Testcontainers
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ProfileCompletenessTest {
-
-    companion object {
-        @Container
-        private val postgresContainer = PostgreSQLContainer<Nothing>("postgres:15-alpine").apply {
-            withDatabaseName("test_db")
-            withUsername("test_user")
-            withPassword("test_password")
-        }
-    }
-
-    @BeforeAll
-    fun setup() {
-        Database.connect(
-            url = postgresContainer.jdbcUrl,
-            driver = "org.postgresql.Driver",
-            user = postgresContainer.username,
-            password = postgresContainer.password
-        )
-
-        // Use regular transaction for schema creation (doesn't conflict)
-        transaction {
-            SchemaUtils.create(Users)
-        }
-    }
-
-    @BeforeEach
-    fun setupEach() {
-        // Clear the tables before each test.
-        transaction {
-            Users.deleteAll()
-        }
-    }
-
-    @AfterAll
-    fun tearDown() {
-        transaction {
-            SchemaUtils.drop(Users)
-        }
-    }
 
     @Test
     fun `completeness calculation`() {

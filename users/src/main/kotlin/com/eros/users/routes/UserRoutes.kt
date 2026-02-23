@@ -37,7 +37,7 @@ data class UserExistsResponse(
  *
  * @param userService Service for user data operations
  */
-fun Route.userProfileRoutes(userService: UserService) {
+fun Route.userProfileRoutes(userService: UserService, profileAccessControl : ProfileAccessControl) {
 
         /**
          * Base route /users.
@@ -85,22 +85,24 @@ fun Route.userProfileRoutes(userService: UserService) {
                     ?: throw BadRequestException("User ID is required")
 
                 // Ensure the user has access to the account or not.
-                ProfileAccessControl.hasPublicProfileAccess(principal.uid, targetUserId)
+                //todo: Replace the true values in method once matchService created
+                profileAccessControl.hasPublicProfileAccess(principal.uid, targetUserId)
 
-                val user = userService.findByUserId(targetUserId)
+                val targetUser = userService.findByUserId(targetUserId)
                     ?: throw NotFoundException("User profile not found")
 
                 //todo: Alter with media service
-
                 val media = UserMediaCollection(
-                    user.userId,
+                    targetUser.userId,
                     emptyList(),
                     2
                 )//userMediaService.getMediaForUser(targetUserId)
-                //todo: Alter with match service
-                val sharedInterests =
-                    listOf("Walks", "Shopping", "Running")//matchService.getSharedInterests(principal.uid, targetUserId)
-                call.respond(HttpStatusCode.OK, PublicProfileResponse.from(user, media, sharedInterests))
+
+                val principalUser = userService.findByUserId(principal.uid)
+                    ?: throw NotFoundException("User profile not found")
+
+                val sharedInterests = userService.getSharedInterests(principalUser, targetUser)
+                call.respond(HttpStatusCode.OK, PublicProfileResponse.from(targetUser, media, sharedInterests))
             }
 
 
@@ -138,6 +140,8 @@ fun Route.userProfileRoutes(userService: UserService) {
             }
 
 
+            //todo: This function should be moved to the admin/employee route
+            /*
             /**
              * GET /users/{id}
              *
@@ -154,10 +158,11 @@ fun Route.userProfileRoutes(userService: UserService) {
                 val user = userService.findByUserId(userId) ?: throw NotFoundException("User profile not found")
                 call.respond(HttpStatusCode.OK, user)
             }
+             */
 
 
             /**
-             * PUT /users/me
+             * PATCH /users/me
              *
              * Updates the current authenticated user's profile.
              *

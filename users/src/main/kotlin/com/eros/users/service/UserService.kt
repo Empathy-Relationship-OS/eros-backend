@@ -1,5 +1,6 @@
 package com.eros.users.service
 
+import com.eros.users.ProfileCompleteness
 import com.eros.users.models.AdminUpdateUserRequest
 import com.eros.users.models.Badge
 import com.eros.users.models.CreateUserRequest
@@ -71,8 +72,6 @@ class UserService(
             bodyDescription = request.bodyDescription,
             createdAt = now,
             updatedAt = now,
-
-            //todo: Check these values
             eloScore = 1000,
             photoValidationStatus = ValidationStatus.UNVALIDATED,
             profileStatus = ProfileStatus.ACTIVE,
@@ -81,10 +80,7 @@ class UserService(
             coordinatesLongitude = request.coordinatesLongitude,
             coordinatesLatitude = request.coordinatesLatitude,
             profileCompleteness = 50
-
         )
-        val claims = mapOf("role" to user.role)
-        FirebaseAuth.getInstance().setCustomUserClaims(user.userId, claims)
         return userRepository.create(user)
     }
 
@@ -221,4 +217,13 @@ class UserService(
     suspend fun userExists(userId: String): Boolean {
         return userRepository.doesExist(userId)
     }
+
+    /**
+     * Function to return the shared interests of two users.
+     */
+    fun getSharedInterests(user1: User, user2: User): List<String> {
+        if (user1 == user2){return user1.interests}
+        return (user1.interests intersect user2.interests.toSet()).toList()
+    }
+
 }
