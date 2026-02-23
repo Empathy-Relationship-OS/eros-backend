@@ -7,6 +7,7 @@ import com.eros.common.errors.ConflictException
 import com.eros.common.errors.ForbiddenException
 import com.eros.common.errors.NotFoundException
 import com.eros.users.ProfileAccessControl
+import com.eros.users.models.AdminUpdateUserRequest
 import com.eros.users.models.CreateUserRequest
 import com.eros.users.models.PublicProfileResponse
 import com.eros.users.models.UpdateUserRequest
@@ -36,7 +37,7 @@ data class UserExistsResponse(
  *
  * @param userService Service for user data operations
  */
-fun Route.userProfileRoutes(userService: UserService) {
+fun Route.userProfileRoutes(userService: UserService, profileAccessControl : ProfileAccessControl) {
 
         /**
          * Base route /users.
@@ -84,22 +85,24 @@ fun Route.userProfileRoutes(userService: UserService) {
                     ?: throw BadRequestException("User ID is required")
 
                 // Ensure the user has access to the account or not.
-                ProfileAccessControl.hasPublicProfileAccess(principal.uid, targetUserId)
+                //todo: Replace the true values in method once matchService created
+                profileAccessControl.hasPublicProfileAccess(principal.uid, targetUserId)
 
-                val user = userService.findByUserId(targetUserId)
+                val targetUser = userService.findByUserId(targetUserId)
                     ?: throw NotFoundException("User profile not found")
 
                 //todo: Alter with media service
-
                 val media = UserMediaCollection(
-                    user.userId,
+                    targetUser.userId,
                     emptyList(),
                     2
                 )//userMediaService.getMediaForUser(targetUserId)
-                //todo: Alter with match service
-                val sharedInterests =
-                    listOf("Walks", "Shopping", "Running")//matchService.getSharedInterests(principal.uid, targetUserId)
-                call.respond(HttpStatusCode.OK, PublicProfileResponse.from(user, media, sharedInterests))
+
+                val principalUser = userService.findByUserId(principal.uid)
+                    ?: throw NotFoundException("User profile not found")
+
+                val sharedInterests = userService.getSharedInterests(principalUser, targetUser)
+                call.respond(HttpStatusCode.OK, PublicProfileResponse.from(targetUser, media, sharedInterests))
             }
 
 
@@ -137,6 +140,8 @@ fun Route.userProfileRoutes(userService: UserService) {
             }
 
 
+            //todo: This function should be moved to the admin/employee route
+            /*
             /**
              * GET /users/{id}
              *
@@ -153,10 +158,11 @@ fun Route.userProfileRoutes(userService: UserService) {
                 val user = userService.findByUserId(userId) ?: throw NotFoundException("User profile not found")
                 call.respond(HttpStatusCode.OK, user)
             }
+             */
 
 
             /**
-             * PUT /users/me
+             * PATCH /users/me
              *
              * Updates the current authenticated user's profile.
              *
@@ -192,6 +198,37 @@ fun Route.userProfileRoutes(userService: UserService) {
 
                 call.application.log.info("User account deleted: ${principal.uid}")
                 call.respond(HttpStatusCode.NoContent)
+            }
+
+            // Admin-only routes
+            route("/id/{id}/admin") {
+                requireRoles("ADMIN", "EMPLOYEE")
+
+                /**
+                 * PATCH /users/id/{id}/admin
+                 *
+                 * Updates server-managed fields for a user (admin-only).
+                 *
+                 * This endpoint allows ADMIN and EMPLOYEE roles to modify sensitive fields
+                 * such as role, ELO score, badges, profile status, and validation status.
+                 *
+                 * Request Headers:
+                 * - Authorization: Bearer <firebase-id-token> (must have ADMIN or EMPLOYEE role)
+                 *
+                 * Request Body: AdminUpdateUserRequest JSON
+                 * Response: User JSON
+                 */
+                patch {
+                    val targetUserId = call.parameters["id"]
+                        ?: throw BadRequestException("User ID is required")
+
+                    val request = call.receive<AdminUpdateUserRequest>()
+                    val user = userService.adminUpdateUser(targetUserId, request)
+                        ?: throw NotFoundException("User profile not found")
+
+                    call.application.log.info("Admin update performed on user $targetUserId by ${call.requireFirebasePrincipal().uid}")
+                    call.respond(HttpStatusCode.OK, user)
+                }
             }
         }
 }

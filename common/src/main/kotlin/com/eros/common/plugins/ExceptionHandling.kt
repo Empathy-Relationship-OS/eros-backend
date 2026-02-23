@@ -12,6 +12,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.application.log
+import io.ktor.server.plugins.ContentTransformationException
 import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.response.respond
 import java.sql.SQLException
@@ -42,6 +43,9 @@ fun Application.configureExceptionHandling() {
         }
         exception<IllegalArgumentException> { call, cause ->
             call.respond(HttpStatusCode.BadRequest, ApiError("invalid_input", cause.message ?: "Invalid input"))
+        }
+        exception<ContentTransformationException> { call, cause ->
+            call.respond(HttpStatusCode.BadRequest, ApiError("malformed_request", cause.message ?: "Malformed request body"))
         }
         exception<DatabaseException> { call, cause ->
             call.application.log.error("Database error", cause)

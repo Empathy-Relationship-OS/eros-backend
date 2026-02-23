@@ -2,17 +2,16 @@ package com.eros
 
 import com.eros.auth.extensions.requireRoles
 import com.eros.common.config.S3Config
+import com.eros.users.ProfileAccessControl
 import com.eros.users.repository.PhotoRepositoryImpl
 import com.eros.users.repository.UserRepositoryImpl
 import com.eros.users.routes.userPhotoRoutes
 import com.eros.users.routes.userProfileRoutes
 import com.eros.users.service.PhotoService
 import com.eros.users.service.UserService
-import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.plugins.requestvalidation.*
-import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
@@ -36,6 +35,7 @@ fun Application.configureRouting() {
     val userService = UserService(userRepository)
     val photoService = PhotoService(photoRepository, s3Config)
 
+    val profileAccessControl = ProfileAccessControl()
     routing {
         get("/") {
             call.respondText("Hello World!")
@@ -45,7 +45,7 @@ fun Application.configureRouting() {
         authenticate("firebase-auth") {
             requireRoles("ADMIN", "USER", "EMPLOYEE")
             // User profile routes
-            userProfileRoutes(userService)
+            userProfileRoutes(userService, profileAccessControl)
 
             // Photo management routes
             userPhotoRoutes(photoService)

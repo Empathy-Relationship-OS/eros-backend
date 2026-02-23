@@ -37,7 +37,7 @@ data class CreateUserCityPreferenceRequest(
  * Data class for DeleteUserCityPreferenceRequest.
  *
  * @param userId - id of User deleting/removing the preference.
- * @param cityId - if of the City that will be removed from the users preferences.
+ * @param cityId - id of the City that will be removed from the users preferences.
  */
 @Serializable
 data class DeleteUserCityPreferenceRequest(

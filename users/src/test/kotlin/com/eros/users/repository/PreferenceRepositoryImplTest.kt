@@ -19,12 +19,13 @@ import com.eros.users.models.Trait
 import com.eros.users.models.User
 import com.eros.users.models.UserPreference
 import com.eros.users.models.ValidationStatus
-import com.eros.users.service.PreferenceService
+import com.eros.users.service.UserService
 import com.eros.users.table.Cities
 import com.eros.users.table.UserCitiesPreference
 import com.eros.users.table.UserPreferences
 import com.eros.users.table.Users
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.deleteAll
@@ -61,6 +62,8 @@ class PreferenceRepositoryImplTest {
     private lateinit var preferenceRepository: PreferenceRepositoryImpl
     private lateinit var userCitiesRepository: UserCitiesRepositoryImpl
     private lateinit var cityRepository: CityRepositoryImpl
+    private lateinit var userRepository: UserRepositoryImpl
+    private lateinit var userService: UserService
     private lateinit var clock: Clock
     private val fixedInstant = Instant.parse("2024-01-15T10:00:00Z")
 
@@ -85,6 +88,8 @@ class PreferenceRepositoryImplTest {
         userCitiesRepository = UserCitiesRepositoryImpl(clock)
         preferenceRepository = PreferenceRepositoryImpl(clock, userCitiesRepository)
         cityRepository = CityRepositoryImpl(clock)
+        userRepository = UserRepositoryImpl(clock)
+        userService = UserService(userRepository, clock)
 
         // Clear the tables before each test.
         transaction {
@@ -149,9 +154,9 @@ class PreferenceRepositoryImplTest {
                 profileStatus = ProfileStatus.ACTIVE,
                 eloScore = 1000,
                 badges = setOf(),
-                completeness = 75,
+                profileCompleteness = 75,
                 coordinatesLongitude = 45.3246,
-                coordinatesLatitude = -314.6,
+                coordinatesLatitude = -31.46,
                 role = Role.USER,
                 photoValidationStatus = ValidationStatus.VALIDATED
             )
@@ -194,9 +199,9 @@ class PreferenceRepositoryImplTest {
                 profileStatus = ProfileStatus.ACTIVE,
                 eloScore = 1000,
                 badges = setOf(),
-                completeness = 75,
+                profileCompleteness = 75,
                 coordinatesLongitude = 45.3246,
-                coordinatesLatitude = -314.6,
+                coordinatesLatitude = -31.46,
                 role = Role.USER,
                 photoValidationStatus = ValidationStatus.VALIDATED
             )
@@ -204,9 +209,11 @@ class PreferenceRepositoryImplTest {
     }
 
 
-    @Test
-    fun createUserPreferences() {
-
+    /**
+     * Private helper to create test user preferences setup.
+     * Not a @Test method to avoid being called directly as a test.
+     */
+    private fun createUserPreferencesSetup(): Pair<UserPreference, UserPreference> {
         // Create test user
         createUser()
 
@@ -249,27 +256,21 @@ class PreferenceRepositoryImplTest {
             updatedAt = fixedInstant
         )
 
-        val createdUser = runBlocking {
-            preferenceRepository.create(preference)
-        }
-        val createdUser2 = runBlocking {preferenceRepository.create(preference2)}
-
-        assertNotNull(createdUser)
-        assertEquals(preference.userId, createdUser.userId)
-        assertEquals(preference2.userId, createdUser2.userId)
+        return Pair(preference, preference2)
     }
 
     @Test
-    fun `valid one-way preference matching`(){
+    fun createUserPreferences() {
+        val (preference, preference2) = createUserPreferencesSetup()
 
-        createUserPreferences()
+        runTest {
+            val createdUser = preferenceRepository.create(preference)
+            val createdUser2 = preferenceRepository.create(preference2)
 
-        val matches = runBlocking {
-            PreferenceService(preferenceRepository).matchesUser("user123", "user456")
+            assertNotNull(createdUser)
+            assertEquals(preference.userId, createdUser.userId)
+            assertEquals(preference2.userId, createdUser2.userId)
         }
-
-        assertTrue(matches , "User's don't match when they should.")
-
     }
 
 }

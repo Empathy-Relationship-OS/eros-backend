@@ -13,6 +13,7 @@ val RoleAuthorization = createRouteScopedPlugin(
 ) {
     on(AuthenticationChecked) { call ->
         val requiredRoles = pluginConfig.roles
+        if (requiredRoles.isEmpty()) throw ForbiddenException("No roles configured for this route")
         val principal = call.principal<FirebaseUserPrincipal>() ?: throw UnauthorizedException()
         val userRole = principal.role ?: throw ForbiddenException("No role assigned")
         if (userRole !in requiredRoles) throw ForbiddenException("Insufficient role to access this resource")
@@ -23,5 +24,5 @@ val RoleAuthorization = createRouteScopedPlugin(
  * Sets up the roles to be checked -> requireRoles('...',"test") -> These are the roles set.
  */
 class RoleAuthorizationConfig {
-    lateinit var roles: Set<String>
+    var roles: Set<String> = emptySet()
 }

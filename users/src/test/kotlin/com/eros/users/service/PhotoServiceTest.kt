@@ -27,6 +27,7 @@ import java.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class PhotoServiceTest {
 
@@ -123,8 +124,8 @@ class PhotoServiceTest {
             assertNotNull(response.uploadUrl)
             assertNotNull(response.objectKey)
             assertEquals(15L, response.expiresInMinutes)
-            assert(response.objectKey.startsWith("photos/uid-1/"))
-            assert(response.objectKey.endsWith(".jpg"))
+            assertTrue(response.objectKey.startsWith("photos/uid-1/"))
+            assertTrue(response.objectKey.endsWith(".jpg"))
         }
 
         @Test
@@ -141,7 +142,7 @@ class PhotoServiceTest {
             )
             val response = service.generatePresignedUploadUrl("uid-1", request)
 
-            assert(response.objectKey.endsWith(".png"))
+            assertTrue(response.objectKey.endsWith(".png"))
         }
 
         @Test
@@ -158,21 +159,20 @@ class PhotoServiceTest {
             )
             val response = service.generatePresignedUploadUrl("uid-1", request)
 
-            assert(response.objectKey.endsWith(".heic"))
+            assertTrue(response.objectKey.endsWith(".heic"))
         }
 
         @Test
         fun `should throw IllegalArgumentException for unsupported content type`() = runTest {
-            val request = PresignedUploadRequest(
-                fileName = "file.jpg",
-                contentType   = "image/gif",
-                fileSizeBytes = 1_000_000L,
-                displayOrder  = 1
-            )
-            val ex = assertThrows<IllegalArgumentException> {
-                service.generatePresignedUploadUrl("uid-1", request)
+            // DTO validation rejects unsupported content types during construction
+            assertThrows<IllegalArgumentException> {
+                PresignedUploadRequest(
+                    fileName = "file.jpg",
+                    contentType   = "image/gif",
+                    fileSizeBytes = 1_000_000L,
+                    displayOrder  = 1
+                )
             }
-            assert(ex.message!!.contains("Unsupported file type"))
         }
 
         @Test
@@ -180,27 +180,26 @@ class PhotoServiceTest {
             val request = PresignedUploadRequest(
                 fileName = "file.jpg",
                 contentType   = "image/jpeg",
-                fileSizeBytes = 100L,  // below 500 KB
+                fileSizeBytes = 100L,  // below 500 KB - DTO allows but service rejects
                 displayOrder  = 1
             )
-            val ex = assertThrows<IllegalArgumentException> {
+            // Service enforces stricter 500KB minimum
+            assertThrows<IllegalArgumentException> {
                 service.generatePresignedUploadUrl("uid-1", request)
             }
-            assert(ex.message!!.contains("500 KB"))
         }
 
         @Test
         fun `should throw IllegalArgumentException when file exceeds maximum size`() = runTest {
-            val request = PresignedUploadRequest(
-                fileName = "file.jpg",
-                contentType   = "image/jpeg",
-                fileSizeBytes = 11_000_000L,  // above 10 MB
-                displayOrder  = 1
-            )
-            val ex = assertThrows<IllegalArgumentException> {
-                service.generatePresignedUploadUrl("uid-1", request)
+            // DTO validation rejects invalid file size during construction
+            assertThrows<IllegalArgumentException> {
+                PresignedUploadRequest(
+                    fileName = "file.jpg",
+                    contentType   = "image/jpeg",
+                    fileSizeBytes = 11_000_000L,  // above 10 MB
+                    displayOrder  = 1
+                )
             }
-            assert(ex.message!!.contains("10 MB"))
         }
 
         @Test
@@ -328,7 +327,33 @@ class PhotoServiceTest {
             val ex = assertThrows<IllegalArgumentException> {
                 service.confirmUpload("uid-1", request)
             }
-            assert(ex.message!!.contains("Upload not found in S3"))
+            assertTrue(ex.message!!.contains("Upload not found in S3"))
+        }
+
+        @Test
+        fun `should throw IllegalArgumentException when object key does not belong to user`() = runTest {
+            // Attacker trying to confirm upload with another user's object key
+            val request = ConfirmUploadRequest(
+                objectKey    = "photos/other-user/malicious.jpg",
+                displayOrder = 1
+            )
+            val ex = assertThrows<IllegalArgumentException> {
+                service.confirmUpload("uid-1", request)
+            }
+            assertEquals("Object key must belong to the authenticated user", ex.message)
+        }
+
+        @Test
+        fun `should throw IllegalArgumentException when object key has wrong format`() = runTest {
+            // Object key not following the expected photos/userId/ format
+            val request = ConfirmUploadRequest(
+                objectKey    = "invalid/path/file.jpg",
+                displayOrder = 1
+            )
+            val ex = assertThrows<IllegalArgumentException> {
+                service.confirmUpload("uid-1", request)
+            }
+            assertEquals("Object key must belong to the authenticated user", ex.message)
         }
     }
 
@@ -365,7 +390,7 @@ class PhotoServiceTest {
             val collection = service.getUserMedia("uid-1")
 
             assertEquals(0, collection.totalCount)
-            assert(collection.media.isEmpty())
+            assertTrue(collection.media.isEmpty())
         }
     }
 

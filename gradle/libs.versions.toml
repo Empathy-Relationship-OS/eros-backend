@@ -14,7 +14,7 @@ java-jwt = "4.5.0"
 firebase-admin = "9.7.1"
 twilio = "9.14.1"
 mockk = "1.13.13"
-aws-sdk = "2.29.52"
+aws-sdk = "2.41.34"
 
 [libraries]
 ktor-server-content-negotiation = { module = "io.ktor:ktor-server-content-negotiation", version.ref = "ktor" }
