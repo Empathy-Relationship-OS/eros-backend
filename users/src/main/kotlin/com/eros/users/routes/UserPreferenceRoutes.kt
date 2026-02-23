@@ -2,6 +2,7 @@ package com.eros.users.routes
 
 import com.eros.auth.extensions.requireFirebasePrincipal
 import com.eros.auth.extensions.requireRoles
+import com.eros.common.errors.BadRequestException
 import com.eros.common.errors.ConflictException
 import com.eros.common.errors.ForbiddenException
 import com.eros.common.errors.NotFoundException
@@ -34,7 +35,7 @@ fun Route.userPreferenceRoutes(userPreferenceService: PreferenceService) {
                 throw ConflictException("User preferences already exist")
 
             val userPreferences = userPreferenceService.createPreferences(request)
-            call.respond(HttpStatusCode.OK, userPreferences)
+            call.respond(HttpStatusCode.Created, userPreferences)
         }
 
         patch("/me") {
@@ -52,6 +53,18 @@ fun Route.userPreferenceRoutes(userPreferenceService: PreferenceService) {
         get("/me") {
             val principal = call.requireFirebasePrincipal()
             val preferences = userPreferenceService.findByUserId(principal.uid)
+                ?: throw NotFoundException("User preferences not found.")
+            call.respond(HttpStatusCode.OK, preferences)
+        }
+
+
+        get("/id/{id}"){
+            val principal = call.requireFirebasePrincipal()
+            val targetUserId = call.parameters["id"] ?: throw BadRequestException("User ID is required")
+
+            //todo: Ensure the user has a match
+            val hasMatch = true //matchService.findMatch(principal.uid, targetUserId)
+            val preferences = userPreferenceService.findByUserId(targetUserId)
                 ?: throw NotFoundException("User preferences not found.")
             call.respond(HttpStatusCode.OK, preferences)
         }
