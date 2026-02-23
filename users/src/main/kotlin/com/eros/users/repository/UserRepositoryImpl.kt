@@ -4,6 +4,7 @@ import com.eros.database.dbQuery
 import com.eros.database.repository.BaseDAOImpl
 import com.eros.users.models.Badge
 import com.eros.users.models.User
+import com.eros.users.table.BADGE_COLUMN_MAP
 import com.eros.users.table.Users
 import com.eros.users.table.toDTO
 import org.jetbrains.exposed.v1.core.ResultRow
@@ -93,9 +94,10 @@ class UserRepositoryImpl(
             this[Users.updatedAt] = Instant.now(clock)
             this[Users.profileStatus] = entity.profileStatus.name
             this[Users.eloScore] = entity.eloScore
-            this[Users.trustedBadge] = entity.badges?.contains(Badge.TRUSTED) ?: false
-            this[Users.verifiedPhotoBadge] = entity.badges?.contains(Badge.VERIFIED) ?: false
-            this[Users.goodExperienceBadge] = entity.badges?.contains(Badge.GOOD_XP) ?: false
+            // Set all badge columns using the centralized mapping
+            BADGE_COLUMN_MAP.forEach { (badge, column) ->
+                this[column] = entity.badges?.contains(badge) ?: false
+            }
             this[Users.profileCompleteness] = entity.profileCompleteness
             this[Users.coordinatesLatitude] = entity.coordinatesLatitude
             this[Users.coordinatesLongitude] = entity.coordinatesLongitude

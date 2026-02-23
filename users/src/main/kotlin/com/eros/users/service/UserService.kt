@@ -12,6 +12,8 @@ import com.eros.users.models.ValidationStatus
 import com.eros.users.repository.UserRepository
 import com.eros.users.table.badgeHelper
 import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.time.Clock
 import java.time.Instant
 
@@ -170,7 +172,9 @@ class UserService(
         // If role was updated, sync with Firebase custom claims
         if (request.role != null && request.role != existing.role) {
             val claims = mapOf("role" to merged.role)
-            FirebaseAuth.getInstance().setCustomUserClaims(userId, claims)
+            withContext(Dispatchers.IO) {
+                FirebaseAuth.getInstance().setCustomUserClaims(userId, claims)
+            }
         }
 
         return userRepository.update(userId, merged)

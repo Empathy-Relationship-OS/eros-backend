@@ -333,6 +333,8 @@ class PhotoService(
         } catch (e: Exception) {
             // Log but don't rethrow — a failed S3 delete should not block the DB delete.
             // Orphaned objects can be cleaned up with an S3 lifecycle rule.
+            // TODO this needs to be replaced with a proper logger
+            println("WARN: Failed to delete S3 object '$key': ${e.message}")
         }
     }
 

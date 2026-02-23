@@ -115,6 +115,16 @@ object Users : Table("users") {
 }
 
 /**
+ * Single source of truth for Badge enum to database column mapping.
+ * Add new badges here and both toStatement() and toDTO() will automatically use them.
+ */
+val BADGE_COLUMN_MAP = mapOf(
+    Badge.TRUSTED to Users.trustedBadge,
+    Badge.VERIFIED to Users.verifiedPhotoBadge,
+    Badge.GOOD_XP to Users.goodExperienceBadge
+)
+
+/**
  * Extension function to map ResultRow to User DTO
  */
 fun ResultRow.toDTO() = User(
@@ -130,9 +140,7 @@ fun ResultRow.toDTO() = User(
     profileStatus = ProfileStatus.valueOf(this[Users.profileStatus]),
     eloScore = this[Users.eloScore],
     badges = badgeHelper(
-        this[Users.verifiedPhotoBadge] to Badge.VERIFIED,
-        this[Users.goodExperienceBadge] to Badge.GOOD_XP,
-        this[Users.trustedBadge] to Badge.TRUSTED
+        *BADGE_COLUMN_MAP.map { (badge, column) -> this[column] to badge }.toTypedArray()
     ),
     profileCompleteness = this[Users.profileCompleteness],
     coordinatesLongitude = this[Users.coordinatesLongitude],
