@@ -28,6 +28,29 @@ data class City(
 )
 
 /**
+ * Lightweight city DTO without timestamps.
+ * Used in API responses and when passing city references between services.
+ * Provides only essential information (id and name) for better performance and cleaner APIs.
+ *
+ * @param cityId - Unique identifier of the city.
+ * @param cityName - Name of the city.
+ */
+@Serializable
+data class CityDTO(
+    val cityId: Long,
+    val cityName: String
+)
+
+/**
+ * Extension function to convert a full City entity to a lightweight CityDTO.
+ * Use this when you need to strip timestamps from the entity for API responses.
+ */
+fun City.toLightweightDTO() = CityDTO(
+    cityId = this.cityId,
+    cityName = this.cityName
+)
+
+/**
  * Data class for CreateCityRequest - This is used for adding a city to the Cities db table.
  *
  * @param cityName - Name of the city to be added.

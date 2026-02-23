@@ -2,6 +2,7 @@ package com.eros.users.repository
 
 import com.eros.database.dbQuery
 import com.eros.users.models.City
+import com.eros.users.models.CityDTO
 import com.eros.users.models.DeleteAllUserCityPreferenceRequest
 import com.eros.users.models.DeleteUserCityPreferenceRequest
 import com.eros.users.models.UserCityPreference
@@ -112,7 +113,7 @@ class UserCitiesRepositoryImpl(private val clock: Clock = Clock.systemUTC()) : U
         }
     }
 
-    override fun syncUserCityPreferences(userId: String, newCityIds: List<City>) {
+    fun syncUserCityPreferences(userId: String, newCityIds: List<CityDTO>) {
         // Convert City to id
         val newCityIds = newCityIds.map {it.cityId}
 

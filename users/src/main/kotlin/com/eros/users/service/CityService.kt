@@ -4,6 +4,9 @@ import com.eros.users.models.City
 import com.eros.users.models.CreateCityRequest
 import com.eros.users.models.UpdateCityRequest
 import com.eros.users.repository.CityRepository
+import com.eros.users.table.Cities
+import com.eros.users.table.toCityDTO
+import org.jetbrains.exposed.v1.jdbc.selectAll
 import java.time.Clock
 import java.time.Instant
 
@@ -43,6 +46,10 @@ class CityService(
 
     suspend fun findByCityId(id : Long) : City?{
         return cityRepository.findById(id)
+    }
+
+    suspend fun getAllCities() : List<City>{
+        return Cities.selectAll().map { it.toCityDTO()}
     }
 
 }

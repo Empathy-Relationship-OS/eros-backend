@@ -1,6 +1,7 @@
 package com.eros.users.table
 
 import com.eros.users.models.City
+import com.eros.users.models.CityDTO
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.javatime.timestamp
@@ -38,4 +39,16 @@ fun ResultRow.toCityDTO() = City(
     cityName = this[Cities.cityName],
     createdAt = this[Cities.createdAt],
     updatedAt = this[Cities.updatedAt]
+)
+
+/**
+ * Converts a database ResultRow directly to a lightweight CityDTO.
+ * Use this optimization when you know you only need id and name (skips reading timestamps).
+ * More efficient than ResultRow → City → CityDTO conversion.
+ *
+ * @return CityDTO with only id and name
+ */
+fun ResultRow.toLightweightCityDTO() = CityDTO(
+    cityId = this[Cities.id],
+    cityName = this[Cities.cityName]
 )

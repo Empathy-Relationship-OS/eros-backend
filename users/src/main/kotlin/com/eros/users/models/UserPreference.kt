@@ -46,7 +46,7 @@ data class UserPreference(
     val dateLimit: Int?,
 
     // For collecting user city preferences from UserCitiesPreferences table
-    val dateCities: List<City>,
+    val dateCities: List<CityDTO>,
 
     val reachLevel: ReachLevel,
 
@@ -119,7 +119,7 @@ data class CreatePreferenceRequest(
     val dateLanguages: List<Language>,
     val dateActivities: List<Activity>,
     val dateLimit: Int?,
-    val dateCities: List<Long>,  // Array of CityId's
+    val dateCities: List<Long>,
     val reachLevel: ReachLevel
 )
 
@@ -160,6 +160,6 @@ data class UpdatePreferenceRequest(
     val dateLanguages: List<Language>,
     val dateActivities: List<Activity>,
     val dateLimit: Int?,
-    val dateCities: List<Long>, // Array of CityId's
+    val dateCities: List<Long>,
     val reachLevel: ReachLevel
 )

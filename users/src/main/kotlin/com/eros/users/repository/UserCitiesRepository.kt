@@ -26,5 +26,4 @@ interface UserCitiesRepository {
 
     fun deleteAllUserCityPreferenceWithinTransaction(request: DeleteAllUserCityPreferenceRequest): Int
 
-    fun syncUserCityPreferences(userId: String, newCityIds: List<City>)
 }

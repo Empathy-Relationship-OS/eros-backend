@@ -19,7 +19,7 @@ import java.time.Instant
 
 class PreferenceRepositoryImpl(
     private val clock: Clock = Clock.systemUTC(),
-    private val userCitiesRepository: UserCitiesRepository
+    private val userCitiesRepository: UserCitiesRepositoryImpl = UserCitiesRepositoryImpl()
 ) : BaseDAOImpl<Long, UserPreference>(UserPreferences, UserPreferences.id), PreferenceRepository {
 
     // -------------------------------------------------------------------------
@@ -99,11 +99,9 @@ class PreferenceRepositoryImpl(
             .selectAll()
             .where { UserCitiesPreference.userId eq userId }
             .map { row ->
-                City(
+                CityDTO(
                     cityId = row[Cities.id],
                     cityName = row[Cities.cityName],
-                    createdAt = row[Cities.createdAt],
-                    updatedAt = row[Cities.updatedAt]
                 )
             }
 
@@ -117,11 +115,9 @@ class PreferenceRepositoryImpl(
             .selectAll()
             .where { UserCitiesPreference.userId eq userId }
             .map { row ->
-                City(
+                CityDTO(
                     cityId = row[Cities.id],
                     cityName = row[Cities.cityName],
-                    createdAt = row[Cities.createdAt],
-                    updatedAt = row[Cities.updatedAt]
                 )
             }
         return preferences.toDomain().copy(dateCities = cities)

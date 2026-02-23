@@ -19,6 +19,7 @@ import com.eros.users.models.Trait
 import com.eros.users.models.User
 import com.eros.users.models.UserPreference
 import com.eros.users.models.ValidationStatus
+import com.eros.users.models.toLightweightDTO
 import com.eros.users.service.PreferenceService
 import com.eros.users.table.Cities
 import com.eros.users.table.UserCitiesPreference
@@ -225,7 +226,7 @@ class PreferenceRepositoryImplTest {
             dateLanguages = listOf(Language.ENGLISH, Language.SPANISH),
             dateActivities = listOf(Activity.ESCAPE_ROOMS, Activity.BEACH),
             dateLimit = 5,
-            dateCities = listOf(city),
+            dateCities = listOf(city.toLightweightDTO()),
             reachLevel = ReachLevel.OPEN_MINDED,
             createdAt = fixedInstant,
             updatedAt = fixedInstant
@@ -243,7 +244,7 @@ class PreferenceRepositoryImplTest {
             dateLanguages = listOf(Language.ENGLISH, Language.SPANISH),
             dateActivities = listOf(Activity.ESCAPE_ROOMS, Activity.BEACH),
             dateLimit = 5,
-            dateCities = listOf(city),
+            dateCities = listOf(city.toLightweightDTO()),
             reachLevel = ReachLevel.OPEN_MINDED,
             createdAt = fixedInstant,
             updatedAt = fixedInstant

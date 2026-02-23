@@ -18,64 +18,62 @@ import io.ktor.server.routing.patch
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 
-class UserPreferenceRoutes {
 
-    fun Route.userPreferenceRoutes(userPreferenceService: PreferenceService) {
-        route("/preference") {
-            requireRoles("USER", "ADMIN", "EMPLOYEE")
+fun Route.userPreferenceRoutes(userPreferenceService: PreferenceService) {
+    route("/preference") {
+        requireRoles("USER", "ADMIN", "EMPLOYEE")
 
-            post {
-                val principal = call.requireFirebasePrincipal()
-                val request = call.receive<CreatePreferenceRequest>()
+        post {
+            val principal = call.requireFirebasePrincipal()
+            val request = call.receive<CreatePreferenceRequest>()
 
-                if (request.userId != principal.uid)
-                    throw ForbiddenException("Cannot create preferences for another user")
+            if (request.userId != principal.uid)
+                throw ForbiddenException("Cannot create preferences for another user")
 
-                if (userPreferenceService.doesExist(request.userId))
-                    throw ConflictException("User preferences already exist")
+            if (userPreferenceService.doesExist(request.userId))
+                throw ConflictException("User preferences already exist")
 
-                val userPreferences = userPreferenceService.createPreferences(request)
-                call.respond(HttpStatusCode.OK, userPreferences)
-            }
+            val userPreferences = userPreferenceService.createPreferences(request)
+            call.respond(HttpStatusCode.OK, userPreferences)
+        }
 
-            patch("/me"){
-                val principal = call.requireFirebasePrincipal()
-                val request = call.receive<UpdatePreferenceRequest>()
+        patch("/me") {
+            val principal = call.requireFirebasePrincipal()
+            val request = call.receive<UpdatePreferenceRequest>()
 
-                if (request.userId != principal.uid)
-                    throw ForbiddenException("Cannot create preferences for another user")
+            if (request.userId != principal.uid)
+                throw ForbiddenException("Cannot create preferences for another user")
 
-                val preferences = userPreferenceService.updatePreferences(request.id, request) ?:
-                    throw NotFoundException("User preferences not found.")
-                call.respond(HttpStatusCode.OK, preferences)
-            }
+            val preferences = userPreferenceService.updatePreferences(request.id, request)
+                ?: throw NotFoundException("User preferences not found.")
+            call.respond(HttpStatusCode.OK, preferences)
+        }
 
-            get("/me"){
-                val principal = call.requireFirebasePrincipal()
-                val preferences = userPreferenceService.findByUserId(principal.uid) ?:
+        get("/me") {
+            val principal = call.requireFirebasePrincipal()
+            val preferences = userPreferenceService.findByUserId(principal.uid)
+                ?: throw NotFoundException("User preferences not found.")
+            call.respond(HttpStatusCode.OK, preferences)
+        }
+
+
+        delete("/me") {
+            val principal = call.requireFirebasePrincipal()
+
+            // Check if preferences exist
+            if (!userPreferenceService.doesExist(principal.uid)) {
                 throw NotFoundException("User preferences not found.")
-                call.respond(HttpStatusCode.OK, preferences)
             }
 
+            // Delete the preferences.
+            val deleted = userPreferenceService.delete(principal.uid)
 
-            delete("/me") {
-                val principal = call.requireFirebasePrincipal()
-
-                // Check if preferences exist
-                if (!userPreferenceService.doesExist(principal.uid)) {
-                    throw NotFoundException("User preferences not found.")
-                }
-
-                // Delete the preferences.
-                val deleted = userPreferenceService.delete(principal.uid)
-
-                if (deleted > 0) {
-                    call.respond(HttpStatusCode.OK, "User Preference successfully deleted")
-                } else {
-                    throw NotFoundException("User preferences not found.")
-                }
+            if (deleted > 0) {
+                call.respond(HttpStatusCode.OK, "User Preference successfully deleted")
+            } else {
+                throw NotFoundException("User preferences not found.")
             }
         }
     }
-
 }
+

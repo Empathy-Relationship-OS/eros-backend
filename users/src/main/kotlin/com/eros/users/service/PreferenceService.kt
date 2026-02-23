@@ -3,6 +3,7 @@ package com.eros.users.service
 import com.eros.common.errors.NotFoundException
 import com.eros.database.dbQuery
 import com.eros.users.models.City
+import com.eros.users.models.CityDTO
 import com.eros.users.models.CreatePreferenceRequest
 import com.eros.users.models.DeleteAllUserCityPreferenceRequest
 import com.eros.users.models.DeleteUserCityPreferenceRequest
@@ -40,7 +41,7 @@ class PreferenceService(
             // Stub City objects carrying just the IDs the repo needs for its batch insert.
             // The full City data is populated by the repo via getUserPreferenceWithCities.
             dateCities = request.dateCities.map { cityId ->
-                City(cityId = cityId, cityName = "", createdAt = now, updatedAt = now)
+                CityDTO(cityId = cityId, cityName = "")
             },
             reachLevel = request.reachLevel,
             createdAt = now,
@@ -66,7 +67,7 @@ class PreferenceService(
             // Stub City objects carrying just the IDs the repo needs for its batch insert.
             // The full City data is populated by the repo via getUserPreferenceWithCities.
             dateCities = request.dateCities.map { cityId ->
-                City(cityId = cityId, cityName = "", createdAt = now, updatedAt = now)
+                CityDTO(cityId = cityId, cityName = "")
             },
             reachLevel = request.reachLevel,
             createdAt = now,
