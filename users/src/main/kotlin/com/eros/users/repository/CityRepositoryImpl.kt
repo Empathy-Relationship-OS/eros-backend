@@ -74,4 +74,8 @@ class CityRepositoryImpl(
     override suspend fun findById(id: Long): City? {
         return super.findById(id)
     }
+
+    override suspend fun findAll(): List<City> {
+        return super.findAll()
+    }
 }
