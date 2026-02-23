@@ -5,6 +5,37 @@ import kotlinx.serialization.Serializable
 import java.time.Instant
 
 // ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+/**
+ * Allowed content types for user media uploads.
+ */
+object MediaConstants {
+    val ALLOWED_CONTENT_TYPES = setOf(
+        "image/jpeg",
+        "image/jpg",
+        "image/png",
+        "image/heic",
+        "image/heif",
+        "image/webp"
+    )
+
+    const val MIN_FILE_SIZE_BYTES = 500L * 1024          // 500 KB
+    const val MAX_FILE_SIZE_BYTES = 10L * 1024 * 1024    // 10 MB
+    const val MAX_PHOTOS_PER_USER = 6
+
+    val CONTENT_TYPE_TO_EXTENSION = mapOf(
+        "image/jpeg" to "jpg",
+        "image/jpg"  to "jpg",
+        "image/png"  to "png",
+        "image/heic" to "heic",
+        "image/heif" to "heic",
+        "image/webp" to "webp"
+    )
+}
+
+// ---------------------------------------------------------------------------
 // Domain model
 // ---------------------------------------------------------------------------
 
@@ -54,20 +85,14 @@ data class PresignedUploadRequest(
     val displayOrder: Int,     // 1-6 — where this photo should appear
     val isPrimary: Boolean = false
 ) {
-    companion object {
-        private val ALLOWED_CONTENT_TYPES = setOf(
-            "image/jpeg", "image/png", "image/heic", "image/webp", "image/png"
-        )
-        private const val MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024L // 10 MB
-    }
     init {
         require(displayOrder in 1..6) { "Display order must be between 1 and 6" }
         require(fileName.isNotBlank()) { "File name is required" }
-        require(contentType in ALLOWED_CONTENT_TYPES) {
-            "Content type must be one of: $ALLOWED_CONTENT_TYPES"
+        require(contentType in MediaConstants.ALLOWED_CONTENT_TYPES) {
+            "Content type must be one of: ${MediaConstants.ALLOWED_CONTENT_TYPES}"
         }
-        require(fileSizeBytes in 1..MAX_FILE_SIZE_BYTES) {
-            "File size must be between 1 byte and $MAX_FILE_SIZE_BYTES bytes"
+        require(fileSizeBytes in 1..MediaConstants.MAX_FILE_SIZE_BYTES) {
+            "File size must be between 1 byte and ${MediaConstants.MAX_FILE_SIZE_BYTES} bytes"
         }
     }
 }

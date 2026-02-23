@@ -46,29 +46,6 @@ class PhotoService(
 
     companion object {
 
-        private val ALLOWED_CONTENT_TYPES = setOf(
-            "image/jpeg",
-            "image/jpg",
-            "image/png",
-            "image/heic",
-            "image/heif"
-        )
-
-        private const val MIN_FILE_SIZE_BYTES = 500L * 1024          // 500 KB
-        private const val MAX_FILE_SIZE_BYTES = 10L * 1024 * 1024    // 10 MB
-        private const val MAX_PHOTOS_PER_USER = 6
-
-        /**
-         * Map from MIME type to file extension used when generating S3 object keys.
-         */
-        private val CONTENT_TYPE_TO_EXTENSION = mapOf(
-            "image/jpeg" to "jpg",
-            "image/jpg"  to "jpg",
-            "image/png"  to "png",
-            "image/heic" to "heic",
-            "image/heif" to "heic"
-        )
-
         internal fun buildS3Client(config: S3Config): S3Client {
             val builder = S3Client.builder()
                 .region(Region.of(config.region))
@@ -116,10 +93,10 @@ class PhotoService(
     ): PresignedUploadResponse {
         val contentType = request.contentType.lowercase().trim()
 
-        require(contentType in ALLOWED_CONTENT_TYPES) {
-            "Unsupported file type '$contentType'. Allowed: JPEG, PNG, HEIC."
+        require(contentType in MediaConstants.ALLOWED_CONTENT_TYPES) {
+            "Unsupported file type '$contentType'. Allowed: JPEG, PNG, HEIC, HEIF, WEBP."
         }
-        require(request.fileSizeBytes in MIN_FILE_SIZE_BYTES..MAX_FILE_SIZE_BYTES) {
+        require(request.fileSizeBytes in MediaConstants.MIN_FILE_SIZE_BYTES..MediaConstants.MAX_FILE_SIZE_BYTES) {
             "File size must be between 500 KB and 10 MB " +
                     "(received ${request.fileSizeBytes} bytes)."
         }
@@ -128,13 +105,13 @@ class PhotoService(
         val slotOccupied = photoRepository.findByDisplayOrder(userId, request.displayOrder) != null
 
         // If the slot is not occupied and user already has max photos, reject
-        if (!slotOccupied && currentCount >= MAX_PHOTOS_PER_USER) {
+        if (!slotOccupied && currentCount >= MediaConstants.MAX_PHOTOS_PER_USER) {
             throw IllegalStateException(
-                "User has reached the maximum of $MAX_PHOTOS_PER_USER photos."
+                "User has reached the maximum of ${MediaConstants.MAX_PHOTOS_PER_USER} photos."
             )
         }
 
-        val extension = CONTENT_TYPE_TO_EXTENSION[contentType] ?: "jpg"
+        val extension = MediaConstants.CONTENT_TYPE_TO_EXTENSION[contentType] ?: "jpg"
         val objectKey = "photos/$userId/${UUID.randomUUID()}.$extension"
 
         val putObjectRequest = PutObjectRequest.builder()
