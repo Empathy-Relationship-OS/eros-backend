@@ -22,6 +22,8 @@ data class S3Config(
     val cdnBaseUrl: String?,
     val presignedUrlTtlMinutes: Long
 ) {
+    override fun toString(): String =
+        "S3Config(region=$region, bucketName=$bucketName, cdnBaseUrl=$cdnBaseUrl, presignedUrlTtlMinutes=$presignedUrlTtlMinutes)"
     /**
      * Returns the public URL for a given S3 object key.
      * Uses CDN base URL if configured, otherwise falls back to a direct S3 URL.
@@ -44,7 +46,9 @@ data class S3Config(
                 secretAccessKey       = config.property("aws.secretAccessKey").getString(),
                 bucketName            = config.property("aws.s3BucketName").getString(),
                 cdnBaseUrl            = cdnBaseUrl?.ifBlank { null },
-                presignedUrlTtlMinutes = config.property("aws.presignedUrlTtlMinutes").getString().toLong()
+                presignedUrlTtlMinutes = config.property("aws.presignedUrlTtlMinutes").getString()
+                    .toLongOrNull()
+                    ?: error("aws.presignedUrlTtlMinutes must be a valid integer (got: ${config.property("aws.presignedUrlTtlMinutes").getString()})")
             )
         }
     }

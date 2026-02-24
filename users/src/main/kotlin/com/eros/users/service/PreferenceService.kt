@@ -3,15 +3,10 @@ package com.eros.users.service
 import com.eros.common.errors.NotFoundException
 import com.eros.database.dbQuery
 import com.eros.users.models.City
-import com.eros.users.models.CityDTO
 import com.eros.users.models.CreatePreferenceRequest
-import com.eros.users.models.DeleteAllUserCityPreferenceRequest
-import com.eros.users.models.DeleteUserCityPreferenceRequest
 import com.eros.users.models.UpdatePreferenceRequest
 import com.eros.users.models.UserPreference
 import com.eros.users.repository.PreferenceRepository
-import com.eros.users.repository.UserRepository
-import com.eros.users.repository.UserRepositoryImpl
 import java.time.Clock
 import java.time.Instant
 

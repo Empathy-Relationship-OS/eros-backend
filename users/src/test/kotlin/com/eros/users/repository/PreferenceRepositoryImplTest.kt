@@ -24,6 +24,7 @@ import com.eros.users.table.UserCitiesPreference
 import com.eros.users.table.UserPreferences
 import com.eros.users.table.Users
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.deleteAll
@@ -145,9 +146,9 @@ class PreferenceRepositoryImplTest {
                 profileStatus = ProfileStatus.ACTIVE,
                 eloScore = 1000,
                 badges = setOf(),
-                completeness = 75,
+                profileCompleteness = 75,
                 coordinatesLongitude = 45.3246,
-                coordinatesLatitude = -314.6,
+                coordinatesLatitude = -31.46,
                 role = Role.USER,
                 photoValidationStatus = ValidationStatus.VALIDATED
             )
@@ -190,9 +191,9 @@ class PreferenceRepositoryImplTest {
                 profileStatus = ProfileStatus.ACTIVE,
                 eloScore = 1000,
                 badges = setOf(),
-                completeness = 75,
+                profileCompleteness = 75,
                 coordinatesLongitude = 45.3246,
-                coordinatesLatitude = -314.6,
+                coordinatesLatitude = -31.46,
                 role = Role.USER,
                 photoValidationStatus = ValidationStatus.VALIDATED
             )
@@ -200,9 +201,11 @@ class PreferenceRepositoryImplTest {
     }
 
 
-    @Test
-    fun createUserPreferences() {
-
+    /**
+     * Private helper to create test user preferences setup.
+     * Not a @Test method to avoid being called directly as a test.
+     */
+    private fun createUserPreferencesSetup(): Pair<UserPreference, UserPreference> {
         // Create test user
         createUser()
 
@@ -245,14 +248,21 @@ class PreferenceRepositoryImplTest {
             updatedAt = fixedInstant
         )
 
-        val createdUser = runBlocking {
-            preferenceRepository.create(preference)
-        }
-        val createdUser2 = runBlocking {preferenceRepository.create(preference2)}
+        return Pair(preference, preference2)
+    }
 
-        assertNotNull(createdUser)
-        assertEquals(preference.userId, createdUser.userId)
-        assertEquals(preference2.userId, createdUser2.userId)
+    @Test
+    fun createUserPreferences() {
+        val (preference, preference2) = createUserPreferencesSetup()
+
+        runTest {
+            val createdUser = preferenceRepository.create(preference)
+            val createdUser2 = preferenceRepository.create(preference2)
+
+            assertNotNull(createdUser)
+            assertEquals(preference.userId, createdUser.userId)
+            assertEquals(preference2.userId, createdUser2.userId)
+        }
     }
 
 }

@@ -7,6 +7,3 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Set timezone to UTC for consistent timestamp behavior
 SET timezone = 'UTC';
-
--- Baseline migration completed successfully
--- Next migration: V1__auth_tables.sql (authentication tables)

@@ -265,7 +265,7 @@ class UserPreferenceRoutesTest {
             profileStatus = ProfileStatus.ACTIVE,
             eloScore = 1000,
             badges = setOf(),
-            completeness = 75,
+            profileCompleteness = 75,
             coordinatesLongitude = 45.3246,
             coordinatesLatitude = -314.6,
             role = Role.USER,
@@ -321,12 +321,11 @@ class UserPreferenceRoutesTest {
             profileStatus = profileStatus,
             eloScore = 1000,
             badges = setOf(Badge.VERIFIED, Badge.TRUSTED, Badge.GOOD_XP),
-            completeness = 75,
+            profileCompleteness = 75,
             coordinatesLongitude = 45.3246,
             coordinatesLatitude = -314.6,
             role = Role.USER,
             photoValidationStatus = ValidationStatus.VALIDATED
         )
     }
-
 }

@@ -1,7 +1,5 @@
 package com.eros.users.models
 
-import kotlinx.serialization.Serializable
-
 /**
  * Gender options for user profile
  */
@@ -70,14 +68,6 @@ enum class SmokingStatus {
     REGULARLY,
     QUITTING,
     PREFER_NOT_TO_SAY;
-    fun getDisplayText(): String = when (this) {
-        NEVER -> "NEVER"
-        SOMETIMES -> "SOMETIMES"
-        REGULARLY -> "REGULARLY"
-        QUITTING -> "QUITTING"
-        PREFER_NOT_TO_SAY -> "PREFER_NOT_TO_SAY"
-    }
-
 }
 
 /**
@@ -695,10 +685,10 @@ enum class MediaType {
 /**
  * Reach Level - for how flexible a user's preferences are used for matching.
  */
-enum class ReachLevel(string: String) {
-    OPEN_MINDED("OPEN_MINDED"),
-    BALANCED("BALANCED"),
-    SELECTIVE("SELECTIVE")
+enum class ReachLevel() {
+    OPEN_MINDED,
+    BALANCED,
+    SELECTIVE
 }
 
 /**

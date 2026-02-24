@@ -32,7 +32,7 @@ data class User(
     val profileStatus: ProfileStatus,
     val eloScore: Int,
     val badges: Set<Badge>?,
-    val completeness: Int,
+    val profileCompleteness: Int,
     val coordinatesLongitude: Double,
     val coordinatesLatitude: Double,
     val role: Role,
@@ -193,6 +193,8 @@ data class CreateUserRequest(
     val bodyDescription: DisplayableField<String?>
 ) {
     init {
+        require(coordinatesLatitude in -90.0..90.0) { "Latitude must be between -90 and 90" }
+        require(coordinatesLongitude in -180.0..180.0) { "Longitude must be between -180 and 180" }
         require(interests.size in 5..10) { "Interests must be between 5 and 10 items" }
         require(traits.size in 3..10) { "Traits must be between 3 and 10 items" }
         require(bio.length <= 300) { "Bio must not exceed 300 characters" }
@@ -213,6 +215,9 @@ data class CreateUserRequest(
  * Displayable fields use [DisplayableField] so the client can update a value, its
  * visibility, or both in a single request. A null displayable field means "leave this
  * field unchanged".
+ *
+ * Note: Server-managed fields (eloScore, role, profileStatus, badges, etc.) are not
+ * included here and can only be modified via admin endpoints.
  */
 @Serializable
 data class UpdateUserRequest(
@@ -227,20 +232,8 @@ data class UpdateUserRequest(
     val interests: List<String>? = null,
     val traits: List<Trait>? = null,
     val preferredLanguage: Language? = null,
-
-    val profileStatus: ProfileStatus? = null,
-    val eloScore: Int? = null,
-    val goodExperienceBadge : Boolean? = null,
-    val trustedBadge : Boolean? = null,
-    val verifiedPhotoBadge : Boolean? = null,
-    val completeness : Int? = null,
     val coordinatesLatitude: Double? = null,
     val coordinatesLongitude: Double? = null,
-    val role: Role? = null,
-    val photoValidationStatus: ValidationStatus? = null,
-
-
-
 
     // Displayable fields — null means "do not update", non-null replaces both value and display flag
     val spokenLanguages: DisplayableField<List<Language>>? = null,
@@ -282,6 +275,40 @@ data class UpdateUserRequest(
         }
         if (ethnicity != null) {
             require(ethnicity.field.isNotEmpty()) { "Ethnicity must not be empty" }
+        }
+        if (coordinatesLatitude != null) {
+            require(coordinatesLatitude in -90.0..90.0) { "Latitude must be between -90 and 90" }
+        }
+        if (coordinatesLongitude != null) {
+            require(coordinatesLongitude in -180.0..180.0) { "Longitude must be between -180 and 180" }
+        }
+    }
+}
+
+/**
+ * Request DTO for admin-level user updates.
+ *
+ * This DTO includes server-managed fields that can only be modified by users with
+ * ADMIN or EMPLOYEE roles. It must be used with role-based authorization checks.
+ */
+@Serializable
+data class AdminUpdateUserRequest(
+    // Server-managed fields that require admin privileges
+    val profileStatus: ProfileStatus? = null,
+    val eloScore: Int? = null,
+    val goodExperienceBadge: Boolean? = null,
+    val trustedBadge: Boolean? = null,
+    val verifiedPhotoBadge: Boolean? = null,
+    val profileCompleteness: Int? = null,
+    val role: Role? = null,
+    val photoValidationStatus: ValidationStatus? = null
+) {
+    init {
+        if (eloScore != null) {
+            require(eloScore >= 0) { "ELO score must be non-negative" }
+        }
+        if (profileCompleteness != null) {
+            require(profileCompleteness in 0..100) { "Profile completeness must be between 0 and 100" }
         }
     }
 }

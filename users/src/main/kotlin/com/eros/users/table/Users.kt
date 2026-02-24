@@ -38,9 +38,9 @@ object Users : Table("users") {
     val trustedBadge = bool("trusted_badge").default(false)
     val goodExperienceBadge = bool("good_experience_badge").default(false)
     val verifiedPhotoBadge = bool("verified_photos").default(false)
-    val completeness = integer("completeness") // Integer 50-100
-    val coordinates_longitude = double("coordinates_longitude") // Long and Lat doubles.
-    val coordinates_latitude = double("coordinates_latitude") // Long and Lat doubles.
+    val profileCompleteness = integer("profile_completeness") // Integer 50-100
+    val coordinatesLongitude = double("coordinates_longitude") // Long and Lat doubles.
+    val coordinatesLatitude = double("coordinates_latitude") // Long and Lat doubles.
     val role = varchar("role", 32) // Role enum.
     val photoValidationStatus = varchar("photo_validation_status", 32) // ValidationStatus Enum
 
@@ -115,6 +115,16 @@ object Users : Table("users") {
 }
 
 /**
+ * Single source of truth for Badge enum to database column mapping.
+ * Add new badges here and both toStatement() and toDTO() will automatically use them.
+ */
+val BADGE_COLUMN_MAP = mapOf(
+    Badge.TRUSTED to Users.trustedBadge,
+    Badge.VERIFIED to Users.verifiedPhotoBadge,
+    Badge.GOOD_XP to Users.goodExperienceBadge
+)
+
+/**
  * Extension function to map ResultRow to User DTO
  */
 fun ResultRow.toDTO() = User(
@@ -130,13 +140,11 @@ fun ResultRow.toDTO() = User(
     profileStatus = ProfileStatus.valueOf(this[Users.profileStatus]),
     eloScore = this[Users.eloScore],
     badges = badgeHelper(
-        this[Users.verifiedPhotoBadge] to Badge.VERIFIED,
-        this[Users.goodExperienceBadge] to Badge.GOOD_XP,
-        this[Users.trustedBadge] to Badge.TRUSTED
+        *BADGE_COLUMN_MAP.map { (badge, column) -> this[column] to badge }.toTypedArray()
     ),
-    completeness = this[Users.completeness],
-    coordinatesLongitude = this[Users.coordinates_longitude],
-    coordinatesLatitude = this[Users.coordinates_latitude],
+    profileCompleteness = this[Users.profileCompleteness],
+    coordinatesLongitude = this[Users.coordinatesLongitude],
+    coordinatesLatitude = this[Users.coordinatesLatitude],
     role = Role.valueOf(this[Users.role]),
     photoValidationStatus = ValidationStatus.valueOf(this[Users.photoValidationStatus]),
     occupation = this[Users.occupation] ?: "",

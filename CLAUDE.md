@@ -128,7 +128,7 @@ suspend fun getUser(id: UUID): User? = dbQuery {
 
 **Migration Files**: Located in `database/src/main/resources/db/migration/`
 - Follow naming convention: `V{version}__{description}.sql`
-- Example: `V1__auth_tables.sql`, `V2__user_profiles.sql`
+- Example: `V1__users_tables.sql`, `V2__user_profiles.sql`
 - Migrations run automatically on application startup
 - Status tracked in `flyway_schema_history` table
 
@@ -253,7 +253,7 @@ database/
   │   └── FlywayConfig.kt   - Flyway migration management
   └── src/main/resources/db/migration/
       ├── V0__init.sql      - Baseline migration
-      └── V1__auth_tables.sql - Auth module tables (Firebase UID as PK)
+      └── V1__users_tables.sql - User module tables (Firebase UID as PK)
 
 common/
   └── src/main/kotlin/com/eros/common/
