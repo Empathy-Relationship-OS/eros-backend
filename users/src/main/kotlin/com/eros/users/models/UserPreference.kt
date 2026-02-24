@@ -1,6 +1,5 @@
 package com.eros.users.models
 
-import com.eros.common.serializers.InstantSerializer
 import kotlinx.serialization.Serializable
 import java.time.Instant
 
@@ -50,7 +49,6 @@ data class UserPreference(
     val reachLevel: ReachLevel,
 
     // Timestamps
-
     val createdAt: Instant,
     val updatedAt: Instant
 ){
@@ -83,12 +81,11 @@ data class UserPreference(
 }
 
 /**
-* Represents a user's dating preferences domain object.
+* Represents a user's dating preferences DTO object.
 *
 * This data class stores all preference criteria that a user has set for potential matches,
 * including demographic filters, physical attributes, and activity preferences.
 *
-* @property id Unique identifier for the preference record
 * @property userId The ID of the user who owns these preferences
 * @property genderIdentities List of gender identities the user is interested in matching with
 * @property ageRangeMin Minimum age (in years) for potential matches
@@ -103,7 +100,6 @@ data class UserPreference(
 */
 @Serializable
 data class UserPreferenceDTO(
-    val id: Long,
 
     val userId: String,
 
@@ -204,4 +200,20 @@ data class UpdatePreferenceRequest(
     val dateLimit: Int?,
     val dateCities: List<Long>,
     val reachLevel: ReachLevel
+)
+
+// Add to UserPreference.kt after the data classes
+fun UserPreference.toDTO() = UserPreferenceDTO(
+    userId = userId,
+    genderIdentities = genderIdentities,
+    ageRangeMin = ageRangeMin,
+    ageRangeMax = ageRangeMax,
+    heightRangeMin = heightRangeMin,
+    heightRangeMax = heightRangeMax,
+    ethnicity = ethnicity,
+    dateLanguages = dateLanguages,
+    dateActivities = dateActivities,
+    dateLimit = dateLimit,
+    dateCities = dateCities.map { it.toDTO() },
+    reachLevel = reachLevel
 )

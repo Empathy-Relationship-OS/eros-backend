@@ -5,7 +5,6 @@ import com.eros.common.config.S3Config
 import com.eros.users.repository.CityRepositoryImpl
 import com.eros.users.repository.PhotoRepositoryImpl
 import com.eros.users.repository.PreferenceRepositoryImpl
-import com.eros.users.repository.UserCitiesRepositoryImpl
 import com.eros.users.repository.UserRepositoryImpl
 import com.eros.users.routes.cityRoutes
 import com.eros.users.routes.userPhotoRoutes
@@ -14,7 +13,6 @@ import com.eros.users.routes.userProfileRoutes
 import com.eros.users.service.CityService
 import com.eros.users.service.PhotoService
 import com.eros.users.service.PreferenceService
-import com.eros.users.service.UserCitiesService
 import com.eros.users.service.UserService
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -39,7 +37,6 @@ fun Application.configureRouting() {
 
     val cityRepositoryImpl = CityRepositoryImpl()
     val preferenceRepositoryImpl = PreferenceRepositoryImpl()
-    val userCitiesRepositoryImpl = UserCitiesRepositoryImpl()
 
     // Initialize configs
     val s3Config = S3Config.fromApplicationConfig(environment.config)
@@ -48,10 +45,7 @@ fun Application.configureRouting() {
     val userService = UserService(userRepository)
     val photoService = PhotoService(photoRepository, s3Config)
     val cityService = CityService(cityRepositoryImpl)
-    val preferenceService = PreferenceService(preferenceRepositoryImpl,
-        userRepository,
-        userService,
-        userCitiesRepositoryImpl)
+    val preferenceService = PreferenceService(preferenceRepositoryImpl, userService)
 
     routing {
         get("/") {

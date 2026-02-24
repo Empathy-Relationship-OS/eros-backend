@@ -6,7 +6,7 @@ import com.eros.common.errors.ConflictException
 import com.eros.common.errors.NotFoundException
 import com.eros.users.models.CreateCityRequest
 import com.eros.users.models.UpdateCityRequest
-import com.eros.users.models.toLightweightDTO
+import com.eros.users.models.toDTO
 import com.eros.users.service.CityService
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
@@ -68,7 +68,7 @@ fun Route.cityRoutes(cityService: CityService) {
          * Return a list of all the cities : id and name.
          */
         get("/all") {
-            val cities = cityService.getAllCities().map{ it.toLightweightDTO()}
+            val cities = cityService.getAllCities().map{ it.toDTO()}
             call.respond(HttpStatusCode.OK, cities)
         }
 

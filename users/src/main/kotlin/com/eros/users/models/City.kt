@@ -1,6 +1,5 @@
 package com.eros.users.models
 
-import com.eros.common.serializers.InstantSerializer
 import kotlinx.serialization.Serializable
 import java.time.Instant
 
@@ -42,7 +41,7 @@ data class CityDTO(
  * Extension function to convert a full City entity to a lightweight CityDTO.
  * Use this when you need to strip timestamps from the entity for API responses.
  */
-fun City.toLightweightDTO() = CityDTO(
+fun City.toDTO() = CityDTO(
     cityId = this.cityId,
     cityName = this.cityName
 )

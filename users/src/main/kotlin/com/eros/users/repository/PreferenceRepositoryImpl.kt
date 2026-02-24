@@ -74,10 +74,12 @@ class PreferenceRepositoryImpl(
         UserPreferences.insert { toStatement(it, entity) }
 
         // Insert cities
-        userCitiesRepository.addUserCityPreferencesBatchWithinTransaction(
-            userId = entity.userId,
-            cityIds = entity.dateCities.map { it.cityId }
-        )
+        val now = Instant.now(clock)
+        UserCitiesPreference.batchInsert(entity.dateCities) { cityId ->
+            this[UserCitiesPreference.userId] = entity.userId
+            this[UserCitiesPreference.cityId] = cityId.cityId
+            this[UserCitiesPreference.createdAt] = now
+        }
 
         // Return the result (still inside transaction)
         getUserPreferenceWithCitiesWithinTransaction(entity.userId)
@@ -85,14 +87,15 @@ class PreferenceRepositoryImpl(
 
     override suspend fun update(id: Long, entity: UserPreference): UserPreference?  = dbQuery {
 
+        //val rowsUpdated = super.update(id, entity)
         val rowsUpdated = UserPreferences.update({ UserPreferences.id eq id }) { toStatement(it, entity) }
-        if (rowsUpdated == 0) throw NotFoundException("dwa")
-        val newCityIds = newCityIds.map {it.cityId}
+        if (rowsUpdated == 0) throw NotFoundException("User preferences not found.")
+        val newCityIds = entity.dateCities.map {it.cityId}
 
         // Get current city IDs
         val currentCityIds = UserCitiesPreference
             .select(UserCitiesPreference.cityId)
-            .where { UserCitiesPreference.userId eq userId }
+            .where { UserCitiesPreference.userId eq entity.userId }
             .map { it[UserCitiesPreference.cityId] }
             .toSet()
 
@@ -110,8 +113,9 @@ class PreferenceRepositoryImpl(
         val toInsert = newCityIdSet - currentCityIds
         if (toInsert.isNotEmpty()) {
             UserCitiesPreference.batchInsert(toInsert) { cityId ->
-                this[UserCitiesPreference.userId] = userId
+                this[UserCitiesPreference.userId] = entity.userId
                 this[UserCitiesPreference.cityId] = cityId
+                this[UserCitiesPreference.createdAt] = Instant.now(clock)
             }
         }
         getUserPreferenceWithCitiesWithinTransaction(entity.userId)
@@ -121,8 +125,10 @@ class PreferenceRepositoryImpl(
     // PreferenceRepository extras
     // -------------------------------------------------------------------------
 
-    override suspend fun getUserPreferenceWithCities(userId: String): UserPreference{
-        val preferences = UserPreferences.selectAll().where { UserPreferences.userId eq userId }.single()
+    override suspend fun getUserPreferenceWithCities(userId: String): UserPreference = dbQuery {
+        val preferences = UserPreferences.selectAll()
+            .where { UserPreferences.userId eq userId }
+            .single()
 
         val cities = (Cities innerJoin UserCitiesPreference)
             .selectAll()
@@ -136,7 +142,7 @@ class PreferenceRepositoryImpl(
                 )
             }
 
-        return preferences.toDomain().copy(dateCities = cities)
+        preferences.toDomain().copy(dateCities = cities)
     }
 
     fun getUserPreferenceWithCitiesWithinTransaction(userId: String): UserPreference{
@@ -146,9 +152,11 @@ class PreferenceRepositoryImpl(
             .selectAll()
             .where { UserCitiesPreference.userId eq userId }
             .map { row ->
-                CityDTO(
+                City(
                     cityId = row[Cities.id],
                     cityName = row[Cities.cityName],
+                    createdAt = row[Cities.createdAt],
+                    updatedAt = row[Cities.updatedAt]
                 )
             }
         return preferences.toDomain().copy(dateCities = cities)
@@ -160,7 +168,18 @@ class PreferenceRepositoryImpl(
             .count() > 0
     }
 
+
+    /**
+     * Function to delete all the UserCitiesPreference records and the users preferences.
+     *
+     * @param userId String of the user's id that is having their preferences deleted.
+     *
+     * @return `1` if UserPreference was remove, otherwise `0`.
+     */
     override fun delete(userId: String): Int {
+        // Delete the UserCitiesPreference records.
+        UserCitiesPreference.deleteWhere { UserPreferences.userId eq userId }
+        // Delete the UserPreference record.
         return UserPreferences.deleteWhere { UserPreferences.userId eq userId}
     }
 }

@@ -34,7 +34,62 @@ class UserPreferenceRoutesTest {
     private val mockUserPreferenceService = mockk<PreferenceService>()
 
 
+    @Nested
+    inner class GetUserPreferences {
 
+        @Test
+        fun `GET me returns user preferences when they exist`() = testApplication {
+            setupTestApp()
+            val client = configuredClient()
+
+            val testUserId = "test-user-123"
+            val testPreference = createTestUserPreference(userId = testUserId)
+
+            coEvery { mockUserPreferenceService.findByUserId(testUserId) } returns testPreference
+
+            val response = client.get("/preference/me") {
+                setAuthenticatedUser(testUserId)
+            }
+
+            assertEquals(HttpStatusCode.OK, response.status)
+
+            val responseBody = response.body<UserPreferenceDTO>()
+            assertEquals(testUserId, responseBody.userId)
+            assertEquals(testPreference.genderIdentities, responseBody.genderIdentities)
+            assertEquals(testPreference.ageRangeMin, responseBody.ageRangeMin)
+            assertEquals(testPreference.ageRangeMax, responseBody.ageRangeMax)
+            println(responseBody)
+            coVerify(exactly = 1) { mockUserPreferenceService.findByUserId(testUserId) }
+        }
+
+        @Test
+        fun `GET me returns 404 when preferences don't exist`() = testApplication {
+            setupTestApp()
+            val client = configuredClient()
+
+            val testUserId = "test-user-456"
+
+            coEvery { mockUserPreferenceService.findByUserId(testUserId) } returns null
+
+            val response = client.get("/preference/me") {
+                setAuthenticatedUser(testUserId)
+            }
+
+            assertEquals(HttpStatusCode.NotFound, response.status)
+
+            coVerify(exactly = 1) { mockUserPreferenceService.findByUserId(testUserId) }
+        }
+
+        @Test
+        fun `GET me returns 401 when user is not authenticated`() = testApplication {
+            setupTestApp()
+            val client = configuredClient()
+
+            val response = client.get("/preference/me")
+
+            assertEquals(HttpStatusCode.Unauthorized, response.status)
+        }
+    }
 
 
     // Helper functions
@@ -97,6 +152,38 @@ class UserPreferenceRoutesTest {
     private fun HttpRequestBuilder.setAuthenticatedUser(userId: String) {
         header(HttpHeaders.Authorization, "Bearer user-$userId")
     }
+
+    private fun createTestUserPreference(
+        userId: String = "test-user-id",
+        ageRangeMin: Int = 25,
+        ageRangeMax: Int = 35
+    ): UserPreference {
+        return UserPreference(
+            id = 1L,
+            userId = userId,
+            genderIdentities = listOf(Gender.FEMALE),
+            ageRangeMin = ageRangeMin,
+            ageRangeMax = ageRangeMax,
+            heightRangeMin = 160,
+            heightRangeMax = 180,
+            ethnicity = listOf(Ethnicity.BLACK_AFRICAN_DESCENT),
+            dateLanguages = listOf(Language.ENGLISH),
+            dateActivities = listOf(Activity.TAKING_A_WALK),
+            dateLimit = 5,
+            dateCities = listOf(
+                City(
+                    cityId = 1L,
+                    cityName = "London",
+                    createdAt = Instant.now(),
+                    updatedAt = Instant.now()
+                )
+            ),
+            reachLevel = ReachLevel.OPEN_MINDED,
+            createdAt = Instant.now(),
+            updatedAt = Instant.now()
+        )
+    }
+
 
     private fun createValidUserRequest(userId: String = "test-user-id"): CreateUserRequest {
         return CreateUserRequest(

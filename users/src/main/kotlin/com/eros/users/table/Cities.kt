@@ -40,15 +40,3 @@ fun ResultRow.toCityDTO() = City(
     createdAt = this[Cities.createdAt],
     updatedAt = this[Cities.updatedAt]
 )
-
-/**
- * Converts a database ResultRow directly to a lightweight CityDTO.
- * Use this optimization when you know you only need id and name (skips reading timestamps).
- * More efficient than ResultRow → City → CityDTO conversion.
- *
- * @return CityDTO with only id and name
- */
-fun ResultRow.toLightweightCityDTO() = CityDTO(
-    cityId = this[Cities.id],
-    cityName = this[Cities.cityName]
-)

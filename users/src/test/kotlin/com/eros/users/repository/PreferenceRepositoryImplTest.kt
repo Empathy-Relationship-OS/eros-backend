@@ -19,8 +19,6 @@ import com.eros.users.models.Trait
 import com.eros.users.models.User
 import com.eros.users.models.UserPreference
 import com.eros.users.models.ValidationStatus
-import com.eros.users.models.toLightweightDTO
-import com.eros.users.service.PreferenceService
 import com.eros.users.table.Cities
 import com.eros.users.table.UserCitiesPreference
 import com.eros.users.table.UserPreferences
@@ -44,7 +42,6 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 @Testcontainers
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -60,7 +57,6 @@ class PreferenceRepositoryImplTest {
     }
 
     private lateinit var preferenceRepository: PreferenceRepositoryImpl
-    private lateinit var userCitiesRepository: UserCitiesRepositoryImpl
     private lateinit var cityRepository: CityRepositoryImpl
     private lateinit var clock: Clock
     private val fixedInstant = Instant.parse("2024-01-15T10:00:00Z")
@@ -83,8 +79,7 @@ class PreferenceRepositoryImplTest {
     @BeforeEach
     fun setupEach() {
         clock = Clock.fixed(fixedInstant, ZoneId.of("UTC"))
-        userCitiesRepository = UserCitiesRepositoryImpl(clock)
-        preferenceRepository = PreferenceRepositoryImpl(clock, userCitiesRepository)
+        preferenceRepository = PreferenceRepositoryImpl(clock)
         cityRepository = CityRepositoryImpl(clock)
 
         // Clear the tables before each test.
@@ -226,7 +221,7 @@ class PreferenceRepositoryImplTest {
             dateLanguages = listOf(Language.ENGLISH, Language.SPANISH),
             dateActivities = listOf(Activity.ESCAPE_ROOMS, Activity.BEACH),
             dateLimit = 5,
-            dateCities = listOf(city.toLightweightDTO()),
+            dateCities = listOf(city),
             reachLevel = ReachLevel.OPEN_MINDED,
             createdAt = fixedInstant,
             updatedAt = fixedInstant
@@ -244,7 +239,7 @@ class PreferenceRepositoryImplTest {
             dateLanguages = listOf(Language.ENGLISH, Language.SPANISH),
             dateActivities = listOf(Activity.ESCAPE_ROOMS, Activity.BEACH),
             dateLimit = 5,
-            dateCities = listOf(city.toLightweightDTO()),
+            dateCities = listOf(city),
             reachLevel = ReachLevel.OPEN_MINDED,
             createdAt = fixedInstant,
             updatedAt = fixedInstant

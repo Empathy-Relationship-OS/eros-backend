@@ -10,7 +10,6 @@ import com.eros.users.models.DeleteUserCityPreferenceRequest
 import com.eros.users.models.UpdatePreferenceRequest
 import com.eros.users.models.UserPreference
 import com.eros.users.repository.PreferenceRepository
-import com.eros.users.repository.UserCitiesRepository
 import com.eros.users.repository.UserRepository
 import com.eros.users.repository.UserRepositoryImpl
 import java.time.Clock
@@ -18,9 +17,7 @@ import java.time.Instant
 
 class PreferenceService(
     private val preferenceRepository: PreferenceRepository,
-    private val userRepositoryImpl: UserRepositoryImpl = UserRepositoryImpl(),
-    private val userService: UserService = UserService(userRepositoryImpl),
-    private val userCitiesRepository: UserCitiesRepository,
+    private val userService: UserService,
     private val clock: Clock = Clock.systemUTC()
 ) {
 
@@ -41,7 +38,7 @@ class PreferenceService(
             // Stub City objects carrying just the IDs the repo needs for its batch insert.
             // The full City data is populated by the repo via getUserPreferenceWithCities.
             dateCities = request.dateCities.map { cityId ->
-                CityDTO(cityId = cityId, cityName = "")
+                City(cityId = cityId, cityName = "",now,now)
             },
             reachLevel = request.reachLevel,
             createdAt = now,
@@ -67,7 +64,7 @@ class PreferenceService(
             // Stub City objects carrying just the IDs the repo needs for its batch insert.
             // The full City data is populated by the repo via getUserPreferenceWithCities.
             dateCities = request.dateCities.map { cityId ->
-                CityDTO(cityId = cityId, cityName = "")
+                City(cityId = cityId, cityName = "",Instant.now(),Instant.now())
             },
             reachLevel = request.reachLevel,
             createdAt = now,
@@ -136,9 +133,6 @@ class PreferenceService(
      * @return `1` if deleted otherwise `0`
      */
     suspend fun delete(userId: String): Int = dbQuery {
-        userCitiesRepository.deleteAllUserCityPreferenceWithinTransaction(
-            DeleteAllUserCityPreferenceRequest(userId)
-        )
         preferenceRepository.delete(userId)
     }
 }

@@ -8,6 +8,7 @@ import com.eros.common.errors.ForbiddenException
 import com.eros.common.errors.NotFoundException
 import com.eros.users.models.CreatePreferenceRequest
 import com.eros.users.models.UpdatePreferenceRequest
+import com.eros.users.models.toDTO
 import com.eros.users.service.PreferenceService
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
@@ -35,7 +36,7 @@ fun Route.userPreferenceRoutes(userPreferenceService: PreferenceService) {
                 throw ConflictException("User preferences already exist")
 
             val userPreferences = userPreferenceService.createPreferences(request)
-            call.respond(HttpStatusCode.Created, userPreferences)
+            call.respond(HttpStatusCode.Created, userPreferences.toDTO())
         }
 
         patch("/me") {
@@ -47,14 +48,14 @@ fun Route.userPreferenceRoutes(userPreferenceService: PreferenceService) {
 
             val preferences = userPreferenceService.updatePreferences(request.id, request)
                 ?: throw NotFoundException("User preferences not found.")
-            call.respond(HttpStatusCode.OK, preferences)
+            call.respond(HttpStatusCode.OK, preferences.toDTO())
         }
 
         get("/me") {
             val principal = call.requireFirebasePrincipal()
             val preferences = userPreferenceService.findByUserId(principal.uid)
                 ?: throw NotFoundException("User preferences not found.")
-            call.respond(HttpStatusCode.OK, preferences)
+            call.respond(HttpStatusCode.OK, preferences.toDTO())
         }
 
 
@@ -66,7 +67,7 @@ fun Route.userPreferenceRoutes(userPreferenceService: PreferenceService) {
             val hasMatch = true //matchService.findMatch(principal.uid, targetUserId)
             val preferences = userPreferenceService.findByUserId(targetUserId)
                 ?: throw NotFoundException("User preferences not found.")
-            call.respond(HttpStatusCode.OK, preferences)
+            call.respond(HttpStatusCode.OK, preferences.toDTO())
         }
 
 

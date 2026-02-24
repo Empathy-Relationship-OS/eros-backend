@@ -48,7 +48,7 @@ class CityService(
         return cityRepository.findById(id)
     }
 
-    suspend fun getAllCities() : List<City>{
+    fun getAllCities() : List<City>{
         return Cities.selectAll().map { it.toCityDTO()}
     }
 
