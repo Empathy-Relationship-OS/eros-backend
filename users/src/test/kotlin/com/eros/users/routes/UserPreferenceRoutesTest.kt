@@ -1,6 +1,7 @@
 package com.eros.users.routes
 
 import com.eros.auth.firebase.FirebaseUserPrincipal
+import com.eros.common.errors.NotFoundException
 import com.eros.common.plugins.configureExceptionHandling
 import com.eros.users.models.*
 import com.eros.users.service.PreferenceService
@@ -62,6 +63,7 @@ class UserPreferenceRoutesTest {
             coVerify(exactly = 1) { mockUserPreferenceService.findByUserId(testUserId) }
         }
 
+
         @Test
         fun `GET me returns 404 when preferences don't exist`() = testApplication {
             setupTestApp()
@@ -69,16 +71,18 @@ class UserPreferenceRoutesTest {
 
             val testUserId = "test-user-456"
 
-            coEvery { mockUserPreferenceService.findByUserId(testUserId) } returns null
+            coEvery { mockUserPreferenceService.findByUserId(testUserId) } throws NotFoundException("Not found")
 
             val response = client.get("/preference/me") {
                 setAuthenticatedUser(testUserId)
             }
 
             assertEquals(HttpStatusCode.NotFound, response.status)
+            assertTrue(response.bodyAsText().contains("Not found"))
 
             coVerify(exactly = 1) { mockUserPreferenceService.findByUserId(testUserId) }
         }
+
 
         @Test
         fun `GET me returns 401 when user is not authenticated`() = testApplication {
