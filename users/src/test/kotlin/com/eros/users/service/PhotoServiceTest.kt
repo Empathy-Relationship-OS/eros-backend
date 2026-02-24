@@ -177,15 +177,14 @@ class PhotoServiceTest {
 
         @Test
         fun `should throw IllegalArgumentException when file is below minimum size`() = runTest {
-            val request = PresignedUploadRequest(
-                fileName = "file.jpg",
-                contentType   = "image/jpeg",
-                fileSizeBytes = 100L,  // below 500 KB - DTO allows but service rejects
-                displayOrder  = 1
-            )
             // Service enforces stricter 500KB minimum
             assertThrows<IllegalArgumentException> {
-                service.generatePresignedUploadUrl("uid-1", request)
+                PresignedUploadRequest(
+                    fileName = "file.jpg",
+                    contentType   = "image/jpeg",
+                    fileSizeBytes = 100L,  // below 500 KB - DTO allows but service rejects
+                    displayOrder  = 1
+                )
             }
         }
 
@@ -265,14 +264,14 @@ class PhotoServiceTest {
 
             coEvery { mockRepository.findByDisplayOrder("uid-1", 1) } returns null
             coEvery {
-                mockRepository.insert("uid-1", expectedUrl, "PHOTO", 1, false)
+                mockRepository.insert("uid-1", expectedUrl, MediaType.PHOTO, 1, false)
             } returns item
 
             val request = ConfirmUploadRequest(objectKey = objectKey, displayOrder = 1, isPrimary = false)
             val result = service.confirmUpload("uid-1", request)
 
             assertEquals(item, result)
-            coVerify { mockRepository.insert("uid-1", expectedUrl, "PHOTO", 1, false) }
+            coVerify { mockRepository.insert("uid-1", expectedUrl, MediaType.PHOTO, 1, false) }
         }
 
         @Test
@@ -287,14 +286,14 @@ class PhotoServiceTest {
             coEvery { mockRepository.deleteById(99L) } returns 1
             every { mockS3Client.deleteObject(any<java.util.function.Consumer<software.amazon.awssdk.services.s3.model.DeleteObjectRequest.Builder>>()) } returns mockk()
             coEvery {
-                mockRepository.insert("uid-1", expectedUrl, "PHOTO", 1, false)
+                mockRepository.insert("uid-1", expectedUrl, MediaType.PHOTO, 1, false)
             } returns newItem
 
             val request = ConfirmUploadRequest(objectKey = objectKey, displayOrder = 1, isPrimary = false)
             service.confirmUpload("uid-1", request)
 
             coVerify { mockRepository.deleteById(99L) }
-            coVerify { mockRepository.insert("uid-1", expectedUrl, "PHOTO", 1, false) }
+            coVerify { mockRepository.insert("uid-1", expectedUrl, MediaType.PHOTO, 1, false) }
         }
 
         @Test
@@ -306,7 +305,7 @@ class PhotoServiceTest {
             val primaryItem = item.copy(isPrimary = true)
 
             coEvery { mockRepository.findByDisplayOrder("uid-1", 1) } returns null
-            coEvery { mockRepository.insert("uid-1", expectedUrl, "PHOTO", 1, true) } returns item
+            coEvery { mockRepository.insert("uid-1", expectedUrl, MediaType.PHOTO, 1, true) } returns item
             coEvery { mockRepository.setPrimary("uid-1", item.id) } returns primaryItem
 
             val request = ConfirmUploadRequest(objectKey = objectKey, displayOrder = 1, isPrimary = true)

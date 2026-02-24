@@ -169,15 +169,17 @@ class UserService(
             profileCompleteness = request.profileCompleteness ?: existing.profileCompleteness
         )
 
+        val updated = userRepository.update(userId, merged)
+
         // If role was updated, sync with Firebase custom claims
         if (request.role != null && request.role != existing.role) {
-            val claims = mapOf("role" to merged.role)
+            val claims = mapOf("role" to merged.role.name)
             withContext(Dispatchers.IO) {
                 FirebaseAuth.getInstance().setCustomUserClaims(userId, claims)
             }
         }
 
-        return userRepository.update(userId, merged)
+        return updated
     }
 
     /**
