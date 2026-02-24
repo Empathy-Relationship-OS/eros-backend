@@ -1,5 +1,6 @@
 package com.eros.users.repository
 
+import com.eros.users.models.MediaType
 import com.eros.users.models.UserMediaItem
 
 /**
@@ -39,7 +40,7 @@ interface PhotoRepository {
     suspend fun insert(
         userId: String,
         mediaUrl: String,
-        mediaType: String,
+        mediaType: MediaType,
         displayOrder: Int,
         isPrimary: Boolean
     ): UserMediaItem

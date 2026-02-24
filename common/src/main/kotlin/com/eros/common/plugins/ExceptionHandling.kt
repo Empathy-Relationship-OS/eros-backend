@@ -63,10 +63,7 @@ fun Application.configureExceptionHandling() {
         }
         exception<DatabaseException> { call, cause ->
             call.application.log.error("Database error", cause)
-            call.respond(
-                HttpStatusCode.InternalServerError,
-                ApiError("database_error", cause.message ?: "Database error")
-            )
+            call.respond(HttpStatusCode.InternalServerError, ApiError("database_error", "Database operation failed"))
         }
         exception<ExposedSQLException> { call, cause ->
             call.application.log.error("Exposed SQL error", cause)

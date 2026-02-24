@@ -87,7 +87,7 @@ class PhotoRepositoryImpl(
     override suspend fun insert(
         userId: String,
         mediaUrl: String,
-        mediaType: String,
+        mediaType: MediaType,
         displayOrder: Int,
         isPrimary: Boolean
     ): UserMediaItem = dbQuery {
@@ -95,7 +95,7 @@ class PhotoRepositoryImpl(
         val id = UserMedia.insert {
             it[UserMedia.userId]       = userId
             it[UserMedia.mediaUrl]     = mediaUrl
-            it[UserMedia.mediaType]    = mediaType
+            it[UserMedia.mediaType]    = mediaType.name
             it[UserMedia.displayOrder] = displayOrder
             it[UserMedia.isPrimary]    = isPrimary
             it[UserMedia.createdAt]    = now

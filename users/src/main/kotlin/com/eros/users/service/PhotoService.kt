@@ -198,7 +198,7 @@ class PhotoService(
         val item = photoRepository.insert(
             userId       = userId,
             mediaUrl     = mediaUrl,
-            mediaType    = "PHOTO",
+            mediaType    = MediaType.PHOTO,
             displayOrder = request.displayOrder,
             isPrimary    = request.isPrimary
         )
