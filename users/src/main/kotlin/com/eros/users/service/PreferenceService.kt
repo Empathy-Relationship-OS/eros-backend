@@ -80,10 +80,8 @@ class PreferenceService(
         val prefs = findByUserId(userId)
         val candidateProfile = userService.findByUserId(candidateId) ?:
             throw NotFoundException("User not found.")
-        val candidatePreferences = findByUserId(candidateId) ?:
-            throw NotFoundException("User's Preferences not found.")
-        return prefs?.matchesUser(candidateProfile, candidatePreferences)
-            ?: throw NotFoundException("User's Preferences not found.")
+        val candidatePreferences = findByUserId(candidateId)
+        return prefs.matchesUser(candidateProfile, candidatePreferences)
     }
 
     /**
@@ -96,10 +94,10 @@ class PreferenceService(
      */
     suspend fun usersBothMatchingPreferences(userId: String, candidateId: String): Boolean {
         // todo: Replace the entire user with a simple `UserMatchCandidate` dto? Less data wasted? Pass in User not id?
-        val preferences = findByUserId(userId) ?: throw NotFoundException("User's Preferences not found.")
+        val preferences = findByUserId(userId)
         val profile = userService.findByUserId(userId) ?: throw NotFoundException("User not found.")
         val candidateProfile = userService.findByUserId(candidateId)?:throw NotFoundException("User not found.")
-        val candidatePreferences = findByUserId(candidateId)?:throw NotFoundException("User's Preferences not found.")
+        val candidatePreferences = findByUserId(candidateId)
         val matches1 = preferences.matchesUser(candidateProfile, candidatePreferences)
         val matches2 = candidatePreferences.matchesUser(profile, preferences)
         return matches1 && matches2
@@ -115,7 +113,7 @@ class PreferenceService(
      * @param userId Firebase user ID to search for
      * @return UserPreference if found, null otherwise
      */
-    suspend fun findByUserId(userId: String): UserPreference? {
+    suspend fun findByUserId(userId: String): UserPreference {
         return preferenceRepository.getUserPreferenceWithCities(userId)
     }
 }
