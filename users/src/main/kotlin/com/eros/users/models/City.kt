@@ -5,14 +5,13 @@ import kotlinx.serialization.Serializable
 import java.time.Instant
 
 /**
- * Data class for a city.
+ * Domain object for a city.
  *
  * @param cityID - id of the city.
  * @param cityName - Name of the city.
  * @param createdAt - Time of creation.
  * @param updatedAt - Time of late update.
  */
-@Serializable
 data class City(
     // City id.
     val cityId : Long,
@@ -21,9 +20,7 @@ data class City(
     val cityName : String,
 
     // Timestamps
-    @Serializable(with = InstantSerializer::class)
     val createdAt: Instant,
-    @Serializable(with = InstantSerializer::class)
     val updatedAt: Instant,
 )
 

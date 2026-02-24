@@ -8,18 +8,21 @@ import com.eros.users.table.UserCitiesPreference
 import com.eros.users.table.UserPreferences
 import io.ktor.server.plugins.NotFoundException
 import org.jetbrains.exposed.v1.core.ResultRow
+import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.core.statements.UpdateBuilder
+import org.jetbrains.exposed.v1.jdbc.batchInsert
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
+import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
 import java.time.Clock
 import java.time.Instant
 
 class PreferenceRepositoryImpl(
-    private val clock: Clock = Clock.systemUTC(),
-    private val userCitiesRepository: UserCitiesRepositoryImpl = UserCitiesRepositoryImpl()
+    private val clock: Clock = Clock.systemUTC()
 ) : BaseDAOImpl<Long, UserPreference>(UserPreferences, UserPreferences.id), PreferenceRepository {
 
     // -------------------------------------------------------------------------
@@ -84,7 +87,33 @@ class PreferenceRepositoryImpl(
 
         val rowsUpdated = UserPreferences.update({ UserPreferences.id eq id }) { toStatement(it, entity) }
         if (rowsUpdated == 0) throw NotFoundException("dwa")
-        userCitiesRepository.syncUserCityPreferences(entity.userId, entity.dateCities)
+        val newCityIds = newCityIds.map {it.cityId}
+
+        // Get current city IDs
+        val currentCityIds = UserCitiesPreference
+            .select(UserCitiesPreference.cityId)
+            .where { UserCitiesPreference.userId eq userId }
+            .map { it[UserCitiesPreference.cityId] }
+            .toSet()
+
+        val newCityIdSet = newCityIds.toSet()
+
+        // Delete removed cities
+        val toDelete = currentCityIds - newCityIdSet
+        if (toDelete.isNotEmpty()) {
+            UserCitiesPreference.deleteWhere {
+                (UserCitiesPreference.userId eq userId) and (cityId inList toDelete)
+            }
+        }
+
+        // Insert new cities only
+        val toInsert = newCityIdSet - currentCityIds
+        if (toInsert.isNotEmpty()) {
+            UserCitiesPreference.batchInsert(toInsert) { cityId ->
+                this[UserCitiesPreference.userId] = userId
+                this[UserCitiesPreference.cityId] = cityId
+            }
+        }
         getUserPreferenceWithCitiesWithinTransaction(entity.userId)
     }
 
@@ -99,9 +128,11 @@ class PreferenceRepositoryImpl(
             .selectAll()
             .where { UserCitiesPreference.userId eq userId }
             .map { row ->
-                CityDTO(
+                City(
                     cityId = row[Cities.id],
                     cityName = row[Cities.cityName],
+                    createdAt = row[Cities.createdAt],
+                    updatedAt = row[Cities.updatedAt]
                 )
             }
 

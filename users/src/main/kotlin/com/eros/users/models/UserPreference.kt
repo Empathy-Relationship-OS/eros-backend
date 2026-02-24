@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 import java.time.Instant
 
 /**
- * Represents a user's dating preferences.
+ * Represents a user's dating preferences domain object.
  *
  * This data class stores all preference criteria that a user has set for potential matches,
  * including demographic filters, physical attributes, and activity preferences.
@@ -25,7 +25,6 @@ import java.time.Instant
  * @property createdAt Timestamp when the preference record was created
  * @property updatedAt Timestamp when the preference record was last modified
  */
-@Serializable
 data class UserPreference(
 
     val id: Long,
@@ -46,14 +45,13 @@ data class UserPreference(
     val dateLimit: Int?,
 
     // For collecting user city preferences from UserCitiesPreferences table
-    val dateCities: List<CityDTO>,
+    val dateCities: List<City>,
 
     val reachLevel: ReachLevel,
 
     // Timestamps
-    @Serializable(with = InstantSerializer::class)
+
     val createdAt: Instant,
-    @Serializable(with = InstantSerializer::class)
     val updatedAt: Instant
 ){
     /**
@@ -83,6 +81,50 @@ data class UserPreference(
         return true
     }
 }
+
+/**
+* Represents a user's dating preferences domain object.
+*
+* This data class stores all preference criteria that a user has set for potential matches,
+* including demographic filters, physical attributes, and activity preferences.
+*
+* @property id Unique identifier for the preference record
+* @property userId The ID of the user who owns these preferences
+* @property genderIdentities List of gender identities the user is interested in matching with
+* @property ageRangeMin Minimum age (in years) for potential matches
+* @property ageRangeMax Maximum age (in years) for potential matches
+* @property heightRangeMin Minimum height for potential matches
+* @property heightRangeMax Maximum height for potential matches
+* @property ethnicity List of ethnicities the user is interested in matching with
+* @property dateLanguages List of languages the user prefers for dates
+* @property dateActivities List of activities the user enjoys on dates
+* @property dateLimit Optional limit on the number of dates per period (null means unlimited)
+* @property dateCities List of cities where the user is willing to date (populated from UserCitiesPreferences table)
+*/
+@Serializable
+data class UserPreferenceDTO(
+    val id: Long,
+
+    val userId: String,
+
+    val genderIdentities: List<Gender>,
+
+    val ageRangeMin: Int,
+    val ageRangeMax: Int,
+    val heightRangeMin: Int,
+    val heightRangeMax: Int,
+
+    val ethnicity: List<Ethnicity>,
+
+    val dateLanguages: List<Language>,
+    val dateActivities: List<Activity>,
+    val dateLimit: Int?,
+
+    // For collecting user city preferences from UserCitiesPreferences table
+    val dateCities: List<CityDTO>,
+
+    val reachLevel: ReachLevel
+)
 
 /**
  * Request payload for creating a new user preference record.

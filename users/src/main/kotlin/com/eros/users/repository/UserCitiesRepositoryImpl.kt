@@ -115,32 +115,6 @@ class UserCitiesRepositoryImpl(private val clock: Clock = Clock.systemUTC()) : U
 
     fun syncUserCityPreferences(userId: String, newCityIds: List<CityDTO>) {
         // Convert City to id
-        val newCityIds = newCityIds.map {it.cityId}
 
-        // Get current city IDs
-        val currentCityIds = UserCitiesPreference
-            .select(UserCitiesPreference.cityId)
-            .where { UserCitiesPreference.userId eq userId }
-            .map { it[UserCitiesPreference.cityId] }
-            .toSet()
-
-        val newCityIdSet = newCityIds.toSet()
-
-        // Delete removed cities
-        val toDelete = currentCityIds - newCityIdSet
-        if (toDelete.isNotEmpty()) {
-            UserCitiesPreference.deleteWhere {
-                (UserCitiesPreference.userId eq userId) and (cityId inList toDelete)
-            }
-        }
-
-        // Insert new cities only
-        val toInsert = newCityIdSet - currentCityIds
-        if (toInsert.isNotEmpty()) {
-            UserCitiesPreference.batchInsert(toInsert) { cityId ->
-                this[UserCitiesPreference.userId] = userId
-                this[UserCitiesPreference.cityId] = cityId
-            }
-        }
     }
 }
