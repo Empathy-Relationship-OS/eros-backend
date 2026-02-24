@@ -1,7 +1,6 @@
 package com.eros.users.service
 
 import com.eros.common.errors.NotFoundException
-import com.eros.database.dbQuery
 import com.eros.users.models.City
 import com.eros.users.models.CreatePreferenceRequest
 import com.eros.users.models.UpdatePreferenceRequest
