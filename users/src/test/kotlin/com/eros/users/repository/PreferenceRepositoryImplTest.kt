@@ -10,16 +10,22 @@ import com.eros.users.models.Ethnicity
 import com.eros.users.models.Gender
 import com.eros.users.models.KidsPreference
 import com.eros.users.models.Language
+import com.eros.users.models.ProfileStatus
+import com.eros.users.models.ReachLevel
 import com.eros.users.models.RelationshipType
+import com.eros.users.models.Role
 import com.eros.users.models.SexualOrientation
 import com.eros.users.models.Trait
 import com.eros.users.models.User
 import com.eros.users.models.UserPreference
+import com.eros.users.models.ValidationStatus
+import com.eros.users.service.UserService
 import com.eros.users.table.Cities
 import com.eros.users.table.UserCitiesPreference
 import com.eros.users.table.UserPreferences
 import com.eros.users.table.Users
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.deleteAll
@@ -38,6 +44,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 @Testcontainers
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -55,6 +62,8 @@ class PreferenceRepositoryImplTest {
     private lateinit var preferenceRepository: PreferenceRepositoryImpl
     private lateinit var userCitiesRepository: UserCitiesRepositoryImpl
     private lateinit var cityRepository: CityRepositoryImpl
+    private lateinit var userRepository: UserRepositoryImpl
+    private lateinit var userService: UserService
     private lateinit var clock: Clock
     private val fixedInstant = Instant.parse("2024-01-15T10:00:00Z")
 
@@ -79,6 +88,8 @@ class PreferenceRepositoryImplTest {
         userCitiesRepository = UserCitiesRepositoryImpl(clock)
         preferenceRepository = PreferenceRepositoryImpl(clock, userCitiesRepository)
         cityRepository = CityRepositoryImpl(clock)
+        userRepository = UserRepositoryImpl(clock)
+        userService = UserService(userRepository, clock)
 
         // Clear the tables before each test.
         transaction {
@@ -139,15 +150,70 @@ class PreferenceRepositoryImplTest {
                 bodyAttributes = DisplayableField(null, false),
                 bodyDescription = DisplayableField(null, false),
                 createdAt = fixedInstant,
-                updatedAt = fixedInstant
+                updatedAt = fixedInstant,
+                profileStatus = ProfileStatus.ACTIVE,
+                eloScore = 1000,
+                badges = setOf(),
+                profileCompleteness = 75,
+                coordinatesLongitude = 45.3246,
+                coordinatesLatitude = -31.46,
+                role = Role.USER,
+                photoValidationStatus = ValidationStatus.VALIDATED
+            )
+        )
+        UserRepositoryImpl(clock).create(
+            User(
+                userId = "user456",
+                firstName = "Pete",
+                lastName = "Georgian",
+                email = "p.g@example.com",
+                heightCm = 192,
+                dateOfBirth = LocalDate.of(1991, 1, 1),
+                city = "Liverpool",
+                educationLevel = EducationLevel.UNIVERSITY,
+                gender = Gender.FEMALE,
+                occupation = "",
+                bio = "",
+                interests = listOf("Reading", "Hiking", "Movies", "Music", "Travel"),
+                traits = listOf(Trait.ADVENTUROUS, Trait.HONEST, Trait.KIND),
+                preferredLanguage = Language.ENGLISH,
+                spokenLanguages = DisplayableField(listOf(Language.ENGLISH), false),
+                religion = DisplayableField(null, false),
+                politicalView = DisplayableField(null, false),
+                alcoholConsumption = DisplayableField(null, false),
+                smokingStatus = DisplayableField(null, false),
+                diet = DisplayableField(null, false),
+                dateIntentions = DisplayableField(DateIntentions.SERIOUS_DATING, false),
+                relationshipType = DisplayableField(RelationshipType.MONOGAMOUS, false),
+                kidsPreference = DisplayableField(KidsPreference.OPEN_TO_KIDS, false),
+                sexualOrientation = DisplayableField(SexualOrientation.STRAIGHT, false),
+                pronouns = DisplayableField(null, false),
+                starSign = DisplayableField(null, false),
+                ethnicity = DisplayableField(listOf(Ethnicity.MIDDLE_EASTERN), false),
+                brainAttributes = DisplayableField(null, false),
+                brainDescription = DisplayableField(null, false),
+                bodyAttributes = DisplayableField(null, false),
+                bodyDescription = DisplayableField(null, false),
+                createdAt = fixedInstant,
+                updatedAt = fixedInstant,
+                profileStatus = ProfileStatus.ACTIVE,
+                eloScore = 1000,
+                badges = setOf(),
+                profileCompleteness = 75,
+                coordinatesLongitude = 45.3246,
+                coordinatesLatitude = -31.46,
+                role = Role.USER,
+                photoValidationStatus = ValidationStatus.VALIDATED
             )
         )
     }
 
 
-    @Test
-    fun createUserPreferences() {
-
+    /**
+     * Private helper to create test user preferences setup.
+     * Not a @Test method to avoid being called directly as a test.
+     */
+    private fun createUserPreferencesSetup(): Pair<UserPreference, UserPreference> {
         // Create test user
         createUser()
 
@@ -159,24 +225,52 @@ class PreferenceRepositoryImplTest {
             userId = "user123",
             genderIdentities = listOf(Gender.FEMALE, Gender.NON_BINARY),
             ageRangeMin = 25,
-            ageRangeMax = 35,
+            ageRangeMax = 55,
             heightRangeMin = 160,
-            heightRangeMax = 180,
+            heightRangeMax = 200,
             ethnicity = listOf(Ethnicity.MIDDLE_EASTERN, Ethnicity.PACIFIC_ISLANDER),
             dateLanguages = listOf(Language.ENGLISH, Language.SPANISH),
             dateActivities = listOf(Activity.ESCAPE_ROOMS, Activity.BEACH),
             dateLimit = 5,
             dateCities = listOf(city),
+            reachLevel = ReachLevel.OPEN_MINDED,
             createdAt = fixedInstant,
             updatedAt = fixedInstant
         )
 
-        val createdUser = runBlocking {
-            preferenceRepository.create(preference)
-        }
+        val preference2 = UserPreference(
+            id = 0L,
+            userId = "user456",
+            genderIdentities = listOf(Gender.MALE, Gender.NON_BINARY),
+            ageRangeMin = 18,
+            ageRangeMax = 80,
+            heightRangeMin = 160,
+            heightRangeMax = 200,
+            ethnicity = listOf(Ethnicity.MIDDLE_EASTERN, Ethnicity.PACIFIC_ISLANDER),
+            dateLanguages = listOf(Language.ENGLISH, Language.SPANISH),
+            dateActivities = listOf(Activity.ESCAPE_ROOMS, Activity.BEACH),
+            dateLimit = 5,
+            dateCities = listOf(city),
+            reachLevel = ReachLevel.OPEN_MINDED,
+            createdAt = fixedInstant,
+            updatedAt = fixedInstant
+        )
 
-        assertNotNull(createdUser)
-        assertEquals(preference.userId, createdUser.userId)
+        return Pair(preference, preference2)
+    }
+
+    @Test
+    fun createUserPreferences() {
+        val (preference, preference2) = createUserPreferencesSetup()
+
+        runTest {
+            val createdUser = preferenceRepository.create(preference)
+            val createdUser2 = preferenceRepository.create(preference2)
+
+            assertNotNull(createdUser)
+            assertEquals(preference.userId, createdUser.userId)
+            assertEquals(preference2.userId, createdUser2.userId)
+        }
     }
 
 }

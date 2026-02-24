@@ -10,7 +10,7 @@ import javax.sql.DataSource
  * Flyway tracks applied migrations in the `flyway_schema_history` table.
  *
  * Migration files follow the naming convention: `V{version}__{description}.sql`
- * Example: `V1__auth_tables.sql`, `V2__user_profiles.sql`
+ * Example: `V1__users_tables.sql`, `V2__user_profiles.sql`
  */
 object FlywayConfig {
 

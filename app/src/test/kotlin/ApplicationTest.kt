@@ -41,7 +41,14 @@ class ApplicationTest : IntegrationTestBase() {
 
                 // Firebase configuration - dummy values for testing
                 "firebase.serviceAccountPath" to "app/src/test/resources/test.json",
-                "firebase.projectId" to "test-project-id"
+                "firebase.projectId" to "test-project-id",
+
+                "aws.region" to "us-west-2",
+                "aws.accessKeyId" to "test-access-key-id",
+                "aws.secretAccessKey" to "test-secret-access-key",
+                "aws.s3BucketName" to "test-bucket-name",
+                "aws.cdnBaseUrl" to "https://test.bucket",
+                "aws.presignedUrlTtlMinutes" to "1",
             )
         }
         application {

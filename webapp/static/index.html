@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eros Backend Test App</title>
+    <link rel="stylesheet" href="css/styles.css">
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/12.9.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.9.0/firebase-auth-compat.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Eros Backend Test App</h1>
+
+        <!-- Authentication Section -->
+        <div class="section">
+            <h2>Authentication</h2>
+            <div id="auth-status" class="not-authenticated">Not authenticated</div>
+            <div class="button-group">
+                <button id="login-btn">Login with Email</button>
+                <button id="logout-btn" style="display: none;">Logout</button>
+            </div>
+        </div>
+
+        <!-- User Profile Section -->
+        <div class="section" id="profile-section" style="display: none;">
+            <h2>User Profile</h2>
+
+            <div id="profile-exists"></div>
+            <div id="profile-data"></div>
+
+            <div class="button-group">
+                <button id="check-exists-btn">Check if Profile Exists</button>
+                <button id="get-profile-btn">Get My Profile</button>
+                <button id="create-profile-btn">Create Profile</button>
+                <button id="update-profile-btn">Update Profile</button>
+            </div>
+        </div>
+
+        <!-- Photo Management Section -->
+        <div class="section" id="photo-section" style="display: none;">
+            <h2>Photo Management</h2>
+
+            <div id="photo-list"></div>
+
+            <div class="button-group">
+                <button id="list-photos-btn">List My Photos</button>
+                <button id="upload-photo-btn">Upload Photo</button>
+            </div>
+
+            <input type="file" id="photo-file-input" accept="image/*" style="display: none;">
+        </div>
+
+        <!-- API Response Section -->
+        <div class="section">
+            <h2>API Response</h2>
+            <pre id="api-response">API responses will appear here...</pre>
+        </div>
+    </div>
+
+    <!-- Firebase Configuration and App Logic -->
+    <script src="js/firebase-config.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

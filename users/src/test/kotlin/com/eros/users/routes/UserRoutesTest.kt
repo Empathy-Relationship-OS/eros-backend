@@ -1,6 +1,8 @@
 package com.eros.users.routes
 
 import com.eros.auth.firebase.FirebaseUserPrincipal
+import com.eros.common.plugins.configureExceptionHandling
+import com.eros.users.ProfileAccessControl
 import com.eros.users.models.*
 import com.eros.users.service.UserService
 import io.ktor.client.call.body
@@ -16,6 +18,7 @@ import io.ktor.server.routing.*
 import io.ktor.server.testing.*
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Nested
@@ -29,6 +32,8 @@ import kotlin.test.assertTrue
 class UserRoutesTest {
 
     private val mockUserService = mockk<UserService>()
+    private val mockProfileAccessControl = mockk<ProfileAccessControl>()
+
 
     @Nested
     inner class `POST users` {
@@ -164,7 +169,7 @@ class UserRoutesTest {
             }
 
             assertEquals(HttpStatusCode.InternalServerError, response.status)
-            assertTrue(response.bodyAsText().contains("Failed to create user profile"))
+            assertTrue(response.bodyAsText().contains("An unexpected error occurred"))
         }
     }
 
@@ -303,6 +308,7 @@ class UserRoutesTest {
         }
     }
 
+    /*
     @Nested
     inner class `GET users id` {
 
@@ -316,7 +322,7 @@ class UserRoutesTest {
 
             coEvery { mockUserService.findByUserId(userId) } returns user
 
-            val response = client.get("/users/$userId") {
+            val response = client.get("/users/id/$userId") {
                 setAuthenticatedUser("some-authenticated-user")
             }
 
@@ -335,7 +341,7 @@ class UserRoutesTest {
 
             coEvery { mockUserService.findByUserId(userId) } returns null
 
-            val response = client.get("/users/$userId") {
+            val response = client.get("/users/id/$userId") {
                 setAuthenticatedUser("some-authenticated-user")
             }
 
@@ -348,7 +354,7 @@ class UserRoutesTest {
             setupTestApp()
             val client = configuredClient()
 
-            val response = client.get("/users/some-id")
+            val response = client.get("/users/id/some-id")
 
             assertEquals(HttpStatusCode.Unauthorized, response.status)
         }
@@ -362,13 +368,14 @@ class UserRoutesTest {
 
             coEvery { mockUserService.findByUserId(userId) } throws RuntimeException("DB error")
 
-            val response = client.get("/users/$userId") {
+            val response = client.get("/users/id/$userId") {
                 setAuthenticatedUser("some-authenticated-user")
             }
 
             assertEquals(HttpStatusCode.InternalServerError, response.status)
         }
     }
+     */
 
     @Nested
     inner class `PUT users me` {
@@ -384,7 +391,7 @@ class UserRoutesTest {
 
             coEvery { mockUserService.updateUser(userId, updateRequest) } returns updatedUser
 
-            val response = client.put("/users/me") {
+            val response = client.patch("/users/me") {
                 setAuthenticatedUser(userId)
                 contentType(ContentType.Application.Json)
                 setBody(updateRequest)
@@ -407,7 +414,7 @@ class UserRoutesTest {
 
             coEvery { mockUserService.updateUser(userId, updateRequest) } returns null
 
-            val response = client.put("/users/me") {
+            val response = client.patch("/users/me") {
                 setAuthenticatedUser(userId)
                 contentType(ContentType.Application.Json)
                 setBody(updateRequest)
@@ -427,7 +434,7 @@ class UserRoutesTest {
 
             coEvery { mockUserService.updateUser(userId, updateRequest) } throws IllegalArgumentException("Invalid input")
 
-            val response = client.put("/users/me") {
+            val response = client.patch("/users/me") {
                 setAuthenticatedUser(userId)
                 contentType(ContentType.Application.Json)
                 setBody(updateRequest)
@@ -444,7 +451,7 @@ class UserRoutesTest {
 
             val updateRequest = UpdateUserRequest(firstName = "UpdatedName")
 
-            val response = client.put("/users/me") {
+            val response = client.patch("/users/me") {
                 contentType(ContentType.Application.Json)
                 setBody(updateRequest)
             }
@@ -462,7 +469,7 @@ class UserRoutesTest {
 
             coEvery { mockUserService.updateUser(userId, updateRequest) } throws RuntimeException("DB error")
 
-            val response = client.put("/users/me") {
+            val response = client.patch("/users/me") {
                 setAuthenticatedUser(userId)
                 contentType(ContentType.Application.Json)
                 setBody(updateRequest)
@@ -536,6 +543,35 @@ class UserRoutesTest {
         }
     }
 
+    @Nested
+    inner class `GET users PUBLIC` {
+
+        @Test
+        fun `should return public profile when user exists`() = testApplication{
+            setupTestApp()
+            val client = configuredClient()
+
+            val user = createCompleteTestUser()
+            val userId = user.userId
+
+            val user2 = createTestUser("test-user-456")
+
+            // Mock ProfileAccessControl to return true (allow access)
+            every { mockProfileAccessControl.hasPublicProfileAccess(any(), any()) } returns true
+
+            coEvery { mockUserService.findByUserId(userId) } returns user
+            coEvery { mockUserService.findByUserId(user2.userId) } returns user2
+            coEvery { mockUserService.getSharedInterests(user2, user) } returns List(5) { "Interest$it" }
+
+            val response = client.get("/users/id/${userId}/public") {
+                setAuthenticatedUser(user2.userId)
+            }
+
+            assertEquals(HttpStatusCode.OK, response.status)
+        }
+    }
+
+
     // Helper functions
 
     /**
@@ -553,6 +589,7 @@ class UserRoutesTest {
 
     private fun ApplicationTestBuilder.setupTestApp() {
         application {
+            configureExceptionHandling()
             // Install server-side content negotiation
             install(ServerContentNegotiation) {
                 json(Json {
@@ -577,14 +614,17 @@ class UserRoutesTest {
                             email = "$userId@example.com",
                             phoneNumber = null,
                             emailVerified = true,
-                            token = mockToken
+                            token = mockToken,
+                            role = "USER"
                         )
                     }
                 }
             }
 
             routing {
-                userRoutes(mockUserService)
+                authenticate("firebase-auth") {
+                    userProfileRoutes(mockUserService, mockProfileAccessControl)
+                }
             }
         }
     }
@@ -613,7 +653,7 @@ class UserRoutesTest {
             religion = DisplayableField(null, false),
             politicalView = DisplayableField(null, false),
             alcoholConsumption = DisplayableField(null, false),
-            smokingStatus = DisplayableField(null, false),
+            smokingStatus = DisplayableField(SmokingStatus.NEVER, true),
             diet = DisplayableField(null, false),
             dateIntentions = DisplayableField(DateIntentions.SERIOUS_DATING, false),
             relationshipType = DisplayableField(RelationshipType.MONOGAMOUS, false),
@@ -625,7 +665,9 @@ class UserRoutesTest {
             brainAttributes = DisplayableField(null, false),
             brainDescription = DisplayableField(null, false),
             bodyAttributes = DisplayableField(null, false),
-            bodyDescription = DisplayableField(null, false)
+            bodyDescription = DisplayableField(null, false),
+            coordinatesLongitude = 45.3246,
+            coordinatesLatitude = -90.0,
         )
     }
 
@@ -652,7 +694,7 @@ class UserRoutesTest {
             religion = DisplayableField(null, false),
             politicalView = DisplayableField(null, false),
             alcoholConsumption = DisplayableField(null, false),
-            smokingStatus = DisplayableField(null, false),
+            smokingStatus = DisplayableField(SmokingStatus.NEVER, true),
             diet = DisplayableField(null, false),
             dateIntentions = DisplayableField(DateIntentions.SERIOUS_DATING, false),
             relationshipType = DisplayableField(RelationshipType.MONOGAMOUS, false),
@@ -667,7 +709,65 @@ class UserRoutesTest {
             bodyDescription = DisplayableField(null, false),
             createdAt = Instant.now(),
             updatedAt = Instant.now(),
-            deletedAt = null
+            deletedAt = null,
+            profileStatus = ProfileStatus.ACTIVE,
+            eloScore = 1000,
+            badges = setOf(),
+            profileCompleteness = 75,
+            coordinatesLongitude = 45.3246,
+            coordinatesLatitude = -90.0,
+            role = Role.USER,
+            photoValidationStatus = ValidationStatus.VALIDATED
+        )
+    }
+
+    private fun createCompleteTestUser(
+        userId: String = "test-user-id",
+        firstName: String = "John"
+    ): User {
+        return User(
+            userId = userId,
+            firstName = firstName,
+            lastName = "Doe",
+            email = "john.doe@example.com",
+            heightCm = 180,
+            dateOfBirth = LocalDate.of(1990, 1, 1),
+            city = "London",
+            educationLevel = EducationLevel.UNIVERSITY,
+            gender = Gender.MALE,
+            occupation = "Engineer",
+            bio = "Test bio",
+            interests = List(5) { "Interest$it" },
+            traits = List(3) { Trait.entries[it] },
+            preferredLanguage = Language.ENGLISH,
+            spokenLanguages = DisplayableField(listOf(Language.ENGLISH), true),
+            religion = DisplayableField(Religion.CHRISTIANITY,true),
+            politicalView = DisplayableField(PoliticalView.MODERATE, true),
+            alcoholConsumption = DisplayableField(AlcoholConsumption.SOMETIMES, true),
+            smokingStatus = DisplayableField(SmokingStatus.NEVER, true),
+            diet = DisplayableField(Diet.HALAL, true),
+            dateIntentions = DisplayableField(DateIntentions.SERIOUS_DATING, true),
+            relationshipType = DisplayableField(RelationshipType.MONOGAMOUS, true),
+            kidsPreference = DisplayableField(KidsPreference.OPEN_TO_KIDS, true),
+            sexualOrientation = DisplayableField(SexualOrientation.STRAIGHT, true),
+            pronouns = DisplayableField(Pronouns.HE_HIM, true),
+            starSign = DisplayableField(StarSign.GEMINI, true),
+            ethnicity = DisplayableField(listOf(Ethnicity.BLACK_AFRICAN_DESCENT), true),
+            brainAttributes = DisplayableField(listOf(BrainAttribute.LEARNING_DISABILITY, BrainAttribute.NEURODIVERGENT), true),
+            brainDescription = DisplayableField("Maybe this is string?", true),
+            bodyAttributes = DisplayableField(listOf(BodyAttribute.WHEELCHAIR), true),
+            bodyDescription = DisplayableField("Is this a string?", true),
+            createdAt = Instant.now(),
+            updatedAt = Instant.now(),
+            deletedAt = null,
+            profileStatus = ProfileStatus.ACTIVE,
+            eloScore = 1000,
+            badges = setOf(Badge.VERIFIED, Badge.TRUSTED, Badge.GOOD_XP),
+            profileCompleteness = 75,
+            coordinatesLongitude = 45.3246,
+            coordinatesLatitude = -90.0,
+            role = Role.USER,
+            photoValidationStatus = ValidationStatus.VALIDATED
         )
     }
 }

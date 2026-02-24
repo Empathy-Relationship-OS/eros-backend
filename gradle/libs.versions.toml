@@ -14,6 +14,7 @@ java-jwt = "4.5.0"
 firebase-admin = "9.7.1"
 twilio = "9.14.1"
 mockk = "1.13.13"
+aws-sdk = "2.41.34"
 
 [libraries]
 ktor-server-content-negotiation = { module = "io.ktor:ktor-server-content-negotiation", version.ref = "ktor" }
@@ -54,6 +55,7 @@ java-jwt = { module = "com.auth0:java-jwt", version.ref = "java-jwt" }
 firebase-admin = { module = "com.google.firebase:firebase-admin", version.ref = "firebase-admin" }
 twilio = {module = "com.twilio.sdk:twilio", version.ref = "twilio"}
 mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
+aws-s3 = { module = "software.amazon.awssdk:s3", version.ref = "aws-sdk" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }

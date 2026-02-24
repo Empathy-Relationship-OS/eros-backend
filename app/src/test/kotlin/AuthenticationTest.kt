@@ -159,7 +159,16 @@ class AuthenticationTest : IntegrationTestBase() {
                 // Firebase configuration - use dummy values for testing
                 // Tests will verify 401 responses which don't require actual Firebase
                 "firebase.serviceAccountPath" to "./test-firebase-service-account.json",
-                "firebase.projectId" to "test-project-id"
+                "firebase.projectId" to "test-project-id",
+
+                // AWS S3 configuration - use dummy values for testing
+                // Tests don't actually upload files, but routing initialization requires these
+                "aws.region" to "eu-west-2",
+                "aws.accessKeyId" to "test-access-key",
+                "aws.secretAccessKey" to "test-secret-key",
+                "aws.s3BucketName" to "test-bucket",
+                "aws.cdnBaseUrl" to "",
+                "aws.presignedUrlTtlMinutes" to "15"
             )
         }
 

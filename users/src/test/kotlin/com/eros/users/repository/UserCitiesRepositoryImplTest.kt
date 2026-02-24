@@ -174,6 +174,14 @@ class UserCitiesRepositoryImplTest {
         bodyAttributes = DisplayableField(null, false),
         bodyDescription = DisplayableField(null, false),
         createdAt = fixedInstant,
-        updatedAt = fixedInstant
+        updatedAt = fixedInstant,
+        profileStatus = ProfileStatus.ACTIVE,
+        eloScore = 1000,
+        badges = setOf(),
+        profileCompleteness = 75,
+        coordinatesLongitude = 45.3246,
+        coordinatesLatitude = -180.0,
+        role = Role.USER,
+        photoValidationStatus = ValidationStatus.VALIDATED
     )
 }

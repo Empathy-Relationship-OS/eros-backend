@@ -1,5 +1,7 @@
 package com.eros.users.models
 
+import com.eros.common.serializers.InstantSerializer
+import kotlinx.serialization.Serializable
 import java.time.Instant
 
 /**
@@ -23,6 +25,7 @@ import java.time.Instant
  * @property createdAt Timestamp when the preference record was created
  * @property updatedAt Timestamp when the preference record was last modified
  */
+@Serializable
 data class UserPreference(
 
     val id: Long,
@@ -45,11 +48,41 @@ data class UserPreference(
     // For collecting user city preferences from UserCitiesPreferences table
     val dateCities: List<City>,
 
-    // Timestamps
-    val createdAt: Instant,
-    val updatedAt: Instant
+    val reachLevel: ReachLevel,
 
-)
+    // Timestamps
+    @Serializable(with = InstantSerializer::class)
+    val createdAt: Instant,
+    @Serializable(with = InstantSerializer::class)
+    val updatedAt: Instant
+){
+    /**
+     * Function to determine if another user matches the preferences of a user.
+     *
+     * @param otherProfile User object of the user that is being checked for compatibility.
+     * @param otherPreference UserPreference object of user that is being checked for compatibility to get their
+     *                        preferences on cities to ensure a valid location can be used.
+     *
+     * @return Boolean `true` if the other profile matches the preferences, otherwise `false`.
+     */
+    fun matchesUser(otherProfile: User, otherPreference: UserPreference): Boolean {
+        //todo: Alter to include reach level / other nonnull values.
+
+        // Check gender compatibility
+        if (otherProfile.gender !in genderIdentities) return false
+
+        // Check age range
+        if (otherProfile.getAge() !in ageRangeMin..ageRangeMax) return false
+
+        // Check height range
+        if (otherProfile.heightCm !in heightRangeMin..heightRangeMax) return false
+
+        // Check city overlap
+        if (dateCities.none { it in otherPreference.dateCities }) return false
+
+        return true
+    }
+}
 
 /**
  * Request payload for creating a new user preference record.
@@ -69,6 +102,7 @@ data class UserPreference(
  * @property dateLimit Optional limit on the number of dates per period (null means unlimited)
  * @property dateCities List of city IDs where the user is willing to date
  */
+@Serializable
 data class CreatePreferenceRequest(
 
     val userId: String,
@@ -86,6 +120,7 @@ data class CreatePreferenceRequest(
     val dateActivities: List<Activity>,
     val dateLimit: Int?,
     val dateCities: List<Long>,  // Array of CityId's
+    val reachLevel: ReachLevel
 )
 
 /**
@@ -107,6 +142,7 @@ data class CreatePreferenceRequest(
  * @property dateLimit Optional limit on the number of dates per period (null means unlimited)
  * @property dateCities List of city IDs where the user is willing to date
  */
+@Serializable
 data class UpdatePreferenceRequest(
     val id: Long,
 
@@ -125,4 +161,5 @@ data class UpdatePreferenceRequest(
     val dateActivities: List<Activity>,
     val dateLimit: Int?,
     val dateCities: List<Long>, // Array of CityId's
+    val reachLevel: ReachLevel
 )

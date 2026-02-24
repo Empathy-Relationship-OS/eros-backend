@@ -3,11 +3,12 @@ package com.eros.users.models
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import java.time.LocalDateTime
+import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import java.time.Instant
 
 class UserMediaTest {
 
@@ -17,16 +18,7 @@ class UserMediaTest {
         @Test
         fun `should throw exception when displayOrder is less than 1`() {
             val exception = assertThrows<IllegalArgumentException> {
-                UserMediaItem(
-                    id = 1L,
-                    userId = "user-123",
-                    mediaUrl = "https://example.com/photo.jpg",
-                    mediaType = MediaType.PHOTO,
-                    displayOrder = 0,
-                    isPrimary = false,
-                    createdAt = LocalDateTime.now(),
-                    updatedAt = LocalDateTime.now()
-                )
+                createMediaItem(displayOrder = 0)
             }
             assertEquals("Display order must be between 1 and 6", exception.message)
         }
@@ -34,16 +26,7 @@ class UserMediaTest {
         @Test
         fun `should throw exception when displayOrder is greater than 6`() {
             val exception = assertThrows<IllegalArgumentException> {
-                UserMediaItem(
-                    id = 1L,
-                    userId = "user-123",
-                    mediaUrl = "https://example.com/photo.jpg",
-                    mediaType = MediaType.PHOTO,
-                    displayOrder = 7,
-                    isPrimary = false,
-                    createdAt = LocalDateTime.now(),
-                    updatedAt = LocalDateTime.now()
-                )
+                createMediaItem(displayOrder = 7)
             }
             assertEquals("Display order must be between 1 and 6", exception.message)
         }
@@ -51,16 +34,7 @@ class UserMediaTest {
         @Test
         fun `should throw exception when mediaUrl is blank`() {
             val exception = assertThrows<IllegalArgumentException> {
-                UserMediaItem(
-                    id = 1L,
-                    userId = "user-123",
-                    mediaUrl = "  ",
-                    mediaType = MediaType.PHOTO,
-                    displayOrder = 1,
-                    isPrimary = false,
-                    createdAt = LocalDateTime.now(),
-                    updatedAt = LocalDateTime.now()
-                )
+                createMediaItem(mediaUrl = "  ")
             }
             assertEquals("Media URL is required", exception.message)
         }
@@ -68,98 +42,90 @@ class UserMediaTest {
         @Test
         fun `should create media item successfully with valid displayOrder range`() {
             for (order in 1..6) {
-                val mediaItem = UserMediaItem(
-                    id = 1L,
-                    userId = "user-123",
-                    mediaUrl = "https://example.com/photo.jpg",
-                    mediaType = MediaType.PHOTO,
-                    displayOrder = order,
-                    isPrimary = false,
-                    createdAt = LocalDateTime.now(),
-                    updatedAt = LocalDateTime.now()
-                )
+                val mediaItem = createMediaItem(displayOrder = order)
                 assertEquals(order, mediaItem.displayOrder)
             }
+        }
+
+        @Test
+        fun `should create media item with null thumbnailUrl`() {
+            val item = createMediaItem(thumbnailUrl = null)
+            assertNull(item.thumbnailUrl)
+        }
+
+        @Test
+        fun `should create media item with thumbnailUrl`() {
+            val item = createMediaItem(thumbnailUrl = "https://example.com/thumb.jpg")
+            assertEquals("https://example.com/thumb.jpg", item.thumbnailUrl)
         }
     }
 
     @Nested
-    inner class `AddUserMediaRequest validation` {
+    inner class `PresignedUploadRequest validation` {
 
         @Test
         fun `should throw exception when displayOrder is out of range`() {
             val exception = assertThrows<IllegalArgumentException> {
-                AddUserMediaRequest(
-                    userId = 1L,
-                    mediaUrl = "https://example.com/photo.jpg",
-                    mediaType = MediaType.PHOTO,
-                    displayOrder = 10
+                PresignedUploadRequest(
+                    fileName = "file.jpg",
+                    contentType = "image/jpeg",
+                    fileSizeBytes = 1_000_000L,
+                    displayOrder = 0
                 )
             }
             assertEquals("Display order must be between 1 and 6", exception.message)
         }
 
         @Test
-        fun `should throw exception when mediaUrl is blank`() {
-            val exception = assertThrows<IllegalArgumentException> {
-                AddUserMediaRequest(
-                    userId = 1L,
-                    mediaUrl = "",
-                    mediaType = MediaType.PHOTO,
-                    displayOrder = 1
-                )
-            }
-            assertEquals("Media URL is required", exception.message)
-        }
-
-        @Test
         fun `should create request successfully with valid data`() {
-            val request = AddUserMediaRequest(
-                userId = 1L,
-                mediaUrl = "https://example.com/photo.jpg",
-                mediaType = MediaType.VIDEO,
+            val request = PresignedUploadRequest(
+                fileName = "file.jpg",
+                contentType = "image/png",
+                fileSizeBytes = 2_000_000L,
                 displayOrder = 3,
                 isPrimary = true
             )
-
-            assertEquals(1L, request.userId)
-            assertEquals("https://example.com/photo.jpg", request.mediaUrl)
-            assertEquals(MediaType.VIDEO, request.mediaType)
+            assertEquals("image/png", request.contentType)
+            assertEquals(2_000_000L, request.fileSizeBytes)
             assertEquals(3, request.displayOrder)
             assertTrue(request.isPrimary)
         }
     }
 
     @Nested
-    inner class `UpdateUserMediaRequest validation` {
+    inner class `ConfirmUploadRequest validation` {
 
         @Test
         fun `should throw exception when displayOrder is out of range`() {
             val exception = assertThrows<IllegalArgumentException> {
-                UpdateUserMediaRequest(displayOrder = 0)
+                ConfirmUploadRequest(objectKey = "photos/uid/abc.jpg", displayOrder = 10)
             }
             assertEquals("Display order must be between 1 and 6", exception.message)
         }
 
         @Test
-        fun `should create update request successfully with null fields`() {
-            val request = UpdateUserMediaRequest()
-
-            assertNull(request.mediaUrl)
-            assertNull(request.displayOrder)
-            assertNull(request.isPrimary)
+        fun `should throw exception when objectKey is blank`() {
+            val exception = assertThrows<IllegalArgumentException> {
+                ConfirmUploadRequest(objectKey = "  ", displayOrder = 1)
+            }
+            assertEquals("Object key is required", exception.message)
         }
 
         @Test
-        fun `should create update request successfully with valid displayOrder`() {
-            val request = UpdateUserMediaRequest(displayOrder = 4)
-
-            assertEquals(4, request.displayOrder)
+        fun `should create request successfully with valid data`() {
+            val request = ConfirmUploadRequest(
+                objectKey = "photos/uid/abc.jpg",
+                displayOrder = 2,
+                isPrimary = false
+            )
+            assertEquals("photos/uid/abc.jpg", request.objectKey)
+            assertEquals(2, request.displayOrder)
+            assertFalse(request.isPrimary)
         }
     }
 
     @Nested
-    inner class UserMediaCollection {
+    inner class `UserMediaCollection behaviour` {
 
         @Test
         fun `hasMinimumMedia should return true when count is 3 or more`() {
@@ -168,7 +134,6 @@ class UserMediaTest {
                 media = createMediaList(3),
                 totalCount = 3
             )
-
             assertTrue(collection.hasMinimumMedia())
         }
 
@@ -179,18 +144,16 @@ class UserMediaTest {
                 media = createMediaList(2),
                 totalCount = 2
             )
-
             assertFalse(collection.hasMinimumMedia())
         }
 
         @Test
-        fun `hasReachedMaximum should return true when count is 6 or more`() {
+        fun `hasReachedMaximum should return true when count is 6`() {
             val collection = UserMediaCollection(
                 userId = "user-123",
                 media = createMediaList(6),
                 totalCount = 6
             )
-
             assertTrue(collection.hasReachedMaximum())
         }
 
@@ -201,42 +164,39 @@ class UserMediaTest {
                 media = createMediaList(5),
                 totalCount = 5
             )
-
             assertFalse(collection.hasReachedMaximum())
         }
 
         @Test
-        fun `getPrimaryMedia should return first primary media item`() {
-            val primaryMedia = createMediaItem(id = 2L, isPrimary = true)
+        fun `getPrimaryMedia should return primary media item`() {
+            val primary = createMediaItemDto(id = 2L, displayOrder = 2, isPrimary = true)
             val collection = UserMediaCollection(
                 userId = "user-123",
                 media = listOf(
-                    createMediaItem(id = 1L, isPrimary = false),
-                    primaryMedia,
-                    createMediaItem(id = 3L, isPrimary = false)
+                    createMediaItemDto(id = 1L, displayOrder = 1, isPrimary = false),
+                    primary,
+                    createMediaItemDto(id = 3L, displayOrder = 3, isPrimary = false)
                 ),
                 totalCount = 3
             )
-
-            assertEquals(primaryMedia, collection.getPrimaryMedia())
+            assertEquals(primary, collection.getPrimaryMedia())
         }
 
         @Test
-        fun `getPrimaryMedia should return null when no primary media exists`() {
+        fun `getPrimaryMedia should return null when no primary exists`() {
             val collection = UserMediaCollection(
                 userId = "user-123",
                 media = listOf(
-                    createMediaItem(id = 1L, isPrimary = false),
-                    createMediaItem(id = 2L, isPrimary = false)
+                    createMediaItemDto(id = 1L, displayOrder = 1, isPrimary = false),
+                    createMediaItemDto(id = 2L, displayOrder = 2, isPrimary = false)
                 ),
                 totalCount = 2
             )
-
             assertNull(collection.getPrimaryMedia())
         }
 
         @Test
-        fun `isValidCollection should return true when count is between 3 and 6`() {
+        fun `isValidCollection should return true for counts 3-6`() {
             for (count in 3..6) {
                 val collection = UserMediaCollection(
                     userId = "user-123",
@@ -254,46 +214,49 @@ class UserMediaTest {
                 media = createMediaList(2),
                 totalCount = 2
             )
-
             assertFalse(collection.isValidCollection())
-        }
-
-        @Test
-        fun `isValidCollection should return false when count is more than 6`() {
-            assertThrows<IllegalArgumentException> {
-                UserMediaCollection(
-                    userId = "user-123",
-                    media = createMediaList(7),
-                    totalCount = 7
-                )
-            }
         }
     }
 
-    // Helper functions
+    // -------------------------------------------------------------------------
+    // Helpers
+    // -------------------------------------------------------------------------
+
     private fun createMediaItem(
         id: Long = 1L,
-        userId: String = "user-123",
         mediaUrl: String = "https://example.com/photo.jpg",
+        thumbnailUrl: String? = null,
         mediaType: MediaType = MediaType.PHOTO,
         displayOrder: Int = 1,
         isPrimary: Boolean = false
-    ): UserMediaItem {
-        return UserMediaItem(
-            id = id,
-            userId = userId,
-            mediaUrl = mediaUrl,
-            mediaType = mediaType,
-            displayOrder = displayOrder,
-            isPrimary = isPrimary,
-            createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now()
-        )
-    }
+    ): UserMediaItem = UserMediaItem(
+        id           = id,
+        userId  = UUID.randomUUID().toString(),
+        mediaUrl     = mediaUrl,
+        thumbnailUrl = thumbnailUrl,
+        mediaType    = mediaType,
+        displayOrder = displayOrder,
+        isPrimary    = isPrimary,
+        createdAt = Instant.now(),
+        updatedAt = Instant.now()
+    )
 
-    private fun createMediaList(count: Int): List<UserMediaItem> {
-        return (1..count).map { index ->
-            createMediaItem(id = index.toLong(), displayOrder = index)
-        }
-    }
+    private fun createMediaItemDto(
+        id: Long = 1L,
+        mediaUrl: String = "https://example.com/photo.jpg",
+        thumbnailUrl: String? = null,
+        mediaType: MediaType = MediaType.PHOTO,
+        displayOrder: Int = 1,
+        isPrimary: Boolean = false
+    ): UserMediaItemDTO = UserMediaItemDTO(
+        id           = id,
+        mediaUrl     = mediaUrl,
+        thumbnailUrl = thumbnailUrl,
+        mediaType    = mediaType,
+        displayOrder = displayOrder,
+        isPrimary    = isPrimary
+    )
+
+    private fun createMediaList(count: Int): List<UserMediaItemDTO> =
+        (1..count).map { index -> createMediaItemDto(id = index.toLong(), displayOrder = index) }
 }

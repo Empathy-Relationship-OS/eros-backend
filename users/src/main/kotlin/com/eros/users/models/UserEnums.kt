@@ -67,7 +67,15 @@ enum class SmokingStatus {
     SOMETIMES,
     REGULARLY,
     QUITTING,
-    PREFER_NOT_TO_SAY
+    PREFER_NOT_TO_SAY;
+    fun getDisplayText(): String = when (this) {
+        NEVER -> "NEVER"
+        SOMETIMES -> "SOMETIMES"
+        REGULARLY -> "REGULARLY"
+        QUITTING -> "QUITTING"
+        PREFER_NOT_TO_SAY -> "PREFER_NOT_TO_SAY"
+    }
+
 }
 
 /**
@@ -680,4 +688,50 @@ enum class Ethnicity(val displayName: String) {
 enum class MediaType {
     PHOTO,
     VIDEO
+}
+
+/**
+ * Reach Level - for how flexible a user's preferences are used for matching.
+ */
+enum class ReachLevel() {
+    OPEN_MINDED,
+    BALANCED,
+    SELECTIVE
+}
+
+/**
+ * Verification Status
+ */
+enum class ValidationStatus {
+    UNVALIDATED,
+    PENDING,
+    VALIDATED
+}
+
+/**
+ * Badges for user profiles.
+ */
+enum class Badge {
+    TRUSTED,     // 10+ completed dates
+    GOOD_XP,     // Good date experience
+    VERIFIED     // ID verification
+}
+
+/**
+ * Roles for users.
+ */
+enum class Role{
+    USER,
+    EMPLOYEE,
+    ADMIN,
+    BUSINESS
+}
+
+/**
+ * ProfileStatus
+ */
+enum class ProfileStatus {
+    SLEEP_MODE,
+    ACTIVE,
+    FROZEN
 }

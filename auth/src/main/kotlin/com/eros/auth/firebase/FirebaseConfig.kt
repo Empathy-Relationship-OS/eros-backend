@@ -4,7 +4,6 @@ import com.google.auth.oauth2.GoogleCredentials
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
 import io.ktor.server.application.*
-import java.io.FileInputStream
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -49,7 +48,7 @@ object FirebaseConfig {
             )
         }
 
-        val options = FileInputStream(settings.serviceAccountPath).use { serviceAccount ->
+        val options = this::class.java.classLoader.getResourceAsStream(settings.serviceAccountPath).use { serviceAccount ->
             FirebaseOptions.builder()
                 .setCredentials(GoogleCredentials.fromStream(serviceAccount))
                 .setProjectId(settings.projectId)

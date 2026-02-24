@@ -1,9 +1,19 @@
 package com.eros.users.service
 
+import com.eros.users.ProfileCompleteness
+import com.eros.users.models.AdminUpdateUserRequest
+import com.eros.users.models.Badge
 import com.eros.users.models.CreateUserRequest
+import com.eros.users.models.ProfileStatus
+import com.eros.users.models.Role
 import com.eros.users.models.UpdateUserRequest
 import com.eros.users.models.User
+import com.eros.users.models.ValidationStatus
 import com.eros.users.repository.UserRepository
+import com.eros.users.table.badgeHelper
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.time.Clock
 import java.time.Instant
 
@@ -63,16 +73,27 @@ class UserService(
             bodyAttributes = request.bodyAttributes,
             bodyDescription = request.bodyDescription,
             createdAt = now,
-            updatedAt = now
+            updatedAt = now,
+            eloScore = 1000,
+            photoValidationStatus = ValidationStatus.UNVALIDATED,
+            profileStatus = ProfileStatus.ACTIVE,
+            badges = null,
+            role = Role.USER,
+            coordinatesLongitude = request.coordinatesLongitude,
+            coordinatesLatitude = request.coordinatesLatitude,
+            profileCompleteness = 50
         )
         return userRepository.create(user)
     }
 
     /**
-     * Updates an existing user profile.
+     * Updates an existing user profile (user-editable fields only).
      *
      * Fetches the current [User] from the repository, merges the non-null fields from
      * [UpdateUserRequest] onto it, then persists the merged entity.
+     *
+     * Server-managed fields (eloScore, role, profileStatus, badges, etc.) cannot be
+     * modified through this method. Use [adminUpdateUser] for admin-level updates.
      *
      * @param userId Firebase UID of the user to update
      * @param request UpdateUserRequest containing fields to update
@@ -109,9 +130,56 @@ class UserService(
             brainAttributes = request.brainAttributes ?: existing.brainAttributes,
             brainDescription = request.brainDescription ?: existing.brainDescription,
             bodyAttributes = request.bodyAttributes ?: existing.bodyAttributes,
-            bodyDescription = request.bodyDescription ?: existing.bodyDescription
+            bodyDescription = request.bodyDescription ?: existing.bodyDescription,
+            coordinatesLongitude = request.coordinatesLongitude ?: existing.coordinatesLongitude,
+            coordinatesLatitude = request.coordinatesLatitude ?: existing.coordinatesLatitude
         )
         return userRepository.update(userId, merged)
+    }
+
+    /**
+     * Updates server-managed fields for a user (admin-only operation).
+     *
+     * This method should only be called after verifying that the caller has ADMIN or
+     * EMPLOYEE role. It allows updating sensitive fields like role, badges, ELO score,
+     * and profile status.
+     *
+     * @param userId Firebase UID of the user to update
+     * @param request AdminUpdateUserRequest containing admin-level fields to update
+     * @return The updated User, or null if user not found
+     * @throws IllegalArgumentException if input validation fails
+     */
+    suspend fun adminUpdateUser(userId: String, request: AdminUpdateUserRequest): User? {
+        val existing = userRepository.findById(userId) ?: return null
+        val merged = existing.copy(
+            eloScore = request.eloScore ?: existing.eloScore,
+            photoValidationStatus = request.photoValidationStatus ?: existing.photoValidationStatus,
+            profileStatus = request.profileStatus ?: existing.profileStatus,
+            badges = when {
+                request.verifiedPhotoBadge != null || request.goodExperienceBadge != null || request.trustedBadge != null -> {
+                    badgeHelper(
+                        (request.verifiedPhotoBadge ?: false) to Badge.VERIFIED,
+                        (request.goodExperienceBadge ?: false) to Badge.GOOD_XP,
+                        (request.trustedBadge ?: false) to Badge.TRUSTED
+                    )
+                }
+                else -> existing.badges
+            },
+            role = request.role ?: existing.role,
+            profileCompleteness = request.profileCompleteness ?: existing.profileCompleteness
+        )
+
+        val updated = userRepository.update(userId, merged)
+
+        // If role was updated, sync with Firebase custom claims
+        if (request.role != null && request.role != existing.role) {
+            val claims = mapOf("role" to merged.role.name)
+            withContext(Dispatchers.IO) {
+                FirebaseAuth.getInstance().setCustomUserClaims(userId, claims)
+            }
+        }
+
+        return updated
     }
 
     /**
@@ -155,4 +223,13 @@ class UserService(
     suspend fun userExists(userId: String): Boolean {
         return userRepository.doesExist(userId)
     }
+
+    /**
+     * Function to return the shared interests of two users.
+     */
+    fun getSharedInterests(user1: User, user2: User): List<String> {
+        if (user1 == user2){return user1.interests}
+        return (user1.interests intersect user2.interests.toSet()).toList()
+    }
+
 }

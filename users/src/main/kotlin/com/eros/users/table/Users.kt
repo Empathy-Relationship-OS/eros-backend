@@ -9,7 +9,7 @@ import java.time.Instant
 
 /**
  * Main user profile table
- * 
+ *
  * Stores core user information including:
  * - Basic profile (name, email, physical attributes)
  * - Personality (interests, traits via TEXT[] arrays)
@@ -21,7 +21,7 @@ import java.time.Instant
 object Users : Table("users") {
     // Primary key - Firebase user ID
     val userId = varchar("user_id", 128)
-    
+
     // Required fields
     val firstName = varchar("first_name", 100)
     val lastName = varchar("last_name", 100)
@@ -31,21 +31,33 @@ object Users : Table("users") {
     val city = varchar("city", 100)
     val educationLevel = varchar("education_level", 50) // EducationLevel enum
     val gender = varchar("gender", 50) // Gender enum
-    
+
+    // Generated fields.
+    val profileStatus = varchar("profile_status", 32) // ProfileStatus enum
+    val eloScore = integer("elo_score").default(1000) // User elo
+    val trustedBadge = bool("trusted_badge").default(false)
+    val goodExperienceBadge = bool("good_experience_badge").default(false)
+    val verifiedPhotoBadge = bool("verified_photos").default(false)
+    val profileCompleteness = integer("profile_completeness") // Integer 50-100
+    val coordinatesLongitude = double("coordinates_longitude") // Long and Lat doubles.
+    val coordinatesLatitude = double("coordinates_latitude") // Long and Lat doubles.
+    val role = varchar("role", 32) // Role enum.
+    val photoValidationStatus = varchar("photo_validation_status", 32) // ValidationStatus Enum
+
     // Optional profile fields
     val occupation = varchar("occupation", 100).nullable()
     val bio = varchar("bio", 300).nullable()
-    
+
     // Hobbies & Interests (stored as TEXT[] - PostgreSQL array)
     // Combined: Activity, Interest, Entertainment, Creative, MusicGenre, FoodAndDrink, Sport
     // Min 5, Max 10
     val interests = array<String>("interests")
-    
+
     // Personality Traits (stored as TEXT[] - PostgreSQL array)
     // Includes both personality traits and lifestyle traits
     // Min 3, Max 10
     val traits = array<String>("traits")
-    
+
     // Languages
     val preferredLanguage = varchar("preferred_language", 50) // Language enum
     val spokenLanguages = array<String>("spoken_languages") // Language enum array
@@ -103,6 +115,16 @@ object Users : Table("users") {
 }
 
 /**
+ * Single source of truth for Badge enum to database column mapping.
+ * Add new badges here and both toStatement() and toDTO() will automatically use them.
+ */
+val BADGE_COLUMN_MAP = mapOf(
+    Badge.TRUSTED to Users.trustedBadge,
+    Badge.VERIFIED to Users.verifiedPhotoBadge,
+    Badge.GOOD_XP to Users.goodExperienceBadge
+)
+
+/**
  * Extension function to map ResultRow to User DTO
  */
 fun ResultRow.toDTO() = User(
@@ -115,6 +137,16 @@ fun ResultRow.toDTO() = User(
     city = this[Users.city],
     educationLevel = EducationLevel.valueOf(this[Users.educationLevel]),
     gender = Gender.valueOf(this[Users.gender]),
+    profileStatus = ProfileStatus.valueOf(this[Users.profileStatus]),
+    eloScore = this[Users.eloScore],
+    badges = badgeHelper(
+        *BADGE_COLUMN_MAP.map { (badge, column) -> this[column] to badge }.toTypedArray()
+    ),
+    profileCompleteness = this[Users.profileCompleteness],
+    coordinatesLongitude = this[Users.coordinatesLongitude],
+    coordinatesLatitude = this[Users.coordinatesLatitude],
+    role = Role.valueOf(this[Users.role]),
+    photoValidationStatus = ValidationStatus.valueOf(this[Users.photoValidationStatus]),
     occupation = this[Users.occupation] ?: "",
     bio = this[Users.bio] ?: "",
     interests = this[Users.interests].toList(),
@@ -157,7 +189,8 @@ fun ResultRow.toDTO() = User(
         display = this[Users.kidsPreferenceDisplay]
     ),
     sexualOrientation = DisplayableField(
-        field = this[Users.sexualOrientation]?.let { SexualOrientation.valueOf(it) } ?: SexualOrientation.PREFER_NOT_TO_SAY,
+        field = this[Users.sexualOrientation]?.let { SexualOrientation.valueOf(it) }
+            ?: SexualOrientation.PREFER_NOT_TO_SAY,
         display = this[Users.sexualOrientationDisplay]
     ),
     pronouns = DisplayableField(
@@ -192,3 +225,13 @@ fun ResultRow.toDTO() = User(
     updatedAt = this[Users.updatedAt],
     deletedAt = this[Users.deletedAt]
 )
+
+/**
+ * Helper function to populate a set with available badges.
+ *
+ * @return Set of badge(s) containing Badge enum, otherwise null
+ */
+fun badgeHelper(vararg pairs: Pair<Boolean, Badge>): Set<Badge>? =
+    pairs.mapNotNull { (condition, badge) ->
+        badge.takeIf { condition }
+    }.toSet().ifEmpty { null }

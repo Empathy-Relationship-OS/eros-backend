@@ -1,5 +1,5 @@
 -- Master table: Cities
-CREATE TABLE cities (
+CREATE TABLE IF NOT EXISTS cities (
     id BIGSERIAL PRIMARY KEY,
     name VARCHAR(128) NOT NULL UNIQUE,
 
