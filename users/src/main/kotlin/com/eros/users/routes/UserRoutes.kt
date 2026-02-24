@@ -197,7 +197,7 @@ fun Route.userProfileRoutes(userService: UserService) {
 
 
         /**
-         *
+         * Update the visibility of a user's profile.
          */
         patch("/me/visibility") {
             val principal = call.requireFirebasePrincipal()
