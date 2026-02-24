@@ -41,6 +41,8 @@ dependencies {
     testImplementation(libs.flyway.core)
     testImplementation(libs.flyway.database.postgresql)
     testImplementation(libs.mockk)
+
+    implementation(libs.logstash.logback.encoder)
 }
 
 tasks.test {

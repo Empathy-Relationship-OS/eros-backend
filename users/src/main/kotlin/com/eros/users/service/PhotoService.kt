@@ -3,6 +3,8 @@ package com.eros.users.service
 import com.eros.common.config.S3Config
 import com.eros.users.models.*
 import com.eros.users.repository.PhotoRepository
+import io.ktor.util.logging.Logger
+import org.slf4j.LoggerFactory
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider
 import software.amazon.awssdk.regions.Region
@@ -37,6 +39,9 @@ import java.util.*
  * - [deletePhoto] — delete a photo from S3 and the database.
  * - [setPrimaryPhoto] — mark one photo as the user's profile picture.
  */
+
+private val logger = LoggerFactory.getLogger(PhotoService::class.java)
+
 class PhotoService(
     private val photoRepository: PhotoRepository,
     private val s3Config: S3Config,
@@ -185,6 +190,7 @@ class PhotoService(
             if (photoRepository.deleteById(it.id) == 0) {
                 throw IllegalStateException("Photo with id ${it.id} wasn't deleted")
             } else {
+                logger.info("Successfully deleted media: $mediaUrl")
                 // TODO log success deletion
             }
         }

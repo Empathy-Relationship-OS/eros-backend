@@ -3,6 +3,9 @@ package com.eros.auth.validation
 import java.time.LocalDate
 import java.time.Period
 import java.time.format.DateTimeParseException
+import org.slf4j.LoggerFactory
+
+private val logger = LoggerFactory.getLogger(AgeValidator::class.javaObjectType)
 
 
 /**
@@ -30,7 +33,8 @@ object AgeValidator {
             if (age < 18) {
                 return ValidationResult.failure(Errors.UNDERAGE)
             }
-        } catch (_: DateTimeParseException) {
+        } catch (e: DateTimeParseException) {
+            logger.info("Date Parsing Error: $e")
             // TODO maybe we log e, for greater visibility, might not be needed
             return ValidationResult.failure(Errors.DATE_FORMATTING)
         }

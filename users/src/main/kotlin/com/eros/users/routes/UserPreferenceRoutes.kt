@@ -19,7 +19,11 @@ import io.ktor.server.routing.delete
 import io.ktor.server.routing.patch
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
+import org.slf4j.LoggerFactory
+import net.logstash.logback.argument.StructuredArguments.*
 
+
+private val logger = LoggerFactory.getLogger(Route::class.java)
 
 fun Route.userPreferenceRoutes(userPreferenceService: PreferenceService) {
     route("/preference") {
@@ -36,6 +40,7 @@ fun Route.userPreferenceRoutes(userPreferenceService: PreferenceService) {
                 throw ConflictException("User preferences already exist")
 
             val userPreferences = userPreferenceService.createPreferences(request)
+            logger.info("Successful preference creation: ${userPreferences.toDTO()}")
             call.respond(HttpStatusCode.Created, userPreferences.toDTO())
         }
 
@@ -48,6 +53,7 @@ fun Route.userPreferenceRoutes(userPreferenceService: PreferenceService) {
 
             val preferences = userPreferenceService.updatePreferences(request.id, request)
                 ?: throw NotFoundException("User preferences not found.")
+            logger.info("Successful preference update: ${preferences.toDTO()}")
             call.respond(HttpStatusCode.OK, preferences.toDTO())
         }
 
@@ -55,6 +61,7 @@ fun Route.userPreferenceRoutes(userPreferenceService: PreferenceService) {
             val principal = call.requireFirebasePrincipal()
             val preferences = userPreferenceService.findByUserId(principal.uid)
                 ?: throw NotFoundException("User preferences not found.")
+            logger.info("Successful preference retrieval: ${preferences.toDTO()}")
             call.respond(HttpStatusCode.OK, preferences.toDTO())
         }
 
@@ -67,6 +74,12 @@ fun Route.userPreferenceRoutes(userPreferenceService: PreferenceService) {
             val hasMatch = true //matchService.findMatch(principal.uid, targetUserId)
             val preferences = userPreferenceService.findByUserId(targetUserId)
                 ?: throw NotFoundException("User preferences not found.")
+            logger.info("Successful preference retrieval of another user: ${preferences.toDTO()}")
+            logger.info(
+                "Creating preferences for user",
+                keyValue("userId", preferences.userId),
+                keyValue("cityCount", preferences.dateCities.size)
+            )
             call.respond(HttpStatusCode.OK, preferences.toDTO())
         }
 
@@ -88,6 +101,7 @@ fun Route.userPreferenceRoutes(userPreferenceService: PreferenceService) {
             val deleted = userPreferenceService.delete(principal.uid)
 
             if (deleted > 0) {
+                logger.info("Successful preference deletion for user: ${principal.uid}")
                 call.respond(HttpStatusCode.NoContent, "User Preference successfully deleted")
             } else {
                 throw NotFoundException("User preferences not found.")

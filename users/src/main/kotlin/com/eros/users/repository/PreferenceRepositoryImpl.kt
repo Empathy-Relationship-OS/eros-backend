@@ -1,5 +1,6 @@
 package com.eros.users.repository
 
+import com.eros.common.errors.BadRequestException
 import com.eros.database.dbQuery
 import com.eros.database.repository.BaseDAOImpl
 import com.eros.users.models.*
@@ -18,8 +19,11 @@ import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
+import org.slf4j.LoggerFactory
 import java.time.Clock
 import java.time.Instant
+
+private val logger = LoggerFactory.getLogger(PreferenceRepositoryImpl::class.java)
 
 class PreferenceRepositoryImpl(
     private val clock: Clock = Clock.systemUTC()
@@ -42,8 +46,13 @@ class PreferenceRepositoryImpl(
         dateLanguages = this[UserPreferences.dateLanguages].map { Language.valueOf(it) },
         dateActivities = this[UserPreferences.dateActivities].map { Activity.valueOf(it) },
         dateLimit = this[UserPreferences.dateLimit],
-        reachLevel = runCatching { ReachLevel.valueOf(this[UserPreferences.reachLevel]) }
-            .getOrElse { ReachLevel.BALANCED }, // TODO log + rethrow as a domain exception,
+        reachLevel = runCatching {
+            ReachLevel.valueOf(this[UserPreferences.reachLevel])
+        }.getOrElse { error ->
+            val message = "Invalid reachLevel value '${this[UserPreferences.reachLevel]}' for userId '${this[UserPreferences.userId]}'"
+            logger.error(message, error)
+            throw BadRequestException(message)
+        }, // TODO log + rethrow as a domain exception,
         createdAt = this[UserPreferences.createdAt],
         updatedAt = this[UserPreferences.updatedAt]
     )
