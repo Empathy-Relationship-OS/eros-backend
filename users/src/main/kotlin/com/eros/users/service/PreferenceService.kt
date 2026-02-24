@@ -19,7 +19,6 @@ class PreferenceService(
     suspend fun createPreferences(request: CreatePreferenceRequest): UserPreference {
         val now = Instant.now(clock)
         val preference = UserPreference(
-            id = 0L, // DB auto-generates the id on insert
             userId = request.userId,
             genderIdentities = request.genderIdentities,
             ageRangeMin = request.ageRangeMin,
@@ -42,10 +41,9 @@ class PreferenceService(
         return preferenceRepository.create(preference)
     }
 
-    suspend fun updatePreferences(preferenceId: Long, request: UpdatePreferenceRequest): UserPreference? {
+    suspend fun updatePreferences(userId: String, request: UpdatePreferenceRequest): UserPreference? {
         val now = Instant.now(clock)
         val preference = UserPreference(
-            id = request.id,
             userId = request.userId,
             genderIdentities = request.genderIdentities,
             ageRangeMin = request.ageRangeMin,
@@ -65,7 +63,7 @@ class PreferenceService(
             createdAt = now,
             updatedAt = now
         )
-        return preferenceRepository.update(preferenceId, preference)
+        return preferenceRepository.update(userId, preference)
     }
 
     /**
@@ -127,7 +125,7 @@ class PreferenceService(
      *
      * @return `1` if deleted otherwise `0`
      */
-    suspend fun delete(userId: String): Int = dbQuery {
-        preferenceRepository.delete(userId)
+    suspend fun delete(userId: String): Int{
+        return preferenceRepository.delete(userId)
     }
 }

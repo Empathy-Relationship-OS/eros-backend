@@ -27,14 +27,13 @@ private val logger = LoggerFactory.getLogger(PreferenceRepositoryImpl::class.jav
 
 class PreferenceRepositoryImpl(
     private val clock: Clock = Clock.systemUTC()
-) : BaseDAOImpl<Long, UserPreference>(UserPreferences, UserPreferences.id), PreferenceRepository {
+) : BaseDAOImpl<String, UserPreference>(UserPreferences, UserPreferences.userId), PreferenceRepository {
 
     // -------------------------------------------------------------------------
     // Mapping
     // -------------------------------------------------------------------------
 
     override fun ResultRow.toDomain(): UserPreference = UserPreference(
-        id = this[UserPreferences.id],
         userId = this[UserPreferences.userId],
         genderIdentities = this[UserPreferences.genderIdentities].map { Gender.valueOf(it) },
         ageRangeMin = this[UserPreferences.ageRangeMin],
@@ -49,7 +48,8 @@ class PreferenceRepositoryImpl(
         reachLevel = runCatching {
             ReachLevel.valueOf(this[UserPreferences.reachLevel])
         }.getOrElse { error ->
-            val message = "Invalid reachLevel value '${this[UserPreferences.reachLevel]}' for userId '${this[UserPreferences.userId]}'"
+            val message =
+                "Invalid reachLevel value '${this[UserPreferences.reachLevel]}' for userId '${this[UserPreferences.userId]}'"
             logger.error(message, error)
             throw BadRequestException(message)
         }, // TODO log + rethrow as a domain exception,
@@ -95,12 +95,12 @@ class PreferenceRepositoryImpl(
         getUserPreferenceWithCitiesWithinTransaction(entity.userId)
     }
 
-    override suspend fun update(id: Long, entity: UserPreference): UserPreference?  = dbQuery {
+    override suspend fun update(id: String, entity: UserPreference): UserPreference? = dbQuery {
 
         //val rowsUpdated = super.update(id, entity)
-        val rowsUpdated = UserPreferences.update({ UserPreferences.id eq id }) { toStatement(it, entity) }
+        val rowsUpdated = UserPreferences.update({ UserPreferences.userId eq id }) { toStatement(it, entity) }
         if (rowsUpdated == 0) throw NotFoundException("User preferences not found.")
-        val newCityIds = entity.dateCities.map {it.cityId}
+        val newCityIds = entity.dateCities.map { it.cityId }
 
         // Get current city IDs
         val currentCityIds = UserCitiesPreference
@@ -155,7 +155,7 @@ class PreferenceRepositoryImpl(
         preferences.toDomain().copy(dateCities = cities)
     }
 
-    fun getUserPreferenceWithCitiesWithinTransaction(userId: String): UserPreference{
+    fun getUserPreferenceWithCitiesWithinTransaction(userId: String): UserPreference {
         val preferences = UserPreferences.selectAll().where { UserPreferences.userId eq userId }.single()
 
         val cities = (Cities innerJoin UserCitiesPreference)
@@ -182,14 +182,14 @@ class PreferenceRepositoryImpl(
     /**
      * Function to delete all the UserCitiesPreference records and the users preferences.
      *
-     * @param userId String of the user's id that is having their preferences deleted.
+     * @param id String of the user's id that is having their preferences deleted.
      *
      * @return `1` if UserPreference was remove, otherwise `0`.
      */
-    override fun delete(userId: String): Int {
+    override suspend fun delete(id: String): Int {
         // Delete the UserCitiesPreference records.
-        UserCitiesPreference.deleteWhere { UserPreferences.userId eq userId }
+        UserCitiesPreference.deleteWhere { UserPreferences.userId eq id }
         // Delete the UserPreference record.
-        return UserPreferences.deleteWhere { UserPreferences.userId eq userId}
+        return UserPreferences.deleteWhere { UserPreferences.userId eq id }
     }
 }

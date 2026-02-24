@@ -159,7 +159,6 @@ class UserPreferenceRoutesTest {
         ageRangeMax: Int = 35
     ): UserPreference {
         return UserPreference(
-            id = 1L,
             userId = userId,
             genderIdentities = listOf(Gender.FEMALE),
             ageRangeMin = ageRangeMin,

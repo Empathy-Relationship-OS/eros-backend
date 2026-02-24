@@ -213,7 +213,6 @@ class PreferenceRepositoryImplTest {
         val city = createCity("TestCity")
 
         val preference = UserPreference(
-            id = 0L,
             userId = "user123",
             genderIdentities = listOf(Gender.FEMALE, Gender.NON_BINARY),
             ageRangeMin = 25,
@@ -231,7 +230,6 @@ class PreferenceRepositoryImplTest {
         )
 
         val preference2 = UserPreference(
-            id = 0L,
             userId = "user456",
             genderIdentities = listOf(Gender.MALE, Gender.NON_BINARY),
             ageRangeMin = 18,

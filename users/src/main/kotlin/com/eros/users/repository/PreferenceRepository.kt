@@ -3,7 +3,7 @@ package com.eros.users.repository
 import com.eros.database.repository.IBaseDAO
 import com.eros.users.models.UserPreference
 
-interface PreferenceRepository : IBaseDAO<Long, UserPreference> {
+interface PreferenceRepository : IBaseDAO<String, UserPreference> {
 
     /**
      * Retrieves a user's preferences joined with their city preferences.
@@ -15,5 +15,5 @@ interface PreferenceRepository : IBaseDAO<Long, UserPreference> {
 
     suspend fun userPreferencesDoesExist(userId : String) : Boolean
 
-    fun delete(userId : String) : Int
+    //fun delete(userId : String) : Int
 }

@@ -9,7 +9,6 @@ import java.time.Instant
  * This data class stores all preference criteria that a user has set for potential matches,
  * including demographic filters, physical attributes, and activity preferences.
  *
- * @property id Unique identifier for the preference record
  * @property userId The ID of the user who owns these preferences
  * @property genderIdentities List of gender identities the user is interested in matching with
  * @property ageRangeMin Minimum age (in years) for potential matches
@@ -25,8 +24,6 @@ import java.time.Instant
  * @property updatedAt Timestamp when the preference record was last modified
  */
 data class UserPreference(
-
-    val id: Long,
 
     val userId: String,
 
@@ -142,7 +139,6 @@ data class UserPreferenceDTO(
  */
 @Serializable
 data class CreatePreferenceRequest(
-
     val userId: String,
 
     val genderIdentities: List<Gender>,
@@ -167,7 +163,6 @@ data class CreatePreferenceRequest(
  * This class is used when a user modifies their existing dating preferences.
  * All preference fields can be updated except system-managed timestamps.
  *
- * @property id The unique identifier of the preference record to update
  * @property userId The ID of the user who owns these preferences
  * @property genderIdentities List of gender identities the user is interested in matching with
  * @property ageRangeMin Minimum age (in years) for potential matches
@@ -182,7 +177,6 @@ data class CreatePreferenceRequest(
  */
 @Serializable
 data class UpdatePreferenceRequest(
-    val id: Long,
 
     val userId: String,
 
@@ -201,6 +195,7 @@ data class UpdatePreferenceRequest(
     val dateCities: List<Long>,
     val reachLevel: ReachLevel
 )
+
 
 // Add to UserPreference.kt after the data classes
 fun UserPreference.toDTO() = UserPreferenceDTO(

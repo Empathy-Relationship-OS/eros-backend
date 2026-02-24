@@ -51,7 +51,7 @@ fun Route.userPreferenceRoutes(userPreferenceService: PreferenceService) {
             if (request.userId != principal.uid)
                 throw ForbiddenException("Cannot create preferences for another user")
 
-            val preferences = userPreferenceService.updatePreferences(request.id, request)
+            val preferences = userPreferenceService.updatePreferences(request.userId, request)
                 ?: throw NotFoundException("User preferences not found.")
             logger.info("Successful preference update: ${preferences.toDTO()}")
             call.respond(HttpStatusCode.OK, preferences.toDTO())
