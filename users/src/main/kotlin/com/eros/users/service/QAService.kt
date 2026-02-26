@@ -1,10 +1,11 @@
 package com.eros.users.service
 
 import com.eros.common.errors.NotFoundException
+import com.eros.database.dbQuery
 import com.eros.users.models.AddUserQARequest
 import com.eros.users.models.CreateQuestionRequest
 import com.eros.users.models.Question
-import com.eros.users.models.UpdateQuestionRequest
+import com.eros.users.models.QuestionDTO
 import com.eros.users.models.UpdateUserQARequest
 import com.eros.users.models.UserQAId
 import com.eros.users.models.UserQAItem
@@ -43,7 +44,7 @@ class QAService(
     /**
      * Admin function to update a question.
      */
-    suspend fun updateQuestion(request: UpdateQuestionRequest): Question? {
+    suspend fun updateQuestion(request: QuestionDTO): Question? {
 
         val existing = questionRepository.findById(request.questionId)
             ?: throw NotFoundException("Can't find question with id: ${request.questionId}")
@@ -68,7 +69,7 @@ class QAService(
     /**
      * Function for deleting a question from the database.
      *
-     * @param questionId Id of the question record it be removed.
+     * @param questionId id of the question record it be removed.
      *
      * @return The number of rows affected.
      */
@@ -80,40 +81,40 @@ class QAService(
     // UserQA Services.
     // -------------------------------------------------------------------------
 
-    suspend fun createUserQA(request: AddUserQARequest): UserQAItem {
+    suspend fun createUserQA(request: AddUserQARequest): UserQAItem = dbQuery {
         val now = Instant.now(clock)
         val userQA = UserQAItem(
             userId = request.userId,
-            questionId = request.questionId,
+            question = Question(request.question.questionId, request.question.question, now, now),
             answer = request.answer,
             displayOrder = request.displayOrder,
             createdAt = now,
             updatedAt = now
         )
-        return userQARepository.create(userQA)
+        userQARepository.create(userQA)
     }
 
-    suspend fun updateUserQA(request: UpdateUserQARequest): UserQAItem {
+    suspend fun updateUserQA(request: UpdateUserQARequest): UserQAItem = dbQuery {
         val now = Instant.now(clock)
-        val updateId = UserQAId(request.userId, request.questionId)
+        val updateId = UserQAId(request.userId, request.question.questionId)
         val existing = userQARepository.findById(updateId) ?: throw NotFoundException("User Q&A could not be found.")
         val updates = UserQAItem(
             userId = request.userId,
-            questionId = request.questionId,
+            question = Question(request.question.questionId,request.question.question,existing.createdAt,existing.updatedAt),
             answer = request.answer ?: existing.answer,
             displayOrder = request.displayOrder ?: existing.displayOrder,
             createdAt = existing.createdAt,
             updatedAt = now
         )
-        return userQARepository.update(updateId, updates) ?: throw NotFoundException("User Q&A could not be updated.")
+        userQARepository.update(updateId, updates) ?: throw NotFoundException("User Q&A could not be updated.")
     }
 
-    suspend fun getAllQAs(userid : String) : List<UserQAItem>{
-        return userQARepository.findAllByUserId(userid)
+    suspend fun getAllQAs(userid : String) : List<UserQAItem> = dbQuery {
+        userQARepository.findAllByUserId(userid)
     }
 
-    suspend fun deleteUserQA(userId : String, questionId : Long) : Int{
-        return userQARepository.delete(UserQAId(userId, questionId))
+    suspend fun deleteUserQA(userId : String, questionId : Long) : Int = dbQuery {
+        userQARepository.delete(UserQAId(userId, questionId))
     }
 
 }

@@ -1,14 +1,18 @@
 package com.eros.users.repository
 
+import com.eros.common.errors.NotFoundException
 import com.eros.database.dbQuery
 import com.eros.database.repository.CompositeKeyDAOImpl
+import com.eros.users.models.Question
 import com.eros.users.models.UserQAId
 import com.eros.users.models.UserQAItem
+import com.eros.users.table.Questions
 import com.eros.users.table.UserQA
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.statements.UpdateBuilder
+import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import java.time.Clock
 
@@ -23,7 +27,12 @@ class UserQARepositoryImpl(
     override fun UserQAId.getKey2(): Long = questionId
 
     override fun ResultRow.toDomain() = UserQAItem(
-        questionId = this[UserQA.questionId],
+        question = Question(
+            questionId = this[Questions.questionId],
+            question = this[Questions.question],
+            createdAt = this[Questions.createdAt],
+            updatedAt = this[Questions.updatedAt]
+        ),
         userId = this[UserQA.userId],
         createdAt = this[UserQA.createdAt],
         updatedAt = this[UserQA.updatedAt],
@@ -36,7 +45,7 @@ class UserQARepositoryImpl(
         entity: UserQAItem
     ) {
         statement.apply {
-            this[UserQA.questionId] = entity.questionId
+            this[UserQA.questionId] = entity.question.questionId
             this[UserQA.userId] = entity.userId
             this[UserQA.answer] = entity.answer
             this[UserQA.createdAt] = entity.createdAt
@@ -47,9 +56,36 @@ class UserQARepositoryImpl(
         }
     }
 
-    override suspend fun findAllByUserId(userId : String): List<UserQAItem>{
-        return table.selectAll()
-            .where {idColumn1 eq userId }
-            .map {it.toDomain()}
+
+    override fun findAllByUserId(userId: String): List<UserQAItem> {
+        return (UserQA innerJoin Questions)
+            .selectAll()
+            .where { UserQA.userId eq userId }
+            .orderBy(UserQA.displayOrder)
+            .map { it.toDomain() }
+    }
+
+
+    override fun findById(id: UserQAId): UserQAItem? {
+        return (UserQA innerJoin Questions)
+            .selectAll()
+            .where {
+                (UserQA.userId eq id.userId) and (UserQA.questionId eq id.questionId)
+            }
+            .firstOrNull()
+            ?.toDomain()
+    }
+
+
+    override fun findAll(): List<UserQAItem> {
+        return (UserQA innerJoin Questions)
+            .selectAll()
+            .map { it.toDomain() }
+    }
+
+
+    override fun create(entity: UserQAItem): UserQAItem {
+        UserQA.insert { toStatement(it, entity) }
+        return findById(UserQAId(entity.userId, entity.question.questionId)) ?: throw NotFoundException("Can't find the Q&A")
     }
 }

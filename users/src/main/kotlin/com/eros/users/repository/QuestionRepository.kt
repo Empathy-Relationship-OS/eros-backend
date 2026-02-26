@@ -8,4 +8,6 @@ import com.eros.users.models.Question
  */
 interface QuestionRepository : IBaseDAO<Long, Question> {
 
+    fun getQuestionById(questionId : Long) : Question?
+
 }

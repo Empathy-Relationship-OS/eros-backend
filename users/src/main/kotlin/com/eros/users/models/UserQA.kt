@@ -1,9 +1,7 @@
 package com.eros.users.models
 
-import com.eros.common.serializers.LocalDateTimeSerializer
 import kotlinx.serialization.Serializable
 import java.time.Instant
-import java.time.LocalDateTime
 
 /**
  * User Q&A domain model for question/answer pairs
@@ -11,7 +9,7 @@ import java.time.LocalDateTime
 
 data class UserQAItem(
     val userId: String,
-    val questionId: Long,
+    val question: Question,
     val answer: String,
     val displayOrder: Int, // 1-3
     val createdAt: Instant,
@@ -26,7 +24,7 @@ data class UserQAItem(
 
 fun UserQAItem.toDTO() = UserQAItemResponse(
     userId = this.userId,
-    questionId = this.questionId,
+    question = this.question.toDTO(),
     answer = this.answer,
     displayOrder = this.displayOrder
 )
@@ -37,7 +35,7 @@ fun UserQAItem.toDTO() = UserQAItemResponse(
 @Serializable
 data class UserQAItemResponse(
     val userId: String,
-    val questionId: Long,
+    val question: QuestionDTO,
     val answer: String,
     val displayOrder: Int, // 1-3
 )
@@ -50,7 +48,7 @@ data class UserQAItemResponse(
 @Serializable
 data class AddUserQARequest(
     val userId: String,
-    val questionId: Long,
+    val question: QuestionDTO,
     val answer: String,
     val displayOrder: Int
 ) {
@@ -67,7 +65,7 @@ data class AddUserQARequest(
 @Serializable
 data class UpdateUserQARequest(
     val userId: String,
-    val questionId: Long,
+    val question: QuestionDTO,
     val answer: String? = null,
     val displayOrder: Int? = null
 ) {

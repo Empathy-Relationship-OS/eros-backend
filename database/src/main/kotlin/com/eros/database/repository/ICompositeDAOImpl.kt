@@ -52,44 +52,44 @@ abstract class CompositeKeyDAOImpl<ID1 : Comparable<ID1>, ID2 : Comparable<ID2>,
     // ICompositeKeyDAO implementations
     // -------------------------------------------------------------------------
 
-    override suspend fun create(entity: T): T = dbQuery {
+    override fun create(entity: T): T {
         table.insert { toStatement(it, entity) }
-        table.selectAll().last().toDomain()
+        return table.selectAll().last().toDomain()
     }
 
-    override suspend fun findById(id: ID): T? = dbQuery {
-        table.selectAll()
+    override fun findById(id: ID): T? {
+        return table.selectAll()
             .where { (idColumn1 eq id.getKey1()) and (idColumn2 eq id.getKey2()) }
             .firstOrNull()
             ?.toDomain()
     }
 
-    override suspend fun findAll(): List<T> = dbQuery {
-        table.selectAll().map { it.toDomain() }
+    override fun findAll(): List<T>{
+        return table.selectAll().map { it.toDomain() }
     }
 
-    override suspend fun update(id: ID, entity: T): T? = dbQuery {
+    override fun update(id: ID, entity: T): T? {
         val rowsUpdated = table.update({
             (idColumn1 eq id.getKey1()) and (idColumn2 eq id.getKey2())
         }) {
             toStatement(it, entity)
         }
 
-        if (rowsUpdated == 0) null
+        return  if (rowsUpdated == 0) null
         else table.selectAll()
             .where { (idColumn1 eq id.getKey1()) and (idColumn2 eq id.getKey2()) }
             .firstOrNull()
             ?.toDomain()
     }
 
-    override suspend fun delete(id: ID): Int = dbQuery {
-        table.deleteWhere {
+    override fun delete(id: ID): Int{
+        return table.deleteWhere {
             (idColumn1 eq id.getKey1()) and (idColumn2 eq id.getKey2())
         }
     }
 
-    override suspend fun doesExist(id: ID): Boolean = dbQuery {
-        table.selectAll()
+    override fun doesExist(id: ID): Boolean{
+        return  table.selectAll()
             .where { (idColumn1 eq id.getKey1()) and (idColumn2 eq id.getKey2()) }
             .count() > 0
     }

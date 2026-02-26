@@ -23,7 +23,7 @@ class UserQATest {
             val exception = assertThrows<IllegalArgumentException> {
                 UserQAItem(
                     userId = "user-123",
-                    questionId = 1L,
+                    question = Question(1L,"blah",Instant.now(),Instant.now()),
                     answer = "Pizza",
                     displayOrder = 0,
                     createdAt = Instant.now(),
@@ -38,7 +38,7 @@ class UserQATest {
             val exception = assertThrows<IllegalArgumentException> {
                 UserQAItem(
                     userId = "user-123",
-                    questionId = 1L,
+                    question = Question(1L,"blah",Instant.now(),Instant.now()),
                     answer = "Pizza",
                     displayOrder = 4,
                     createdAt = Instant.now(),
@@ -53,7 +53,7 @@ class UserQATest {
             val exception = assertThrows<IllegalArgumentException> {
                 UserQAItem(
                     userId = "user-123",
-                    questionId = 1L,
+                    question = Question(1L,"blah",Instant.now(),Instant.now()),
                     answer = "   ",
                     displayOrder = 1,
                     createdAt = Instant.now(),
@@ -68,7 +68,7 @@ class UserQATest {
             val exception = assertThrows<IllegalArgumentException> {
                 UserQAItem(
                     userId = "user-123",
-                    questionId = 1L,
+                    question = Question(1L,"blah",Instant.now(),Instant.now()),
                     answer = "a".repeat(201),
                     displayOrder = 1,
                     createdAt = Instant.now(),
@@ -83,7 +83,7 @@ class UserQATest {
             for (order in 1..3) {
                 val qaItem = UserQAItem(
                     userId = "user-123",
-                    questionId = 1L,
+                    question = Question(1L,"blah",Instant.now(),Instant.now()),
                     answer = "Pizza and ice cream",
                     displayOrder = order,
                     createdAt = Instant.now(),
@@ -97,7 +97,7 @@ class UserQATest {
         @Test
         fun `getQuestionText should return display text from question enum`() {
             val qaItem = createQAItem(questionId = 2)
-            assertEquals("What's your dream vacation destination?", testQuestions.get(qaItem.questionId))
+            assertEquals("What's your dream vacation destination?", testQuestions.get(qaItem.question.questionId))
         }
 
     }
@@ -110,7 +110,7 @@ class UserQATest {
             val exception = assertThrows<IllegalArgumentException> {
                 AddUserQARequest(
                     userId = "test-user",
-                    questionId = 1L,
+                    question = QuestionDTO(1L,"blah"),
                     answer = "Pizza",
                     displayOrder = 5
                 )
@@ -123,7 +123,7 @@ class UserQATest {
             val exception = assertThrows<IllegalArgumentException> {
                 AddUserQARequest(
                     userId = "test-user",
-                    questionId = 1L,
+                    question = QuestionDTO(1L,"blah"),
                     answer = "",
                     displayOrder = 1
                 )
@@ -136,7 +136,7 @@ class UserQATest {
             val exception = assertThrows<IllegalArgumentException> {
                 AddUserQARequest(
                     userId = "test-user",
-                    questionId = 1L,
+                    question = QuestionDTO(1L,"blah"),
                     answer = "a".repeat(201),
                     displayOrder = 1
                 )
@@ -148,7 +148,7 @@ class UserQATest {
         fun `should create request successfully with exactly 200 characters`() {
             val request = AddUserQARequest(
                 userId = "user-123",
-                questionId = 1L,
+                question = QuestionDTO(1L,"blah"),
                 answer = "a".repeat(200),
                 displayOrder = 1
             )
@@ -160,13 +160,13 @@ class UserQATest {
         fun `should create request successfully with valid data`() {
             val request = AddUserQARequest(
                 userId = "user-123",
-                questionId = 1L,
+                question = QuestionDTO(1L,"blah"),
                 answer = "The Lord of the Rings",
                 displayOrder = 2
             )
 
             assertEquals("user-123", request.userId)
-            assertEquals(1L, request.questionId)
+            assertEquals(1L, request.question.questionId)
             assertEquals("The Lord of the Rings", request.answer)
             assertEquals(2, request.displayOrder)
         }
@@ -178,7 +178,7 @@ class UserQATest {
         @Test
         fun `should throw exception when displayOrder is out of range`() {
             val exception = assertThrows<IllegalArgumentException> {
-                UpdateUserQARequest("user-123",1L,displayOrder = 0)
+                UpdateUserQARequest("user-123",question = QuestionDTO(1L,"blah"),displayOrder = 0)
             }
             assertEquals("Display order must be between 1 and 3", exception.message)
         }
@@ -186,7 +186,7 @@ class UserQATest {
         @Test
         fun `should throw exception when answer is blank`() {
             val exception = assertThrows<IllegalArgumentException> {
-                UpdateUserQARequest("user-123",1L,answer = "  ")
+                UpdateUserQARequest("user-123",question = QuestionDTO(1L,"blah"),answer = "  ")
             }
             assertEquals("Answer is required", exception.message)
         }
@@ -194,14 +194,14 @@ class UserQATest {
         @Test
         fun `should throw exception when answer exceeds 200 characters`() {
             val exception = assertThrows<IllegalArgumentException> {
-                UpdateUserQARequest("user-123",1L,answer = "a".repeat(201))
+                UpdateUserQARequest("user-123",question = QuestionDTO(1L,"blah"),answer = "a".repeat(201))
             }
             assertEquals("Answer must not exceed 200 characters", exception.message)
         }
 
         @Test
         fun `should create update request successfully with null fields`() {
-            val request = UpdateUserQARequest("user-123",1L,)
+            val request = UpdateUserQARequest("user-123",question = QuestionDTO(1L,"blah"))
 
             assertNull(request.answer)
             assertNull(request.displayOrder)
@@ -211,12 +211,12 @@ class UserQATest {
         fun `should create update request successfully with valid data`() {
             val request = UpdateUserQARequest(
                 userId = "user-123",
-                questionId = 1L,
+                question = QuestionDTO(1L,"blah"),
                 answer = "Professional beach volleyball player",
                 displayOrder = 3
             )
 
-            assertEquals(1L, request.questionId)
+            assertEquals(1L, request.question.questionId)
             assertEquals("Professional beach volleyball player", request.answer)
             assertEquals(3, request.displayOrder)
         }
@@ -325,7 +325,7 @@ class UserQATest {
     ): UserQAItem {
         return UserQAItem(
             userId = userId,
-            questionId = questionId,
+            question = Question(questionId,testQuestions.get(questionId)?:"error",Instant.now(),Instant.now()),
             answer = answer,
             displayOrder = displayOrder,
             createdAt = Instant.now(),

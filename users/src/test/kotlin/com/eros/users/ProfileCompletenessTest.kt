@@ -157,7 +157,7 @@ class ProfileCompletenessTest {
     ): UserQAItem {
         return UserQAItem(
             userId = userId,
-            questionId = questionId,
+            question = Question(questionId,testQuestions.get(questionId)?:"error",Instant.now(),Instant.now()),
             answer = answer,
             displayOrder = displayOrder,
             createdAt = Instant.now(),

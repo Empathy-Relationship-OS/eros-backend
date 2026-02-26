@@ -4,7 +4,7 @@ import com.eros.auth.extensions.requireRoles
 import com.eros.common.errors.BadRequestException
 import com.eros.common.errors.NotFoundException
 import com.eros.users.models.CreateQuestionRequest
-import com.eros.users.models.UpdateQuestionRequest
+import com.eros.users.models.QuestionDTO
 import com.eros.users.models.toDTO
 import com.eros.users.service.QAService
 import io.ktor.http.HttpStatusCode
@@ -14,6 +14,7 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
 import io.ktor.server.routing.patch
+import io.ktor.server.routing.post
 import io.ktor.server.routing.put
 import io.ktor.server.routing.route
 import kotlin.text.toLong
@@ -43,7 +44,7 @@ fun Route.questionRoutes(qaService: QAService) {
             /**
              * /question/admin
              */
-            put{
+            post{
                 val request = call.receive<CreateQuestionRequest>()
                 val question = qaService.createNewQuestion(request)
 
@@ -56,7 +57,7 @@ fun Route.questionRoutes(qaService: QAService) {
              * Updates a question in the database.
              */
             patch{
-                val request = call.receive<UpdateQuestionRequest>()
+                val request = call.receive<QuestionDTO>()
                 val question = qaService.updateQuestion(request) ?: throw NotFoundException("Question not found.")
                 call.respond(HttpStatusCode.OK, question.toDTO())
             }

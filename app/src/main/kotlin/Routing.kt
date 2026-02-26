@@ -9,7 +9,7 @@ import com.eros.users.repository.PreferenceRepositoryImpl
 import com.eros.users.repository.QuestionRepositoryImpl
 import com.eros.users.repository.UserQARepositoryImpl
 import com.eros.users.repository.UserRepositoryImpl
-import com.eros.users.routes.QARoutes
+import com.eros.users.routes.qaRoutes
 import com.eros.users.routes.cityRoutes
 import com.eros.users.routes.questionRoutes
 import com.eros.users.routes.userPhotoRoutes
@@ -74,7 +74,7 @@ fun Application.configureRouting() {
 
             userPreferenceRoutes(preferenceService)
 
-            QARoutes(qaService,profileAccessControl)
+            qaRoutes(qaService,profileAccessControl)
 
             questionRoutes(qaService)
         }

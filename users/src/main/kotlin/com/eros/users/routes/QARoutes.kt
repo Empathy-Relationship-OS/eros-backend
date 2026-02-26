@@ -1,17 +1,13 @@
 package com.eros.users.routes
 
 import com.eros.auth.extensions.requireFirebasePrincipal
-import com.eros.auth.extensions.requireRoles
 import com.eros.common.errors.BadRequestException
 import com.eros.common.errors.NotFoundException
 import com.eros.common.errors.UnauthorizedException
 import com.eros.users.ProfileAccessControl
 import com.eros.users.models.AddUserQARequest
-import com.eros.users.models.CreateQuestionRequest
 import com.eros.users.models.DeleteUserQARequest
-import com.eros.users.models.UpdateQuestionRequest
 import com.eros.users.models.UpdateUserQARequest
-import com.eros.users.models.UserQACollection
 import com.eros.users.models.UserQACollectionResponse
 import com.eros.users.models.toDTO
 import com.eros.users.service.QAService
@@ -22,10 +18,11 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
 import io.ktor.server.routing.patch
+import io.ktor.server.routing.post
 import io.ktor.server.routing.put
 import io.ktor.server.routing.route
 
-fun Route.QARoutes(qaService : QAService, profileAccessControl: ProfileAccessControl) {
+fun Route.qaRoutes(qaService : QAService, profileAccessControl: ProfileAccessControl) {
 
     /**
      * Base route /qa.
@@ -33,14 +30,14 @@ fun Route.QARoutes(qaService : QAService, profileAccessControl: ProfileAccessCon
     route("/qa") {
 
         // Add a single QA to the authorized user
-        put{
+        post{
             val principal = call.requireFirebasePrincipal()
             val request = call.receive<AddUserQARequest>()
 
             if (principal.uid != request.userId) throw UnauthorizedException("Can't add a QA for another user.")
 
             val userQA = qaService.createUserQA(request)
-            call.respond(HttpStatusCode.OK, userQA.toDTO())
+            call.respond(HttpStatusCode.Created, userQA.toDTO())
         }
 
         // Get all the QA for this user
