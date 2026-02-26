@@ -72,7 +72,7 @@ fun Route.questionRoutes(qaService: QAService) {
              */
             delete("/{id}"){
                 val targetQuestionId = call.parameters["id"]
-                    ?: throw BadRequestException("User ID is required")
+                    ?: throw BadRequestException("Invalid questionId provided")
                 val deleted = qaService.deleteQuestion(targetQuestionId.toLong())
 
                 if (deleted == 0){ throw NotFoundException("Question not found.")}
