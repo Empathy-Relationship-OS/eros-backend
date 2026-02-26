@@ -7,6 +7,7 @@ import com.eros.common.errors.ConflictException
 import com.eros.common.errors.ForbiddenException
 import com.eros.common.errors.NotFoundException
 import com.eros.users.ProfileAccessControl
+import com.eros.users.models.AdminUpdateUserRequest
 import com.eros.users.models.CreateUserRequest
 import com.eros.users.models.PublicProfileResponse
 import com.eros.users.models.UpdateUserRequest
@@ -39,7 +40,7 @@ data class UserExistsResponse(
  *
  * @param userService Service for user data operations
  */
-fun Route.userProfileRoutes(userService: UserService) {
+fun Route.userProfileRoutes(userService: UserService, profileAccessControl : ProfileAccessControl) {
     route("/users") {
         /**
          * POST /users
@@ -116,22 +117,24 @@ fun Route.userProfileRoutes(userService: UserService) {
                     ?: throw BadRequestException("User ID is required")
 
                 // Ensure the user has access to the account or not.
-                ProfileAccessControl.hasPublicProfileAccess(principal.uid, targetUserId)
+                //todo: Replace the true values in method once matchService created
+                profileAccessControl.hasPublicProfileAccess(principal.uid, targetUserId)
 
-                val user = userService.findByUserId(targetUserId)
+                val targetUser = userService.findByUserId(targetUserId)
                     ?: throw NotFoundException("User profile not found")
 
                 //todo: Alter with media service
-
                 val media = UserMediaCollection(
-                    user.userId,
+                    targetUser.userId,
                     emptyList(),
                     2
                 )//userMediaService.getMediaForUser(targetUserId)
-                //todo: Alter with match service
-                val sharedInterests =
-                    listOf("Walks", "Shopping", "Running")//matchService.getSharedInterests(principal.uid, targetUserId)
-                call.respond(HttpStatusCode.OK, PublicProfileResponse.from(user, media, sharedInterests))
+
+                val principalUser = userService.findByUserId(principal.uid)
+                    ?: throw NotFoundException("User profile not found")
+
+                val sharedInterests = userService.getSharedInterests(principalUser, targetUser)
+                call.respond(HttpStatusCode.OK, PublicProfileResponse.from(targetUser, media, sharedInterests))
             }
 
             /**
@@ -151,61 +154,95 @@ fun Route.userProfileRoutes(userService: UserService) {
                 call.respond(HttpStatusCode.OK, user)
             }
 
-            /**
-             * GET /users/{id}
-             *
-             * Retrieves a user full profile by ID.
-             *
-             * Request Headers:
-             * - Authorization: Bearer <firebase-id-token>
-             *
-             * Response: User JSON
-             */
-            get("/id/{id}") {
-                val principal = call.requireFirebasePrincipal()
-                val userId = call.parameters["id"] ?: throw BadRequestException("User ID is required")
-                val user = userService.findByUserId(userId) ?: throw NotFoundException("User profile not found")
-                call.respond(HttpStatusCode.OK, user)
-            }
+//todo: This function should be moved to the admin/employee route
+/*
+/**
+ * GET /users/{id}
+ *
+ * Retrieves a user full profile by ID.
+ *
+ * Request Headers:
+ * - Authorization: Bearer <firebase-id-token>
+ *
+ * Response: User JSON
+ */
+get("/id/{id}") {
+    val principal = call.requireFirebasePrincipal()
+    val userId = call.parameters["id"] ?: throw BadRequestException("User ID is required")
+    val user = userService.findByUserId(userId) ?: throw NotFoundException("User profile not found")
+    call.respond(HttpStatusCode.OK, user)
+}
+*/
 
-            /**
-             * PATCH /users/me
-             *
-             * Updates the current authenticated user's profile.
-             *
-             * Request Headers:
-             * - Authorization: Bearer <firebase-id-token>
-             *
-             * Request Body: UpdateUserRequest JSON
-             * Response: User JSON
-             */
-            patch("/me") {
-                val principal = call.requireFirebasePrincipal()
-                val request = call.receive<UpdateUserRequest>()
-                val user = userService.updateUser(principal.uid, request)
-                    ?: throw NotFoundException("User profile not found")
-                call.respond(HttpStatusCode.OK, user)
-            }
+/**
+ * PATCH /users/me
+ *
+ * Updates the current authenticated user's profile.
+ *
+ * Request Headers:
+ * - Authorization: Bearer <firebase-id-token>
+ *
+ * Request Body: UpdateUserRequest JSON
+ * Response: User JSON
+ */
+patch("/me") {
+    val principal = call.requireFirebasePrincipal()
+    val request = call.receive<UpdateUserRequest>()
+    val user = userService.updateUser(principal.uid, request)
+        ?: throw NotFoundException("User profile not found")
+    call.respond(HttpStatusCode.OK, user)
+}
 
-            /**
-             * DELETE /users/me
-             *
-             * Deletes (soft delete) the current authenticated user's account.
-             *
-             * Request Headers:
-             * - Authorization: Bearer <firebase-id-token>
-             *
-             * Response: 204 No Content on success
-             */
-            delete("/me") {
-                val principal = call.requireFirebasePrincipal()
-                val rowsDeleted = userService.deleteUser(principal.uid)
+/**
+ * DELETE /users/me
+ *
+ * Deletes (soft delete) the current authenticated user's account.
+ *
+ * Request Headers:
+ * - Authorization: Bearer <firebase-id-token>
+ *
+ * Response: 204 No Content on success
+ */
+delete("/me") {
+    val principal = call.requireFirebasePrincipal()
+    val rowsDeleted = userService.deleteUser(principal.uid)
 
-                if (rowsDeleted == 0) throw NotFoundException("User profile not found")
+    if (rowsDeleted == 0) throw NotFoundException("User profile not found")
 
-                call.application.log.info("User account deleted: ${principal.uid}")
-                call.respond(HttpStatusCode.NoContent)
-            }
-        }
+    call.application.log.info("User account deleted: ${principal.uid}")
+    call.respond(HttpStatusCode.NoContent)
+}
+
+// Admin-only routes
+route("/id/{id}/admin") {
+    requireRoles("ADMIN", "EMPLOYEE")
+
+    /**
+     * PATCH /users/id/{id}/admin
+     *
+     * Updates server-managed fields for a user (admin-only).
+     *
+     * This endpoint allows ADMIN and EMPLOYEE roles to modify sensitive fields
+     * such as role, ELO score, badges, profile status, and validation status.
+     *
+     * Request Headers:
+     * - Authorization: Bearer <firebase-id-token> (must have ADMIN or EMPLOYEE role)
+     *
+     * Request Body: AdminUpdateUserRequest JSON
+     * Response: User JSON
+     */
+    patch {
+        val targetUserId = call.parameters["id"]
+            ?: throw BadRequestException("User ID is required")
+
+        val request = call.receive<AdminUpdateUserRequest>()
+        val user = userService.adminUpdateUser(targetUserId, request)
+            ?: throw NotFoundException("User profile not found")
+
+        call.application.log.info("Admin update performed on user $targetUserId by ${call.requireFirebasePrincipal().uid}")
+        call.respond(HttpStatusCode.OK, user)
     }
+}
+        }
+        }
 }

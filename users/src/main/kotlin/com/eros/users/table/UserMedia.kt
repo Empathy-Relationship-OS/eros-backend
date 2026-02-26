@@ -1,6 +1,7 @@
 package com.eros.users.table
 
 import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.core.between
 import org.jetbrains.exposed.v1.javatime.timestamp
 import org.jetbrains.exposed.v1.javatime.timestampWithTimeZone
 import java.time.Instant
@@ -36,6 +37,9 @@ object UserMedia : Table("user_media") {
     override val primaryKey = PrimaryKey(id)
 
     init {
+        // Display order must be between 1 and 6 (mirrors DB constraint in migration V4)
+        check("user_media_display_order_range") { displayOrder.between(1, 6) }
+
         // Unique display order per user (mirrors DB constraint in migration V4)
         uniqueIndex("user_media_unique_display_order", userId, displayOrder)
     }

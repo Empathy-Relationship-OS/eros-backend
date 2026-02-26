@@ -21,8 +21,10 @@ import java.time.OffsetDateTime
  * All writes that need to maintain consistency across multiple rows (e.g. [setPrimary])
  * are executed inside a single [dbQuery] block so Exposed wraps them in one transaction.
  *
- * Timestamps come back from Postgres as [OffsetDateTime] (TIMESTAMPTZ column) and are
- * normalised to UTC [java.time.LocalDateTime] for the domain model.
+ * Timestamps are stored in Postgres as TIMESTAMPTZ (mapped to [OffsetDateTime] by Exposed)
+ * and normalized to UTC [Instant] by [toMediaItem] during [dbQuery] transaction blocks.
+ * The [UserMediaItem] domain model uses [Instant] for [UserMediaItem.createdAt] and
+ * [UserMediaItem.updatedAt] fields.
  *
  * @param clock Injectable clock for consistent timestamp generation in tests.
  */
@@ -85,7 +87,7 @@ class PhotoRepositoryImpl(
     override suspend fun insert(
         userId: String,
         mediaUrl: String,
-        mediaType: String,
+        mediaType: MediaType,
         displayOrder: Int,
         isPrimary: Boolean
     ): UserMediaItem = dbQuery {
@@ -93,7 +95,7 @@ class PhotoRepositoryImpl(
         val id = UserMedia.insert {
             it[UserMedia.userId]       = userId
             it[UserMedia.mediaUrl]     = mediaUrl
-            it[UserMedia.mediaType]    = mediaType
+            it[UserMedia.mediaType]    = mediaType.name
             it[UserMedia.displayOrder] = displayOrder
             it[UserMedia.isPrimary]    = isPrimary
             it[UserMedia.createdAt]    = now
@@ -119,17 +121,18 @@ class PhotoRepositoryImpl(
     }
 
     override suspend fun setPrimary(userId: String, id: Long): UserMediaItem? = dbQuery {
+        val now = Instant.now(clock)
         // Clear isPrimary for all rows belonging to this user
         UserMedia.update({ UserMedia.userId eq userId }) {
             it[UserMedia.isPrimary] = false
-            it[UserMedia.updatedAt] = Instant.now(clock)
+            it[UserMedia.updatedAt] = now
         }
         // Set isPrimary = true only for the target row
         val rows = UserMedia.update({
             (UserMedia.id eq id) and (UserMedia.userId eq userId)
         }) {
             it[UserMedia.isPrimary] = true
-            it[UserMedia.updatedAt] = Instant.now(clock)
+            it[UserMedia.updatedAt] = now
         }
 
         if (rows == 0) null

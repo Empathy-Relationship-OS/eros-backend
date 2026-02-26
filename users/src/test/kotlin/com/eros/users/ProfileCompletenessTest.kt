@@ -2,76 +2,30 @@ package com.eros.users
 
 import com.eros.users.models.*
 import com.eros.users.models.MediaType
-import com.eros.users.table.Users
-import org.jetbrains.exposed.v1.jdbc.Database
-import org.jetbrains.exposed.v1.jdbc.SchemaUtils
-import org.jetbrains.exposed.v1.jdbc.deleteAll
-import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.junit.jupiter.api.*
-import org.testcontainers.containers.PostgreSQLContainer
-import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
-import kotlin.test.assertTrue
+import kotlin.test.assertEquals
 
 @Testcontainers
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ProfileCompletenessTest {
 
-    companion object {
-        @Container
-        private val postgresContainer = PostgreSQLContainer<Nothing>("postgres:15-alpine").apply {
-            withDatabaseName("test_db")
-            withUsername("test_user")
-            withPassword("test_password")
-        }
-    }
-
-    @BeforeAll
-    fun setup() {
-        Database.connect(
-            url = postgresContainer.jdbcUrl,
-            driver = "org.postgresql.Driver",
-            user = postgresContainer.username,
-            password = postgresContainer.password
-        )
-
-        // Use regular transaction for schema creation (doesn't conflict)
-        transaction {
-            SchemaUtils.create(Users)
-        }
-    }
-
-    @BeforeEach
-    fun setupEach() {
-        // Clear the tables before each test.
-        transaction {
-            Users.deleteAll()
-        }
-    }
-
-    @AfterAll
-    fun tearDown() {
-        transaction {
-            SchemaUtils.drop(Users)
-        }
-    }
-
     @Test
     fun `completeness calculation`() {
-        val user = creatTestUser()
+        val user = createTestUser()
         val userMedia = createMediaList(3)
         val userMediaCollection = UserMediaCollection(user.userId, userMedia, userMedia.size)
         val userQA = createQAList(2)
         val userQACollection = UserQACollection(user.userId, userQA, userQA.size)
         val completeness = ProfileCompleteness().calculateCompleteness(user, userMediaCollection, userQACollection)
-        assertTrue(completeness == 65)
+        assertEquals(completeness, 65)
     }
 
     // Helper function to create test users with defaults
-    private fun creatTestUser(
+    private fun createTestUser(
         userId: String = "test-user-id",
         firstName: String = "John",
         lastName: String = "Doe",
@@ -151,7 +105,7 @@ class ProfileCompletenessTest {
             profileStatus = profileStatus,
             eloScore = eloScore,
             badges = badges,
-            completeness = completeness,
+            profileCompleteness = completeness,
             role = role,
             photoValidationStatus = photoValidationStatus,
             createdAt = createdAt,

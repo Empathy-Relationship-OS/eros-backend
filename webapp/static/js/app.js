@@ -8,7 +8,6 @@ const API_BASE_URL = 'http://localhost:8080';
 
 // State management
 let currentUser = null;
-let idToken = null;
 
 // DOM Elements
 const authStatus = document.getElementById('auth-status');
@@ -25,15 +24,13 @@ const apiResponse = document.getElementById('api-response');
 /**
  * Listen for authentication state changes
  */
-auth.onAuthStateChanged(async (user) => {
+auth.onAuthStateChanged((user) => {
     if (user) {
         currentUser = user;
-        idToken = await user.getIdToken();
         updateAuthUI(true);
         displayApiResponse({ event: 'Auth State Changed', user: { uid: user.uid, email: user.email } }, 'info');
     } else {
         currentUser = null;
-        idToken = null;
         updateAuthUI(false);
         displayApiResponse({ event: 'Auth State Changed', message: 'User logged out' }, 'info');
     }
@@ -99,9 +96,12 @@ logoutBtn.addEventListener('click', async () => {
  * Make authenticated API request
  */
 async function apiRequest(endpoint, options = {}) {
-    if (!idToken) {
+    if (!auth.currentUser) {
         throw new Error('Not authenticated. Please login first.');
     }
+
+    // Fetch a fresh token for each request to avoid using expired tokens
+    const idToken = await auth.currentUser.getIdToken();
 
     const url = `${API_BASE_URL}${endpoint}`;
     const headers = {

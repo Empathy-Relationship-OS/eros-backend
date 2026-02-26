@@ -45,6 +45,5 @@ local.properties
 # Exclude all service account JSON files
 *-service-account.json
 firebase-service-account.json
-app/src/main/resources/firebase-service-account.json
 # But keep test credentials tracked
 !app/src/test/resources/test.json

@@ -100,7 +100,7 @@ fun Route.userPhotoRoutes(photoService: PhotoService) {
                 val photoId = call.parameters["photoId"]?.toLongOrNull()
                     ?: throw BadRequestException("Photo ID must be a number")
 
-                val deleted = photoService.deletePhoto(principal.uid, photoId)
+                photoService.deletePhoto(principal.uid, photoId)
                     ?: throw NotFoundException("Photo not found")
 
                 call.respond(HttpStatusCode.NoContent)

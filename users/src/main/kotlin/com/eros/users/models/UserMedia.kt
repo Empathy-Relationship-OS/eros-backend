@@ -5,6 +5,38 @@ import kotlinx.serialization.Serializable
 import java.time.Instant
 
 // ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+/**
+ * Allowed content types for user media uploads.
+ */
+object MediaConstants {
+    val ALLOWED_CONTENT_TYPES = setOf(
+        "image/jpeg",
+        "image/jpg",
+        "image/png",
+        "image/heic",
+        "image/heif",
+        "image/webp"
+    )
+
+    const val MIN_FILE_SIZE_BYTES = 500L * 1024          // 500 KB
+    const val MAX_FILE_SIZE_BYTES = 10L * 1024 * 1024    // 10 MB
+    const val MIN_PHOTOS_PER_USER = 3
+    const val MAX_PHOTOS_PER_USER = 6
+
+    val CONTENT_TYPE_TO_EXTENSION = mapOf(
+        "image/jpeg" to "jpg",
+        "image/jpg"  to "jpg",
+        "image/png"  to "png",
+        "image/heic" to "heic",
+        "image/heif" to "heic",
+        "image/webp" to "webp"
+    )
+}
+
+// ---------------------------------------------------------------------------
 // Domain model
 // ---------------------------------------------------------------------------
 
@@ -56,6 +88,13 @@ data class PresignedUploadRequest(
 ) {
     init {
         require(displayOrder in 1..6) { "Display order must be between 1 and 6" }
+        require(fileName.isNotBlank()) { "File name is required" }
+        require(contentType in MediaConstants.ALLOWED_CONTENT_TYPES) {
+            "Content type must be one of: ${MediaConstants.ALLOWED_CONTENT_TYPES}"
+        }
+        require(fileSizeBytes in MediaConstants.MIN_FILE_SIZE_BYTES..MediaConstants.MAX_FILE_SIZE_BYTES) {
+            "File size must be between ${MediaConstants.MIN_FILE_SIZE_BYTES} bytes and ${MediaConstants.MAX_FILE_SIZE_BYTES} bytes"
+        }
     }
 }
 
@@ -97,10 +136,10 @@ data class UserMediaCollection(
     val media: List<UserMediaItemDTO>,
     val totalCount: Int
 ) {
-    fun hasMinimumMedia(): Boolean = totalCount >= 3
-    fun hasReachedMaximum(): Boolean = totalCount >= 6
+    fun hasMinimumMedia(): Boolean = totalCount >= MediaConstants.MIN_PHOTOS_PER_USER
+    fun hasReachedMaximum(): Boolean = totalCount >= MediaConstants.MAX_PHOTOS_PER_USER
     fun getPrimaryMedia(): UserMediaItemDTO? = media.firstOrNull { it.isPrimary }
-    fun isValidCollection(): Boolean = totalCount in 3..6
+    fun isValidCollection(): Boolean = totalCount in MediaConstants.MIN_PHOTOS_PER_USER..MediaConstants.MAX_PHOTOS_PER_USER
 }
 
 /**

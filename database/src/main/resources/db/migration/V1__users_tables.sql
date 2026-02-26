@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS users (
     trusted_badge BOOLEAN DEFAULT FALSE NOT NULL,
     good_experience_badge BOOLEAN DEFAULT FALSE NOT NULL,
     verified_photos BOOLEAN DEFAULT FALSE NOT NULL,
-    profileCompleteness INTEGER NOT NULL,
+    profile_completeness INTEGER NOT NULL,
     coordinates_latitude DOUBLE PRECISION NOT NULL,
     coordinates_longitude DOUBLE PRECISION NOT NULL,
     role VARCHAR(50) NOT NULL,
@@ -102,7 +102,9 @@ CREATE TABLE IF NOT EXISTS users (
     CONSTRAINT users_traits_count CHECK (array_length(traits, 1) BETWEEN 3 AND 10),
     CONSTRAINT users_bio_length CHECK (bio IS NULL OR length(bio) <= 300),
     CONSTRAINT users_brain_desc_length CHECK (brain_description IS NULL OR length(brain_description) <= 100),
-    CONSTRAINT users_body_desc_length CHECK (body_description IS NULL OR length(body_description) <= 100)
+    CONSTRAINT users_body_desc_length CHECK (body_description IS NULL OR length(body_description) <= 100),
+    CONSTRAINT chk_coordinates_latitude_range CHECK (coordinates_latitude BETWEEN -90 AND 90),
+    CONSTRAINT chk_coordinates_longitude_range CHECK (coordinates_longitude BETWEEN -180 AND 180)
 );
 
 -- Indexes for common query patterns
@@ -130,6 +132,6 @@ COMMENT ON COLUMN users.trusted_badge IS 'Boolean for active/trusted user';
 COMMENT ON COLUMN users.good_experience_badge IS 'Boolean for if a user has good date experiences';
 COMMENT ON COLUMN users.verified_photos IS 'Boolean for if users photos have been VERIFIED';
 COMMENT ON COLUMN users.profile_status IS 'Status of the account - Active, Sleep_Mode, Frozen';
-COMMENT ON COLUMN users.profileCompleteness IS 'Int 50-100 indicating how complete user profile is';
+COMMENT ON COLUMN users.profile_completeness IS 'Int 50-100 indicating how complete user profile is';
 COMMENT ON COLUMN users.role IS 'Type of Account - User,Business,Admin,Employee';
-COMMENT ON COLUMN users.photo_validation_status IS 'Boolean if photo is validated to be safe';
+COMMENT ON COLUMN users.photo_validation_status IS 'ValidationStatus enum value stored as VARCHAR(50) (e.g. PENDING, APPROVED, REJECTED)';

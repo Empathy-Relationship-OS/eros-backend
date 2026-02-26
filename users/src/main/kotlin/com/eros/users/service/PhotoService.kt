@@ -46,30 +46,7 @@ class PhotoService(
 
     companion object {
 
-        private val ALLOWED_CONTENT_TYPES = setOf(
-            "image/jpeg",
-            "image/jpg",
-            "image/png",
-            "image/heic",
-            "image/heif"
-        )
-
-        private const val MIN_FILE_SIZE_BYTES = 500L * 1024          // 500 KB
-        private const val MAX_FILE_SIZE_BYTES = 10L * 1024 * 1024    // 10 MB
-        private const val MAX_PHOTOS_PER_USER = 6
-
-        /**
-         * Map from MIME type to file extension used when generating S3 object keys.
-         */
-        private val CONTENT_TYPE_TO_EXTENSION = mapOf(
-            "image/jpeg" to "jpg",
-            "image/jpg"  to "jpg",
-            "image/png"  to "png",
-            "image/heic" to "heic",
-            "image/heif" to "heic"
-        )
-
-        fun buildS3Client(config: S3Config): S3Client {
+        internal fun buildS3Client(config: S3Config): S3Client {
             val builder = S3Client.builder()
                 .region(Region.of(config.region))
 
@@ -85,7 +62,7 @@ class PhotoService(
             return builder.build()
         }
 
-        fun buildS3Presigner(config: S3Config): S3Presigner {
+        internal fun buildS3Presigner(config: S3Config): S3Presigner {
             val builder = S3Presigner.builder()
                 .region(Region.of(config.region))
 
@@ -116,10 +93,10 @@ class PhotoService(
     ): PresignedUploadResponse {
         val contentType = request.contentType.lowercase().trim()
 
-        require(contentType in ALLOWED_CONTENT_TYPES) {
-            "Unsupported file type '$contentType'. Allowed: JPEG, PNG, HEIC."
+        require(contentType in MediaConstants.ALLOWED_CONTENT_TYPES) {
+            "Unsupported file type '$contentType'. Allowed: JPEG, PNG, HEIC, HEIF, WEBP."
         }
-        require(request.fileSizeBytes in MIN_FILE_SIZE_BYTES..MAX_FILE_SIZE_BYTES) {
+        require(request.fileSizeBytes in MediaConstants.MIN_FILE_SIZE_BYTES..MediaConstants.MAX_FILE_SIZE_BYTES) {
             "File size must be between 500 KB and 10 MB " +
                     "(received ${request.fileSizeBytes} bytes)."
         }
@@ -128,13 +105,13 @@ class PhotoService(
         val slotOccupied = photoRepository.findByDisplayOrder(userId, request.displayOrder) != null
 
         // If the slot is not occupied and user already has max photos, reject
-        if (!slotOccupied && currentCount >= MAX_PHOTOS_PER_USER) {
+        if (!slotOccupied && currentCount >= MediaConstants.MAX_PHOTOS_PER_USER) {
             throw IllegalStateException(
-                "User has reached the maximum of $MAX_PHOTOS_PER_USER photos."
+                "User has reached the maximum of ${MediaConstants.MAX_PHOTOS_PER_USER} photos."
             )
         }
 
-        val extension = CONTENT_TYPE_TO_EXTENSION[contentType] ?: "jpg"
+        val extension = MediaConstants.CONTENT_TYPE_TO_EXTENSION[contentType] ?: "jpg"
         val objectKey = "photos/$userId/${UUID.randomUUID()}.$extension"
 
         val putObjectRequest = PutObjectRequest.builder()
@@ -161,7 +138,22 @@ class PhotoService(
     // -------------------------------------------------------------------------
     // Step 2 — confirm upload
     // -------------------------------------------------------------------------
-
+    // TODO this comment once we have transaction on db's resolved
+    /**
+     * Verify each finding against the current code and only fix it if needed.
+     *
+     * In `@users/src/main/kotlin/com/eros/users/service/PhotoService.kt` around lines
+     * 175 - 209, The current confirmUpload flow deletes the old photo from S3
+     * (deleteFromS3) and removes its DB row (photoRepository.deleteById) before
+     * inserting the new record (photoRepository.insert), risking data loss if insert
+     * fails; change confirmUpload to perform DB work inside a transaction (wrap
+     * photoRepository.findByDisplayOrder, deleteById, insert, and setPrimary in a
+     * single transactional unit) and defer S3 deletes until after the transaction
+     * commits (use a post-commit hook or enqueue the old object's keys for async
+     * deletion) so that deleteFromS3 and thumbnail deletion occur only after the DB
+     * insert and setPrimary succeed (keep verifyS3ObjectExists and
+     * s3Config.publicUrlFor checks before the transaction).
+     */
     /**
      * Confirms a completed upload:
      * 1. Verifies the S3 object exists via HeadObject.
@@ -176,6 +168,11 @@ class PhotoService(
         userId: String,
         request: ConfirmUploadRequest
     ): UserMediaItem {
+        // Verify ownership: object key must belong to the authenticated user
+        require(request.objectKey.startsWith("photos/$userId/")) {
+            "Object key must belong to the authenticated user"
+        }
+
         // Verify the file was actually uploaded to S3
         verifyS3ObjectExists(request.objectKey)
 
@@ -195,7 +192,7 @@ class PhotoService(
         val item = photoRepository.insert(
             userId       = userId,
             mediaUrl     = mediaUrl,
-            mediaType    = "PHOTO",
+            mediaType    = MediaType.PHOTO,
             displayOrder = request.displayOrder,
             isPrimary    = request.isPrimary
         )
@@ -313,6 +310,8 @@ class PhotoService(
         } catch (e: Exception) {
             // Log but don't rethrow — a failed S3 delete should not block the DB delete.
             // Orphaned objects can be cleaned up with an S3 lifecycle rule.
+            // TODO this needs to be replaced with a proper logger
+            println("WARN: Failed to delete S3 object '$key': ${e.message}")
         }
     }
 
@@ -330,7 +329,8 @@ class PhotoService(
             s3Client.headObject(request)
         } catch (e: NoSuchKeyException) {
             throw IllegalArgumentException(
-                "Upload not found in S3. Ensure the file was uploaded before confirming."
+                "Upload not found in S3. Ensure the file was uploaded before confirming.",
+                e
             )
         }
     }
