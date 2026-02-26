@@ -2,6 +2,7 @@ package com.eros.users.models
 
 import kotlinx.serialization.Serializable
 import java.time.Instant
+import kotlin.String
 
 /**
  * User Q&A domain model for question/answer pairs
@@ -106,10 +107,20 @@ data class UserQACollection(
 }
 
 /**
- * Response containing all Q&As for a user, ordered by displayOrder
+ * Function to convert a UserQACollection domain object to a DTO
+ */
+fun UserQACollection.toDTO() = UserQACollectionDTO(
+     userId = this.userId,
+     qas =  this.qas.map{it.toDTO()},
+     totalCount = this.totalCount
+)
+
+
+/**
+ * UserCollectionDTO containing all Q&As for a user, ordered by displayOrder
  */
 @Serializable
-data class UserQACollectionResponse(
+data class UserQACollectionDTO(
     val userId: String,
     val qas: List<UserQAItemResponse>,
     val totalCount: Int
@@ -126,7 +137,9 @@ data class DeleteUserQARequest(
 )
 
 
-
+/**
+ * Data class that is used for the composite key for the [com.eros.users.repository.UserQARepositoryImpl].
+ */
 data class UserQAId(
     val userId: String,
     val questionId: Long

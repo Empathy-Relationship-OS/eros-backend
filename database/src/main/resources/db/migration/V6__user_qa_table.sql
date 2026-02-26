@@ -16,9 +16,9 @@ CREATE TABLE IF NOT EXISTS user_qa(
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
 
-    PRIMARY KEY (user_id, question_id)
+    PRIMARY KEY (user_id, question_id),
 
     -- Constraints
-    CONSTRAINT user_and_question_unique UNIQUE (user_id, question_id)
+    CONSTRAINT user_and_question_unique UNIQUE (user_id, question_id),
     CONSTRAINT user_and_order_unique UNIQUE (user_id, display_order)
-)
+);
