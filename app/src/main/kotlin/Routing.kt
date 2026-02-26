@@ -1,6 +1,5 @@
 package com.eros
 
-import com.eros.auth.extensions.requireRoles
 import com.eros.common.config.S3Config
 import com.eros.users.repository.CityRepositoryImpl
 import com.eros.users.ProfileAccessControl
@@ -15,6 +14,7 @@ import com.eros.users.service.CityService
 import com.eros.users.service.PhotoService
 import com.eros.users.service.PreferenceService
 import com.eros.users.service.UserService
+import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.plugins.requestvalidation.*
@@ -52,13 +52,12 @@ fun Application.configureRouting() {
             call.respondText("Hello World!")
         }
 
-        // All /users routes require Firebase authentication
+        // All routes require Firebase authentication
         authenticate("firebase-auth") {
-            requireRoles("ADMIN", "USER", "EMPLOYEE")
-            // User profile routes
+            // User profile routes (handles role requirements internally)
             userProfileRoutes(userService, profileAccessControl)
 
-            // Photo management routes
+            // Photo management routes (all require roles)
             userPhotoRoutes(photoService)
 
             cityRoutes(cityService)

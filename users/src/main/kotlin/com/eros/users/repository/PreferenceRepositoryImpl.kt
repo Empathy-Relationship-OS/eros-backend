@@ -23,11 +23,14 @@ import org.slf4j.LoggerFactory
 import java.time.Clock
 import java.time.Instant
 
-private val logger = LoggerFactory.getLogger(PreferenceRepositoryImpl::class.java)
 
 class PreferenceRepositoryImpl(
     private val clock: Clock = Clock.systemUTC()
 ) : BaseDAOImpl<String, UserPreference>(UserPreferences, UserPreferences.userId), PreferenceRepository {
+
+    companion object{
+        private val logger = LoggerFactory.getLogger(PreferenceRepositoryImpl::class.java)
+    }
 
     // -------------------------------------------------------------------------
     // Mapping
