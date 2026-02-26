@@ -153,7 +153,7 @@ data class CreatePreferenceRequest(
     val dateLanguages: List<Language>,
     val dateActivities: List<Activity>,
     val dateLimit: Int?,
-    val dateCities: List<Long>,
+    val dateCities: List<CityDTO>,
     val reachLevel: ReachLevel
 )
 
@@ -192,7 +192,7 @@ data class UpdatePreferenceRequest(
     val dateLanguages: List<Language>,
     val dateActivities: List<Activity>,
     val dateLimit: Int?,
-    val dateCities: List<Long>,
+    val dateCities: List<CityDTO>,
     val reachLevel: ReachLevel
 )
 

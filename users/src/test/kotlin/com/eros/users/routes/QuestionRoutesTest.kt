@@ -323,7 +323,8 @@ class QuestionRoutesTest {
     // Helper functions
 
     private fun createValidQuestion(questionId : Long = 1L,question : String = "If you had 3 genie wishes, what would they be?") : Question{
-        return Question(questionId, question, Instant.now(), Instant.now())
+        val now = Instant.now()
+        return Question(questionId, question, now, now)
     }
 
     private fun createValidQuestionRequest(question : String = "If you had 3 genie wishes, what would they be?") : CreateQuestionRequest {

@@ -576,9 +576,10 @@ class QARoutesTest {
     }
 
     private fun createValidQA(userId: String = "test-user-id", questionId:Long=1L): UserQAItem {
+        val now = Instant.now()
         return UserQAItem(
             userId = userId,
-            question = Question(questionId, question1, Instant.now(), Instant.now()),
+            question = Question(questionId, question1, now,now),
             answer = answer1,
             displayOrder = 1,
             createdAt = Instant.now(),
@@ -596,13 +597,14 @@ class QARoutesTest {
 
     private fun validQAItemList(userId: String = "test-user-id", size : Int = 3): List<UserQAItem>{
         val lst = emptyList<UserQAItem>()
+        val now = Instant.now()
         for(i in 1..size){
             lst.plus(UserQAItem(userId,
-                Question(i.toLong(),"Do is something you would change about other people?",Instant.now(), Instant.now()),
+                Question(i.toLong(),"Do is something you would change about other people?",now, now),
                 "Yes",
                 i,
-                Instant.now(),
-                Instant.now()
+                now,
+                now
                 )
             )
         }
