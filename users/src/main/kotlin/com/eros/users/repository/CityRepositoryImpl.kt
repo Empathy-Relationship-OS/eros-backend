@@ -51,31 +51,6 @@ class CityRepositoryImpl(
     override fun doesExist(cityName: String): Boolean {
         return Cities.selectAll()
             .where { Cities.cityName eq cityName }
-            .count() > 0
-    }
-
-    /**
-     * Find if a city exists in the Cities table with the provided id.
-     */
-    override suspend fun doesExist(id: Long): Boolean {
-        return super.doesExist(id)
-    }
-
-    /**
-     * Delete the City with the provided id.
-     */
-    override suspend fun delete(id: Long): Int {
-        return super.delete(id)
-    }
-
-    /**
-     * Function to retrieve a city by the id.
-     */
-    override suspend fun findById(id: Long): City? {
-        return super.findById(id)
-    }
-
-    override suspend fun findAll(): List<City> {
-        return super.findAll()
+            .empty().not()
     }
 }

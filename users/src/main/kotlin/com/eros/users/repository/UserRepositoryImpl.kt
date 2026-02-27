@@ -2,7 +2,6 @@ package com.eros.users.repository
 
 import com.eros.database.dbQuery
 import com.eros.database.repository.BaseDAOImpl
-import com.eros.users.models.Badge
 import com.eros.users.models.User
 import com.eros.users.table.BADGE_COLUMN_MAP
 import com.eros.users.table.Users
@@ -13,7 +12,6 @@ import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.isNull
 import org.jetbrains.exposed.v1.core.lowerCase
 import org.jetbrains.exposed.v1.core.statements.UpdateBuilder
-import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
 import java.time.Clock
@@ -110,15 +108,6 @@ class UserRepositoryImpl(
     // IBaseDAO overrides — domain-specific behaviour
     // -------------------------------------------------------------------------
 
-    /** Re-fetches by Firebase UID after insert instead of using selectAll().last(). */
-    override suspend fun create(entity: User): User = dbQuery {
-        Users.insert { toStatement(it, entity) }
-        Users.selectAll()
-            .where { Users.userId eq entity.userId }
-            .single()
-            .toDomain()
-    }
-
     /** Respects soft-delete (excludes rows where deletedAt is not null). */
     override suspend fun findById(id: String): User? = dbQuery {
         Users.selectAll()
@@ -138,7 +127,7 @@ class UserRepositoryImpl(
     override suspend fun doesExist(id: String): Boolean = dbQuery {
         Users.selectAll()
             .where { (Users.userId eq id) and Users.deletedAt.isNull() }
-            .count() > 0
+            .empty().not()
     }
 
     // -------------------------------------------------------------------------

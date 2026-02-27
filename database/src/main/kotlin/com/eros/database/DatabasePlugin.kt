@@ -4,7 +4,9 @@ import io.ktor.server.application.*
 import io.ktor.util.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.jetbrains.exposed.v1.core.Transaction
 import org.jetbrains.exposed.v1.jdbc.Database
+import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import javax.sql.DataSource
 
@@ -91,10 +93,16 @@ class DatabasePlugin(private val config: DatabaseConfig) {
  * @param block Non-suspending lambda containing database operations
  * @return Result of the database operation
  */
-suspend fun <T> dbQuery(block: () -> T): T =
+
+
+suspend fun <T> dbQuery(block: suspend Transaction.() -> T): T =
     withContext(Dispatchers.IO) {
-        transaction { block() }
+        suspendTransaction {
+            block()
+        }
     }
+
+
 
 /**
  * Extension function for executing database queries with suspend function support.
@@ -119,5 +127,7 @@ suspend fun <T> dbQuery(block: () -> T): T =
  */
 suspend fun <T> dbQuerySuspend(block: suspend () -> T): T =
     withContext(Dispatchers.IO) {
-        transaction { kotlinx.coroutines.runBlocking { block() } }
+        transaction {
+            kotlinx.coroutines.runBlocking { block() }
+        }
     }

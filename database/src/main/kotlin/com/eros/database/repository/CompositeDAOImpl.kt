@@ -6,6 +6,7 @@ import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.statements.UpdateBuilder
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
+import org.jetbrains.exposed.v1.jdbc.insertReturning
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
 
@@ -118,8 +119,7 @@ abstract class CompositeKeyDAOImpl<ID, T>(
     // -------------------------------------------------------------------------
 
     override fun create(entity: T): T {
-        table.insert { toStatement(it, entity) }
-        return table.selectAll().last().toDomain()
+        return table.insertReturning { toStatement(it, entity) }.single().toDomain()
     }
 
     override fun findById(id: ID): T? {
@@ -152,6 +152,6 @@ abstract class CompositeKeyDAOImpl<ID, T>(
     override fun doesExist(id: ID): Boolean {
         return table.selectAll()
             .where { buildKeyCondition(id) }
-            .count() > 0
+            .empty().not()
     }
 }

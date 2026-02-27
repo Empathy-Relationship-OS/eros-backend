@@ -116,7 +116,7 @@ class PreferenceService(
     }
 
     suspend fun doesExist(userId: String): Boolean {
-        return preferenceRepository.userPreferencesDoesExist(userId)
+        return preferenceRepository.doesExist(userId)
     }
 
     /**

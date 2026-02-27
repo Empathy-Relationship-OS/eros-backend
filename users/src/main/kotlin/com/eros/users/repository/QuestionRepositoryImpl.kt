@@ -51,6 +51,6 @@ class QuestionRepositoryImpl(
     override fun questionExists(question: String): Boolean {
         return !table.selectAll()
             .where { Questions.question eq question }
-            .empty()
+            .empty().not()
     }
 }
