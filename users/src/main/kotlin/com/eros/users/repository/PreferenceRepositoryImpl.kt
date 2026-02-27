@@ -172,12 +172,6 @@ class PreferenceRepositoryImpl(
         return preferences.toDomain().copy(dateCities = cities)
     }
 
-    override suspend fun userPreferencesDoesExist(userId: String): Boolean {
-        return UserPreferences.selectAll()
-            .where { UserPreferences.userId eq userId }
-            .count() > 0
-    }
-
 
     /**
      * Function to delete all the UserCitiesPreference records and the users preferences.
@@ -187,6 +181,8 @@ class PreferenceRepositoryImpl(
      * @return `1` if UserPreference was remove, otherwise `0`.
      */
     override suspend fun delete(id: String): Int {
+        //todo - Move this to the service layer?
+
         // Delete the UserCitiesPreference records.
         UserCitiesPreference.deleteWhere { UserPreferences.userId eq id }
         // Delete the UserPreference record.

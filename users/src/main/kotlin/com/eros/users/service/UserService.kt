@@ -1,6 +1,5 @@
 package com.eros.users.service
 
-import com.eros.users.ProfileCompleteness
 import com.eros.users.models.AdminUpdateUserRequest
 import com.eros.users.models.Badge
 import com.eros.users.models.CreateUserRequest
