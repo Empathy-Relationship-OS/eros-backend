@@ -79,6 +79,8 @@ class DatabasePlugin(private val config: DatabaseConfig) {
  * Wraps database operations in Exposed's transaction context on the IO dispatcher.
  * All database operations should use this wrapper to ensure proper transaction management.
  *
+ * **Use this for DAOs that manage their own transactions internally.**
+ *
  * Example:
  * ```
  * suspend fun getUser(id: UUID): User? = dbQuery {
@@ -86,10 +88,36 @@ class DatabasePlugin(private val config: DatabaseConfig) {
  * }
  * ```
  *
- * @param block Lambda containing database operations
+ * @param block Non-suspending lambda containing database operations
  * @return Result of the database operation
  */
 suspend fun <T> dbQuery(block: () -> T): T =
     withContext(Dispatchers.IO) {
         transaction { block() }
+    }
+
+/**
+ * Extension function for executing database queries with suspend function support.
+ *
+ * Similar to [dbQuery], but accepts a **suspend lambda**, allowing you to call
+ * suspend repository methods from within the transaction block. This is useful
+ * for grouping multiple repository calls into a single atomic transaction.
+ *
+ * **Use this at the SERVICE layer when calling transaction-agnostic DAOs.**
+ *
+ * Example:
+ * ```
+ * suspend fun createUserWithProfile(user: User): UserProfile = dbQuerySuspend {
+ *     val created = userRepository.create(user)  // suspend call
+ *     profileRepository.create(created.toProfile())  // suspend call
+ *     // Both calls in same transaction - if second fails, first rolls back
+ * }
+ * ```
+ *
+ * @param block Suspending lambda containing database operations
+ * @return Result of the database operation
+ */
+suspend fun <T> dbQuerySuspend(block: suspend () -> T): T =
+    withContext(Dispatchers.IO) {
+        transaction { kotlinx.coroutines.runBlocking { block() } }
     }
