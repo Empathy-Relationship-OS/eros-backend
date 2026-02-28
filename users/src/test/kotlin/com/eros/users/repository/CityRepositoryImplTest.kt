@@ -1,5 +1,6 @@
 package com.eros.users.repository
 
+import com.eros.database.dbQuery
 import com.eros.users.models.City
 import com.eros.users.table.Cities
 import kotlinx.coroutines.runBlocking
@@ -69,10 +70,10 @@ class CityRepositoryImplTest {
     inner class `create function` {
 
         @Test
-        fun `should create city with correct fields`() {
+        fun `should create city with correct fields`() = runBlocking {
             val cityName = "London"
 
-            val city = runBlocking {
+            val city = dbQuery {
                 repository.create(City(0L, cityName, fixedInstant, fixedInstant))
             }
 
@@ -84,11 +85,11 @@ class CityRepositoryImplTest {
         }
 
         @Test
-        fun `should auto-increment city IDs`() {
-            val city1 = runBlocking {
+        fun `should auto-increment city IDs`() = runBlocking {
+            val city1 = dbQuery {
                 repository.create(City(0L, "Paris", fixedInstant, fixedInstant))
             }
-            val city2 = runBlocking {
+            val city2 = dbQuery {
                 repository.create(City(0L, "Berlin", fixedInstant, fixedInstant))
             }
 
@@ -97,12 +98,12 @@ class CityRepositoryImplTest {
         }
 
         @Test
-        fun `should use clock for timestamps`() {
+        fun `should use clock for timestamps`() = runBlocking {
             val customInstant = Instant.parse("2025-06-01T12:30:00Z")
             val customClock = Clock.fixed(customInstant, ZoneId.of("UTC"))
             val customRepository = CityRepositoryImpl(customClock)
 
-            val city = runBlocking {
+            val city = dbQuery {
                 customRepository.create(City(0L, "Tokyo", customInstant, customInstant))
             }
 
@@ -111,10 +112,10 @@ class CityRepositoryImplTest {
         }
 
         @Test
-        fun `should handle cities with special characters`() {
+        fun `should handle cities with special characters`() = runBlocking {
             val cityName = "São Paulo"
 
-            val city = runBlocking {
+            val city = dbQuery {
                 repository.create(City(0L, cityName, fixedInstant, fixedInstant))
             }
 
@@ -124,12 +125,11 @@ class CityRepositoryImplTest {
         @Test
         fun `should enforce unique city names`() {
             runBlocking {
-                repository.create(City(0L, "London", fixedInstant, fixedInstant))
-            }
-
-            assertFails {
-                runBlocking {
+                dbQuery {
                     repository.create(City(0L, "London", fixedInstant, fixedInstant))
+                    assertFails {
+                        repository.create(City(0L, "London", fixedInstant, fixedInstant))
+                    }
                 }
             }
         }
@@ -139,17 +139,18 @@ class CityRepositoryImplTest {
     inner class `update function` {
 
         @Test
-        fun `should update city name successfully`() {
+        fun `should update city name successfully`() = runBlocking {
             val originalName = "TestValue"
-            val city = runBlocking {
+            val city = dbQuery {
                 repository.create(City(0L, originalName, fixedInstant, fixedInstant))
             }
 
             val newName = "AlteredTestValue"
-            val updatedCity = runBlocking {
+            val updatedCity = dbQuery {
                 repository.update(city.cityId, city.copy(cityName = newName))
             }
-
+            println("XXXXX")
+            println(updatedCity)
             assertNotNull(updatedCity)
             assertEquals(newName, updatedCity.cityName)
             assertEquals(city.cityId, updatedCity.cityId)
@@ -157,8 +158,8 @@ class CityRepositoryImplTest {
         }
 
         @Test
-        fun `should update updatedAt timestamp on update`() {
-            val city = runBlocking {
+        fun `should update updatedAt timestamp on update`() = runBlocking {
+            val city = dbQuery {
                 repository.create(City(0L, "Paris", fixedInstant, fixedInstant))
             }
 
@@ -166,7 +167,7 @@ class CityRepositoryImplTest {
             val laterClock = Clock.fixed(laterInstant, ZoneId.of("UTC"))
             val laterRepository = CityRepositoryImpl(laterClock)
 
-            val updatedCity = runBlocking {
+            val updatedCity = dbQuery {
                 laterRepository.update(city.cityId, city.copy(cityName = "New Paris"))
             }
 
@@ -176,10 +177,10 @@ class CityRepositoryImplTest {
         }
 
         @Test
-        fun `should return null when updating non-existent city`() {
+        fun `should return null when updating non-existent city`() = runBlocking {
             val nonExistentId = 999L
 
-            val result = runBlocking {
+            val result = dbQuery {
                 repository.update(nonExistentId, City(nonExistentId, "Ghost City", fixedInstant, fixedInstant))
             }
 
@@ -187,13 +188,15 @@ class CityRepositoryImplTest {
         }
 
         @Test
-        fun `should not allow updating to duplicate city name`() {
+        fun `should not allow updating to duplicate city name`(){
             runBlocking {
-                repository.create(City(0L, "London", fixedInstant, fixedInstant))
-                val paris = repository.create(City(0L, "Paris", fixedInstant, fixedInstant))
+                dbQuery {
+                    repository.create(City(0L, "London", fixedInstant, fixedInstant))
+                    val paris = repository.create(City(0L, "Paris", fixedInstant, fixedInstant))
 
-                assertFails {
-                    repository.update(paris.cityId, paris.copy(cityName = "London"))
+                    assertFails {
+                        repository.update(paris.cityId, paris.copy(cityName = "London"))
+                    }
                 }
             }
         }
@@ -203,8 +206,8 @@ class CityRepositoryImplTest {
     inner class `doesExist by name function` {
 
         @Test
-        fun `should return true when city name exists`() {
-            runBlocking {
+        fun `should return true when city name exists`() = runBlocking {
+            dbQuery {
                 repository.create(City(0L, "London", fixedInstant, fixedInstant))
             }
 
@@ -216,15 +219,15 @@ class CityRepositoryImplTest {
         }
 
         @Test
-        fun `should return false when city name does not exist`() {
+        fun `should return false when city name does not exist`() = runBlocking {
             val exists = transaction { repository.doesExist("NonExistentCity") }
 
             assertFalse(exists)
         }
 
         @Test
-        fun `should be case sensitive`() {
-            runBlocking {
+        fun `should be case sensitive`() = runBlocking {
+            dbQuery {
                 repository.create(City(0L, "London", fixedInstant, fixedInstant))
             }
             val existsLowercase = transaction {
@@ -236,8 +239,8 @@ class CityRepositoryImplTest {
         }
 
         @Test
-        fun `should not match partial names`() {
-            runBlocking {
+        fun `should not match partial names`() = runBlocking {
+            dbQuery {
                 repository.create(City(0L, "New York", fixedInstant, fixedInstant))
             }
 
@@ -247,8 +250,8 @@ class CityRepositoryImplTest {
         }
 
         @Test
-        fun `should handle special characters in city names`() {
-            runBlocking {
+        fun `should handle special characters in city names`() = runBlocking {
+            dbQuery {
                 repository.create(City(0L, "São Paulo", fixedInstant, fixedInstant))
             }
 
@@ -262,12 +265,12 @@ class CityRepositoryImplTest {
     inner class `doesExist by id function` {
 
         @Test
-        fun `should return true when city id exists`() {
-            val city = runBlocking {
+        fun `should return true when city id exists`() = runBlocking {
+            val city = dbQuery {
                 repository.create(City(0L, "London", fixedInstant, fixedInstant))
             }
 
-            val exists = runBlocking {
+            val exists = dbQuery {
                 repository.doesExist(city.cityId)
             }
 
@@ -275,8 +278,8 @@ class CityRepositoryImplTest {
         }
 
         @Test
-        fun `should return false when city id does not exist`() {
-            val exists = runBlocking {
+        fun `should return false when city id does not exist`() = runBlocking {
+            val exists = dbQuery {
                 repository.doesExist(999L)
             }
 
@@ -284,8 +287,8 @@ class CityRepositoryImplTest {
         }
 
         @Test
-        fun `should return false for negative ids`() {
-            val exists = runBlocking {
+        fun `should return false for negative ids`() = runBlocking {
+            val exists = dbQuery {
                 repository.doesExist(-1L)
             }
 
@@ -293,8 +296,8 @@ class CityRepositoryImplTest {
         }
 
         @Test
-        fun `should return false for zero id`() {
-            val exists = runBlocking {
+        fun `should return false for zero id`() = runBlocking {
+            val exists = dbQuery {
                 repository.doesExist(0L)
             }
 
@@ -306,12 +309,12 @@ class CityRepositoryImplTest {
     inner class `findById function` {
 
         @Test
-        fun `should return city when found`() {
-            val createdCity = runBlocking {
+        fun `should return city when found`() = runBlocking {
+            val createdCity = dbQuery {
                 repository.create(City(0L, "London", fixedInstant, fixedInstant))
             }
 
-            val foundCity = runBlocking {
+            val foundCity = dbQuery {
                 repository.findById(createdCity.cityId)
             }
 
@@ -323,8 +326,8 @@ class CityRepositoryImplTest {
         }
 
         @Test
-        fun `should return null when city not found`() {
-            val result = runBlocking {
+        fun `should return null when city not found`() = runBlocking {
+            val result = dbQuery {
                 repository.findById(999L)
             }
 
@@ -332,18 +335,18 @@ class CityRepositoryImplTest {
         }
 
         @Test
-        fun `should return correct city among multiple cities`() {
-            val paris = runBlocking {
+        fun `should return correct city among multiple cities`() = runBlocking {
+            val paris = dbQuery {
                 repository.create(City(0L, "Paris", fixedInstant, fixedInstant))
             }
-            val london = runBlocking {
+            val london = dbQuery {
                 repository.create(City(0L, "London", fixedInstant, fixedInstant))
             }
-            val berlin = runBlocking {
+            val berlin = dbQuery {
                 repository.create(City(0L, "Berlin", fixedInstant, fixedInstant))
             }
 
-            val foundCity = runBlocking {
+            val foundCity = dbQuery {
                 repository.findById(london.cityId)
             }
 
@@ -353,8 +356,8 @@ class CityRepositoryImplTest {
         }
 
         @Test
-        fun `should handle negative ids gracefully`() {
-            val result = runBlocking {
+        fun `should handle negative ids gracefully`() = runBlocking {
+            val result = dbQuery {
                 repository.findById(-1L)
             }
 
@@ -366,27 +369,27 @@ class CityRepositoryImplTest {
     inner class `delete function` {
 
         @Test
-        fun `should delete city and return 1 when city exists`() {
-            val city = runBlocking {
+        fun `should delete city and return 1 when city exists`() = runBlocking {
+            val city = dbQuery {
                 repository.create(City(0L, "London", fixedInstant, fixedInstant))
             }
 
-            val deleted = runBlocking {
+            val deleted = dbQuery {
                 repository.delete(city.cityId)
             }
 
             assertEquals(1, deleted)
 
             // Verify city is actually deleted
-            val found = runBlocking {
+            val found = dbQuery {
                 repository.findById(city.cityId)
             }
             assertNull(found)
         }
 
         @Test
-        fun `should return 0 when city does not exist`() {
-            val deleted = runBlocking {
+        fun `should return 0 when city does not exist`() = runBlocking {
+            val deleted = dbQuery {
                 repository.delete(999L)
             }
 
@@ -394,15 +397,15 @@ class CityRepositoryImplTest {
         }
 
         @Test
-        fun `should not allow deleting same city twice`() {
-            val city = runBlocking {
+        fun `should not allow deleting same city twice`() = runBlocking {
+            val city = dbQuery {
                 repository.create(City(0L, "Paris", fixedInstant, fixedInstant))
             }
 
-            val firstDelete = runBlocking {
+            val firstDelete = dbQuery {
                 repository.delete(city.cityId)
             }
-            val secondDelete = runBlocking {
+            val secondDelete = dbQuery {
                 repository.delete(city.cityId)
             }
 
@@ -411,28 +414,28 @@ class CityRepositoryImplTest {
         }
 
         @Test
-        fun `should only delete specified city`() {
-            val london = runBlocking {
+        fun `should only delete specified city`() = runBlocking {
+            val london = dbQuery {
                 repository.create(City(0L, "London", fixedInstant, fixedInstant))
             }
-            val paris = runBlocking {
+            val paris = dbQuery {
                 repository.create(City(0L, "Paris", fixedInstant, fixedInstant))
             }
 
-            runBlocking {
+            dbQuery {
                 repository.delete(london.cityId)
             }
 
-            val londonFound = runBlocking { repository.findById(london.cityId) }
-            val parisFound = runBlocking { repository.findById(paris.cityId) }
+            val londonFound = dbQuery { repository.findById(london.cityId) }
+            val parisFound = dbQuery { repository.findById(paris.cityId) }
 
             assertNull(londonFound)
             assertNotNull(parisFound)
         }
 
         @Test
-        fun `should handle deleting with negative id`() {
-            val deleted = runBlocking {
+        fun `should handle deleting with negative id`()= runBlocking  {
+            val deleted = dbQuery {
                 repository.delete(-1L)
             }
 
@@ -444,8 +447,8 @@ class CityRepositoryImplTest {
     inner class `getAll function` {
 
         @Test
-        fun `should return empty list when no cities exist`() {
-            val cities = runBlocking {
+        fun `should return empty list when no cities exist`()= runBlocking  {
+            val cities = dbQuery {
                 repository.findAll()
             }
 
@@ -453,14 +456,14 @@ class CityRepositoryImplTest {
         }
 
         @Test
-        fun `should return all cities`() {
-            runBlocking {
+        fun `should return all cities`() = runBlocking {
+            dbQuery {
                 repository.create(City(0L, "London", fixedInstant, fixedInstant))
                 repository.create(City(0L, "Paris", fixedInstant, fixedInstant))
                 repository.create(City(0L, "Berlin", fixedInstant, fixedInstant))
             }
 
-            val cities = runBlocking {
+            val cities = dbQuery {
                 repository.findAll()
             }
 
@@ -471,12 +474,12 @@ class CityRepositoryImplTest {
         }
 
         @Test
-        fun `should return cities with all fields populated`() {
-            val createdCity = runBlocking {
+        fun `should return cities with all fields populated`() = runBlocking {
+            val createdCity = dbQuery {
                 repository.create(City(0L, "Tokyo", fixedInstant, fixedInstant))
             }
 
-            val cities = runBlocking {
+            val cities = dbQuery {
                 repository.findAll()
             }
 
@@ -493,45 +496,45 @@ class CityRepositoryImplTest {
     inner class `integration tests` {
 
         @Test
-        fun `should handle full CRUD lifecycle`() {
+        fun `should handle full CRUD lifecycle`() = runBlocking {
             // Create
-            val city = runBlocking {
+            val city = dbQuery {
                 repository.create(City(0L, "London", fixedInstant, fixedInstant))
             }
             assertNotNull(city.cityId)
 
             // Read
-            val foundCity = runBlocking {
+            val foundCity = dbQuery {
                 repository.findById(city.cityId)
             }
             assertNotNull(foundCity)
             assertEquals("London", foundCity.cityName)
 
             // Update
-            val updatedCity = runBlocking {
+            val updatedCity = dbQuery {
                 repository.update(city.cityId, city.copy(cityName = "Greater London"))
             }
             assertNotNull(updatedCity)
             assertEquals("Greater London", updatedCity.cityName)
 
             // Delete
-            val deleted = runBlocking {
+            val deleted = dbQuery {
                 repository.delete(city.cityId)
             }
             assertEquals(1, deleted)
 
             // Verify deletion
-            val afterDelete = runBlocking {
+            val afterDelete = dbQuery {
                 repository.findById(city.cityId)
             }
             assertNull(afterDelete)
         }
 
         @Test
-        fun `should handle concurrent city creation`() {
+        fun `should handle concurrent city creation`() = runBlocking {
             val cityNames = listOf("London", "Paris", "Berlin", "Madrid", "Rome")
 
-            val cities = runBlocking {
+            val cities = dbQuery  {
                 cityNames.map { name ->
                     repository.create(City(0L, name, fixedInstant, fixedInstant))
                 }
@@ -546,27 +549,27 @@ class CityRepositoryImplTest {
         }
 
         @Test
-        fun `should maintain data integrity after multiple operations`() {
+        fun `should maintain data integrity after multiple operations`() = runBlocking {
             // Create multiple cities
-            val london = runBlocking {
+            val london = dbQuery {
                 repository.create(City(0L, "London", fixedInstant, fixedInstant))
             }
-            val paris = runBlocking {
+            val paris = dbQuery {
                 repository.create(City(0L, "Paris", fixedInstant, fixedInstant))
             }
 
             // Update one
-            runBlocking {
+            dbQuery {
                 repository.update(london.cityId, london.copy(cityName = "Greater London"))
             }
 
             // Delete another
-            runBlocking {
+            dbQuery {
                 repository.delete(paris.cityId)
             }
 
             // Verify final state
-            val allCities = runBlocking {
+            val allCities = dbQuery {
                 repository.findAll()
             }
 

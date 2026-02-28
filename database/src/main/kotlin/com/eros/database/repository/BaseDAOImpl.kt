@@ -11,6 +11,7 @@ import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.insertReturning
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
+import org.jetbrains.exposed.v1.jdbc.updateReturning
 
 /**
  * Abstract base DAO implementation providing standard CRUD operations via Exposed ORM.
@@ -49,37 +50,34 @@ abstract class BaseDAOImpl<ID : Comparable<ID>, T>(
     // IBaseDAO default implementations
     // -------------------------------------------------------------------------
 
-    override suspend fun create(entity: T): T = dbQuery {
-        table.insertReturning { toStatement(it, entity) }.single().toDomain()
+    override suspend fun create(entity: T): T{
+        return table.insertReturning { toStatement(it, entity) }.single().toDomain()
     }
 
-    override suspend fun findById(id: ID): T? = dbQuery {
-        table.selectAll()
+    override suspend fun findById(id: ID): T?{
+        return table.selectAll()
             .where { idColumn eq id }
             .singleOrNull()
             ?.toDomain()
     }
 
-    override suspend fun findAll(): List<T> = dbQuery {
-        table.selectAll().map { it.toDomain() }
+    override suspend fun findAll(): List<T>{
+        return table.selectAll().map { it.toDomain() }
     }
 
-    override suspend fun update(id: ID, entity: T): T? = dbQuery {
-        val rowsUpdated = table.update({ idColumn eq id }) { toStatement(it, entity) }
-
-        if (rowsUpdated == 0) null
-        else table.selectAll()
-            .where { idColumn eq id }
-            .singleOrNull()
-            ?.toDomain()
+    override suspend fun update(id: ID, entity: T): T? {
+        return table.updateReturning(
+            where = {idColumn eq id },
+            body = { toStatement(it, entity) }
+        ).singleOrNull()?.toDomain()
     }
 
-    override suspend fun delete(id: ID): Int = dbQuery {
-        table.deleteWhere { idColumn eq id }
+    override suspend fun delete(id: ID): Int{
+        return table.deleteWhere { idColumn eq id }
     }
 
-    override suspend fun doesExist(id: ID): Boolean = dbQuery {
-        table.selectAll()
+    override suspend fun doesExist(id: ID): Boolean{
+        return table.selectAll()
             .where { idColumn eq id }
             .empty().not()
     }

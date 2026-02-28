@@ -10,6 +10,7 @@ import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.statements.UpdateBuilder
 import org.jetbrains.exposed.v1.jdbc.insertReturning
 import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.updateReturning
 import java.time.Clock
 import java.time.Instant
 
@@ -36,9 +37,9 @@ class CityRepositoryImpl(
     // -------------------------------------------------------------------------
 
     /** Uses insertReturning to avoid a separate re-fetch round-trip after insert. */
-    override suspend fun create(entity: City): City = dbQuery {
+    override suspend fun create(entity: City): City{
         val now = Instant.now(clock)
-        Cities.insertReturning {
+        return Cities.insertReturning {
             it[cityName] = entity.cityName
             it[createdAt] = now
             it[updatedAt] = now

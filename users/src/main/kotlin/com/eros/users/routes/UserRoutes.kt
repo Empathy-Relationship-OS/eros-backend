@@ -102,7 +102,7 @@ fun Route.userProfileRoutes(userService: UserService, profileAccessControl: Prof
             val principalUser = userService.findByUserId(principal.uid)
                 ?: throw NotFoundException("User profile not found")
 
-            val sharedInterests = userService.getSharedInterests(principalUser, targetUser)
+            val sharedInterests = userService.getSharedInterests(principalUser.interests, targetUser.interests)
             call.respond(HttpStatusCode.OK, PublicProfileResponse.from(targetUser, media, sharedInterests))
         }
 
