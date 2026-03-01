@@ -1,7 +1,6 @@
 package com.eros.users.repository
 
 import com.eros.common.errors.BadRequestException
-import com.eros.database.dbQuery
 import com.eros.database.repository.BaseDAOImpl
 import com.eros.users.models.*
 import com.eros.users.table.Cities
@@ -23,11 +22,13 @@ import org.slf4j.LoggerFactory
 import java.time.Clock
 import java.time.Instant
 
-private val logger = LoggerFactory.getLogger(PreferenceRepositoryImpl::class.java)
-
 class PreferenceRepositoryImpl(
     private val clock: Clock = Clock.systemUTC()
 ) : BaseDAOImpl<String, UserPreference>(UserPreferences, UserPreferences.userId), PreferenceRepository {
+
+    companion object{
+        private val logger = LoggerFactory.getLogger(PreferenceRepositoryImpl::class.java)
+    }
 
     // -------------------------------------------------------------------------
     // Mapping
@@ -79,7 +80,7 @@ class PreferenceRepositoryImpl(
     // IBaseDAO overrides — also manages city preferences
     // -------------------------------------------------------------------------
 
-    override suspend fun create(entity: UserPreference): UserPreference = dbQuery {
+    override suspend fun create(entity: UserPreference): UserPreference{
         // Insert preference
         UserPreferences.insert { toStatement(it, entity) }
 
@@ -92,10 +93,10 @@ class PreferenceRepositoryImpl(
         }
 
         // Return the result (still inside transaction)
-        getUserPreferenceWithCitiesWithinTransaction(entity.userId)
+        return getUserPreferenceWithCities(entity.userId)
     }
 
-    override suspend fun update(id: String, entity: UserPreference): UserPreference? = dbQuery {
+    override suspend fun update(id: String, entity: UserPreference): UserPreference? {
 
         //val rowsUpdated = super.update(id, entity)
         val rowsUpdated = UserPreferences.update({ UserPreferences.userId eq id }) { toStatement(it, entity) }
@@ -128,14 +129,14 @@ class PreferenceRepositoryImpl(
                 this[UserCitiesPreference.createdAt] = Instant.now(clock)
             }
         }
-        getUserPreferenceWithCitiesWithinTransaction(entity.userId)
+        return getUserPreferenceWithCities(entity.userId)
     }
 
     // -------------------------------------------------------------------------
     // PreferenceRepository extras
     // -------------------------------------------------------------------------
 
-    override suspend fun getUserPreferenceWithCities(userId: String): UserPreference = dbQuery {
+    override suspend fun getUserPreferenceWithCities(userId: String): UserPreference {
         val preferences = UserPreferences.selectAll()
             .where { UserPreferences.userId eq userId }
             .single()
@@ -152,23 +153,6 @@ class PreferenceRepositoryImpl(
                 )
             }
 
-        preferences.toDomain().copy(dateCities = cities)
-    }
-
-    fun getUserPreferenceWithCitiesWithinTransaction(userId: String): UserPreference {
-        val preferences = UserPreferences.selectAll().where { UserPreferences.userId eq userId }.single()
-
-        val cities = (Cities innerJoin UserCitiesPreference)
-            .selectAll()
-            .where { UserCitiesPreference.userId eq userId }
-            .map { row ->
-                City(
-                    cityId = row[Cities.id],
-                    cityName = row[Cities.cityName],
-                    createdAt = row[Cities.createdAt],
-                    updatedAt = row[Cities.updatedAt]
-                )
-            }
         return preferences.toDomain().copy(dateCities = cities)
     }
 

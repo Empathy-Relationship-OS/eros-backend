@@ -3,12 +3,14 @@ package com.eros.database.repository
 import org.jetbrains.exposed.v1.core.Op
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.statements.UpdateBuilder
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.insertReturning
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
+import org.jetbrains.exposed.v1.jdbc.updateReturning
 
 /**
  * Abstract base DAO implementation for tables with composite primary keys.
@@ -134,15 +136,10 @@ abstract class CompositeKeyDAOImpl<ID, T>(
     }
 
     override fun update(id: ID, entity: T): T? {
-        val rowsUpdated = table.update({ buildKeyCondition(id) }) {
-            toStatement(it, entity)
-        }
-
-        return if (rowsUpdated == 0) null
-        else table.selectAll()
-            .where { buildKeyCondition(id) }
-            .singleOrNull()
-            ?.toDomain()
+        return table.updateReturning(
+            where = {buildKeyCondition(id)},
+            body = { toStatement(it, entity) }
+        ).singleOrNull()?.toDomain()
     }
 
     override fun delete(id: ID): Int {

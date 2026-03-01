@@ -3,7 +3,7 @@ package com.eros.users.service
 import com.eros.common.errors.BadRequestException
 import com.eros.common.errors.ConflictException
 import com.eros.common.errors.NotFoundException
-import com.eros.database.dbQuerySuspend
+import com.eros.database.dbQuery
 import com.eros.users.models.AddUserQARequest
 import com.eros.users.models.CreateQuestionRequest
 import com.eros.users.models.Question
@@ -34,7 +34,7 @@ class QAService(
      * @param request [CreateQuestionRequest] containing a question string to be added.
      * @throws ConflictException if the question already exists.
      */
-    suspend fun createNewQuestion(request: CreateQuestionRequest): Question {
+    suspend fun createNewQuestion(request: CreateQuestionRequest): Question = dbQuery {
         // Ensure that the question is not in the table.
         val exists = questionRepository.questionExists(request.question)
         if (exists) throw ConflictException("Question already exists.")
@@ -46,7 +46,7 @@ class QAService(
             createdAt = now,
             updatedAt = now
         )
-        return questionRepository.create(question)
+        questionRepository.create(question)
     }
 
 
@@ -56,7 +56,7 @@ class QAService(
      * @param QuestionDTO The id of the question with the updated question.
      * @throws NotFoundException if the id is not in the database.
      */
-    suspend fun updateQuestion(request: QuestionDTO): Question? {
+    suspend fun updateQuestion(request: QuestionDTO): Question? = dbQuery{
         val existing = questionRepository.findById(request.questionId)
             ?: throw NotFoundException("Can't find question with id: ${request.questionId}")
         val updated = Question(
@@ -65,7 +65,7 @@ class QAService(
             createdAt = existing.createdAt,
             updatedAt = Instant.now(clock)
         )
-        return questionRepository.update(request.questionId, updated)
+        questionRepository.update(request.questionId, updated)
     }
 
     /**
@@ -73,8 +73,8 @@ class QAService(
      *
      * @return List of [Question] objects for all the questions in the database.
      */
-    suspend fun getAllQuestions(): List<Question> {
-        return questionRepository.findAll()
+    suspend fun getAllQuestions(): List<Question> = dbQuery{
+        questionRepository.findAll()
     }
 
     /**
@@ -84,8 +84,8 @@ class QAService(
      *
      * @return [Int] The number of rows deleted (1 or 0).
      */
-    suspend fun deleteQuestion(questionId : Long): Int{
-        return questionRepository.delete(questionId)
+    suspend fun deleteQuestion(questionId: Long): Int = dbQuery {
+        questionRepository.delete(questionId)
     }
 
     // -------------------------------------------------------------------------
@@ -101,33 +101,32 @@ class QAService(
      * @throws BadRequestException if the user already had 3 QAs answered.
      * @throws ConflictException if the user has already answered this question.
      */
-    suspend fun createUserQA(request: AddUserQARequest): UserQAItem {
+    suspend fun createUserQA(request: AddUserQARequest): UserQAItem = dbQuery {
         val now = Instant.now(clock)
 
-        return dbQuerySuspend {
-            // Ensure the user can't add more than 3 Q&A.
-            val currentCount = userQARepository.findAllByUserId(request.userId).size
-            if (currentCount == 3) {
-                throw BadRequestException("Maximum of 3 Q&A's allowed per user.")
-            }
-
-            // Ensure the user hasn't already answered this question.
-            val exists = userQARepository.doesExist(UserQAId(request.userId, request.question.questionId))
-            if (exists) {
-                throw ConflictException("User already has answered this question.")
-            }
-
-            // Create UserQAObject and create it in the database.
-            val userQA = UserQAItem(
-                userId = request.userId,
-                question = Question(request.question.questionId, request.question.question, now, now),
-                answer = request.answer,
-                displayOrder = request.displayOrder,
-                createdAt = now,
-                updatedAt = now
-            )
-            userQARepository.create(userQA)
+        // Ensure the user can't add more than 3 Q&A.
+        val currentCount = userQARepository.findAllByUserId(request.userId).size
+        if (currentCount == 3) {
+            throw BadRequestException("Maximum of 3 Q&A's allowed per user.")
         }
+
+        // Ensure the user hasn't already answered this question.
+        val exists = userQARepository.doesExist(UserQAId(request.userId, request.question.questionId))
+        if (exists) {
+            throw ConflictException("User already has answered this question.")
+        }
+
+        // Create UserQAObject and create it in the database.
+        val userQA = UserQAItem(
+            userId = request.userId,
+            question = Question(request.question.questionId, request.question.question, now, now),
+            answer = request.answer,
+            displayOrder = request.displayOrder,
+            createdAt = now,
+            updatedAt = now
+        )
+        userQARepository.create(userQA)
+
     }
 
     /**
@@ -139,13 +138,18 @@ class QAService(
      * @return [UserQAItem] the updated QA record as a domain object.
      * @throws NotFoundException if the QA record can't be found.
      */
-    suspend fun updateUserQA(request: UpdateUserQARequest): UserQAItem = dbQuerySuspend {
+    suspend fun updateUserQA(request: UpdateUserQARequest): UserQAItem = dbQuery {
         val now = Instant.now(clock)
         val updateId = UserQAId(request.userId, request.question.questionId)
         val existing = userQARepository.findById(updateId) ?: throw NotFoundException("User Q&A could not be found.")
         val updates = UserQAItem(
             userId = request.userId,
-            question = Question(request.question.questionId, request.question.question, existing.createdAt, existing.updatedAt),
+            question = Question(
+                request.question.questionId,
+                request.question.question,
+                existing.createdAt,
+                existing.updatedAt
+            ),
             answer = request.answer ?: existing.answer,
             displayOrder = request.displayOrder ?: existing.displayOrder,
             createdAt = existing.createdAt,
@@ -159,7 +163,7 @@ class QAService(
      *
      * @param request UserQACollectionResponse DTO that contains information about all the QAs to be added.
      */
-    suspend fun createUserQACollection(request: UserQACollectionDTO): UserQACollection = dbQuerySuspend {
+    suspend fun createUserQACollection(request: UserQACollectionDTO): UserQACollection = dbQuery {
         val now = Instant.now(clock)
 
         // Delete all existing - all in one transaction
@@ -190,7 +194,7 @@ class QAService(
      * @param userId The userId of the user to retrieve the records for.
      * @return [List] of [UserQAItem] retrieved for that user.
      */
-    suspend fun getAllUserQAs(userId: String): List<UserQAItem> = dbQuerySuspend {
+    suspend fun getAllUserQAs(userId: String): List<UserQAItem> = dbQuery {
         userQARepository.findAllByUserId(userId)
     }
 
@@ -202,7 +206,7 @@ class QAService(
      * @param questionId id of the question that is being removed from their QA.
      * @return [Int] The number of rows deleted (1 or 0).
      */
-    suspend fun deleteUserQA(userId: String, questionId: Long): Int = dbQuerySuspend {
+    suspend fun deleteUserQA(userId: String, questionId: Long): Int = dbQuery {
         userQARepository.delete(UserQAId(userId, questionId))
     }
 

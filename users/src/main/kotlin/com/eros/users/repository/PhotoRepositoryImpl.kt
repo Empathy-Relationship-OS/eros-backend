@@ -52,29 +52,29 @@ class PhotoRepositoryImpl(
     // Queries
     // -------------------------------------------------------------------------
 
-    override suspend fun findByUserId(userId: String): List<UserMediaItem> = dbQuery {
-        UserMedia.selectAll()
+    override suspend fun findByUserId(userId: String): List<UserMediaItem>{
+        return UserMedia.selectAll()
             .where { UserMedia.userId eq userId }
             .orderBy(UserMedia.displayOrder)
             .map { it.toMediaItem() }
     }
 
-    override suspend fun findById(id: Long): UserMediaItem? = dbQuery {
-        UserMedia.selectAll()
+    override suspend fun findById(id: Long): UserMediaItem? {
+        return UserMedia.selectAll()
             .where { UserMedia.id eq id }
             .singleOrNull()
             ?.toMediaItem()
     }
 
-    override suspend fun findByDisplayOrder(userId: String, displayOrder: Int): UserMediaItem? = dbQuery {
-        UserMedia.selectAll()
+    override suspend fun findByDisplayOrder(userId: String, displayOrder: Int): UserMediaItem?{
+        return UserMedia.selectAll()
             .where { (UserMedia.userId eq userId) and (UserMedia.displayOrder eq displayOrder) }
             .singleOrNull()
             ?.toMediaItem()
     }
 
-    override suspend fun countByUserId(userId: String): Int = dbQuery {
-        UserMedia.selectAll()
+    override suspend fun countByUserId(userId: String): Int {
+        return UserMedia.selectAll()
             .where { UserMedia.userId eq userId }
             .count()
             .toInt()
@@ -90,7 +90,7 @@ class PhotoRepositoryImpl(
         mediaType: MediaType,
         displayOrder: Int,
         isPrimary: Boolean
-    ): UserMediaItem = dbQuery {
+    ): UserMediaItem {
         val now = Instant.now(clock)
         val id = UserMedia.insert {
             it[UserMedia.userId]       = userId
@@ -102,25 +102,25 @@ class PhotoRepositoryImpl(
             it[UserMedia.updatedAt]    = now
         } get UserMedia.id
 
-        UserMedia.selectAll()
+        return UserMedia.selectAll()
             .where { UserMedia.id eq id }
             .single()
             .toMediaItem()
     }
 
-    override suspend fun updateThumbnailUrl(id: Long, thumbnailUrl: String): UserMediaItem? = dbQuery {
+    override suspend fun updateThumbnailUrl(id: Long, thumbnailUrl: String): UserMediaItem?{
         val rows = UserMedia.update({ UserMedia.id eq id }) {
             it[UserMedia.thumbnailUrl] = thumbnailUrl
             it[UserMedia.updatedAt]    = Instant.now(clock)
         }
-        if (rows == 0) null
+        return if (rows == 0) null
         else UserMedia.selectAll()
             .where { UserMedia.id eq id }
             .singleOrNull()
             ?.toMediaItem()
     }
 
-    override suspend fun setPrimary(userId: String, id: Long): UserMediaItem? = dbQuery {
+    override suspend fun setPrimary(userId: String, id: Long): UserMediaItem?{
         val now = Instant.now(clock)
         // Clear isPrimary for all rows belonging to this user
         UserMedia.update({ UserMedia.userId eq userId }) {
@@ -135,14 +135,14 @@ class PhotoRepositoryImpl(
             it[UserMedia.updatedAt] = now
         }
 
-        if (rows == 0) null
+        return if (rows == 0) null
         else UserMedia.selectAll()
             .where { UserMedia.id eq id }
             .singleOrNull()
             ?.toMediaItem()
     }
 
-    override suspend fun deleteById(id: Long): Int = dbQuery {
-        UserMedia.deleteWhere { UserMedia.id eq id }
+    override suspend fun deleteById(id: Long): Int {
+        return UserMedia.deleteWhere { UserMedia.id eq id }
     }
 }
