@@ -37,9 +37,9 @@ class CityRepositoryImpl(
     // -------------------------------------------------------------------------
 
     /** Uses insertReturning to avoid a separate re-fetch round-trip after insert. */
-    override suspend fun create(entity: City): City{
+    override suspend fun create(entity: City): City = dbQuery {
         val now = Instant.now(clock)
-        return Cities.insertReturning {
+        Cities.insertReturning {
             it[cityName] = entity.cityName
             it[createdAt] = now
             it[updatedAt] = now

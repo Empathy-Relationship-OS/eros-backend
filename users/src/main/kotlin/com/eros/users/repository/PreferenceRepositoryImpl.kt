@@ -1,6 +1,7 @@
 package com.eros.users.repository
 
 import com.eros.common.errors.BadRequestException
+import com.eros.database.dbQuery
 import com.eros.database.repository.BaseDAOImpl
 import com.eros.users.models.*
 import com.eros.users.table.Cities
@@ -21,6 +22,7 @@ import org.jetbrains.exposed.v1.jdbc.update
 import org.slf4j.LoggerFactory
 import java.time.Clock
 import java.time.Instant
+
 
 class PreferenceRepositoryImpl(
     private val clock: Clock = Clock.systemUTC()
@@ -80,7 +82,7 @@ class PreferenceRepositoryImpl(
     // IBaseDAO overrides — also manages city preferences
     // -------------------------------------------------------------------------
 
-    override suspend fun create(entity: UserPreference): UserPreference{
+    override suspend fun create(entity: UserPreference): UserPreference = dbQuery {
         // Insert preference
         UserPreferences.insert { toStatement(it, entity) }
 
@@ -93,10 +95,10 @@ class PreferenceRepositoryImpl(
         }
 
         // Return the result (still inside transaction)
-        return getUserPreferenceWithCities(entity.userId)
+        getUserPreferenceWithCitiesWithinTransaction(entity.userId)
     }
 
-    override suspend fun update(id: String, entity: UserPreference): UserPreference? {
+    override suspend fun update(id: String, entity: UserPreference): UserPreference? = dbQuery {
 
         //val rowsUpdated = super.update(id, entity)
         val rowsUpdated = UserPreferences.update({ UserPreferences.userId eq id }) { toStatement(it, entity) }
@@ -129,14 +131,14 @@ class PreferenceRepositoryImpl(
                 this[UserCitiesPreference.createdAt] = Instant.now(clock)
             }
         }
-        return getUserPreferenceWithCities(entity.userId)
+        getUserPreferenceWithCitiesWithinTransaction(entity.userId)
     }
 
     // -------------------------------------------------------------------------
     // PreferenceRepository extras
     // -------------------------------------------------------------------------
 
-    override suspend fun getUserPreferenceWithCities(userId: String): UserPreference {
+    override suspend fun getUserPreferenceWithCities(userId: String): UserPreference = dbQuery {
         val preferences = UserPreferences.selectAll()
             .where { UserPreferences.userId eq userId }
             .single()
@@ -153,6 +155,23 @@ class PreferenceRepositoryImpl(
                 )
             }
 
+        preferences.toDomain().copy(dateCities = cities)
+    }
+
+    fun getUserPreferenceWithCitiesWithinTransaction(userId: String): UserPreference {
+        val preferences = UserPreferences.selectAll().where { UserPreferences.userId eq userId }.single()
+
+        val cities = (Cities innerJoin UserCitiesPreference)
+            .selectAll()
+            .where { UserCitiesPreference.userId eq userId }
+            .map { row ->
+                City(
+                    cityId = row[Cities.id],
+                    cityName = row[Cities.cityName],
+                    createdAt = row[Cities.createdAt],
+                    updatedAt = row[Cities.updatedAt]
+                )
+            }
         return preferences.toDomain().copy(dateCities = cities)
     }
 
@@ -165,8 +184,6 @@ class PreferenceRepositoryImpl(
      * @return `1` if UserPreference was remove, otherwise `0`.
      */
     override suspend fun delete(id: String): Int {
-        //todo - Move this to the service layer?
-
         // Delete the UserCitiesPreference records.
         UserCitiesPreference.deleteWhere { UserPreferences.userId eq id }
         // Delete the UserPreference record.

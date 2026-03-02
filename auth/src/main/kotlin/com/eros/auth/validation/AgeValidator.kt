@@ -5,8 +5,6 @@ import java.time.Period
 import java.time.format.DateTimeParseException
 import org.slf4j.LoggerFactory
 
-private val logger = LoggerFactory.getLogger(AgeValidator::class.javaObjectType)
-
 
 /**
  * Age validator.
@@ -21,6 +19,8 @@ private val logger = LoggerFactory.getLogger(AgeValidator::class.javaObjectType)
  * `isValid` - Returns `true` if a valid age otherwise `false`.
  */
 object AgeValidator {
+    private val logger = LoggerFactory.getLogger(AgeValidator::class.javaObjectType)
+
     /**
      * Validates that the user is at least 18 years old.
      * Birthdate should be provided in ISO-8601 format: YYYY-MM-DD

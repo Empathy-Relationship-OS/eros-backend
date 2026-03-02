@@ -40,7 +40,7 @@ data class UserExistsResponse(
  *
  * @param userService Service for user data operations
  */
-fun Route.userProfileRoutes(userService: UserService, profileAccessControl : ProfileAccessControl) {
+fun Route.userProfileRoutes(userService: UserService, profileAccessControl: ProfileAccessControl) {
     route("/users") {
         /**
          * POST /users
@@ -155,24 +155,24 @@ fun Route.userProfileRoutes(userService: UserService, profileAccessControl : Pro
             }
 
             //todo: This function should be moved to the admin/employee route
-                        /*
-            /**
-             * GET /users/{id}
-             *
-             * Retrieves a user full profile by ID.
-             *
-             * Request Headers:
-             * - Authorization: Bearer <firebase-id-token>
-             *
-             * Response: User JSON
-             */
-            get("/id/{id}") {
-                val principal = call.requireFirebasePrincipal()
-                val userId = call.parameters["id"] ?: throw BadRequestException("User ID is required")
-                val user = userService.findByUserId(userId) ?: throw NotFoundException("User profile not found")
-                call.respond(HttpStatusCode.OK, user)
-            }
-            */
+            /*
+/**
+ * GET /users/{id}
+ *
+ * Retrieves a user full profile by ID.
+ *
+ * Request Headers:
+ * - Authorization: Bearer <firebase-id-token>
+ *
+ * Response: User JSON
+ */
+get("/id/{id}") {
+    val principal = call.requireFirebasePrincipal()
+    val userId = call.parameters["id"] ?: throw BadRequestException("User ID is required")
+    val user = userService.findByUserId(userId) ?: throw NotFoundException("User profile not found")
+    call.respond(HttpStatusCode.OK, user)
+}
+*/
 
             /**
              * PATCH /users/me
@@ -240,9 +240,9 @@ fun Route.userProfileRoutes(userService: UserService, profileAccessControl : Pro
             val user = userService.adminUpdateUser(targetUserId, request)
                 ?: throw NotFoundException("User profile not found")
 
-                    call.application.log.info("Admin update performed on user $targetUserId by ${call.requireFirebasePrincipal().uid}")
-                    call.respond(HttpStatusCode.OK, user)
-                }
+                call.application.log.info("Admin update performed on user $targetUserId by ${call.requireFirebasePrincipal().uid}")
+                call.respond(HttpStatusCode.OK, user)
             }
         }
+    }
 }
