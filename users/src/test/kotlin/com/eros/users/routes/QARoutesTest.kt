@@ -69,7 +69,7 @@ class QARoutesTest {
             coEvery { mockQAService.createUserQA(request) } returns qa
             //coEvery { mockQAService.getUserQAsCount(request.userId)} returns 0
 
-            val response = client.post("/qa") {
+            val response = client.post("/users/qa") {
                 setAuthenticatedUser(request.userId)
                 contentType(ContentType.Application.Json)
                 setBody(request)
@@ -89,7 +89,7 @@ class QARoutesTest {
 
             val request = createValidQARequest()
 
-            val response = client.post("/qa") {
+            val response = client.post("/users/qa") {
                 contentType(ContentType.Application.Json)
                 setBody(request)
             }
@@ -104,7 +104,7 @@ class QARoutesTest {
 
             val request = createValidQARequest("unauthorized-test-user")
 
-            val response = client.post("/qa") {
+            val response = client.post("/users/qa") {
                 setAuthenticatedUser("not-provided-user")
                 contentType(ContentType.Application.Json)
                 setBody(request)
@@ -124,7 +124,7 @@ class QARoutesTest {
 
             coEvery { mockQAService.createUserQA(request) } throws BadRequestException("Maximum of 3 Q&A's allowed per user.")
 
-            val response = client.post("/qa") {
+            val response = client.post("/users/qa") {
                 setAuthenticatedUser(request.userId)
                 contentType(ContentType.Application.Json)
                 setBody(request)
@@ -141,7 +141,7 @@ class QARoutesTest {
             val qa = createValidQARequest()
             coEvery { mockQAService.createUserQA(any()) } throws ConflictException("User already has answered this question.")
 
-            val response = client.post("/qa") {
+            val response = client.post("/users/qa") {
                 setAuthenticatedUser("test-user-id")
                 contentType(ContentType.Application.Json)
                 setBody(qa)
@@ -165,7 +165,7 @@ class QARoutesTest {
 
             coEvery { mockQAService.getAllUserQAs(userId) } returns listOf(qa1, qa2)
 
-            val response = client.get("/qa/me") {
+            val response = client.get("/users/qa/me") {
                 setAuthenticatedUser(userId)
             }
 
@@ -186,7 +186,7 @@ class QARoutesTest {
             val userId = "test-user-123"
             coEvery { mockQAService.getAllUserQAs(userId) } returns emptyList()
 
-            val response = client.get("/qa/me") {
+            val response = client.get("/users/qa/me") {
                 setAuthenticatedUser(userId)
             }
 
@@ -201,7 +201,7 @@ class QARoutesTest {
             setupTestApp()
             val client = configuredClient()
 
-            val response = client.get("/qa/me")
+            val response = client.get("/users/qa/me")
 
             assertEquals(HttpStatusCode.Unauthorized, response.status)
             coVerify(exactly = 0) { mockQAService.getAllUserQAs(any()) }
@@ -223,7 +223,7 @@ class QARoutesTest {
 
             coEvery { mockQAService.updateUserQA(request) } returns updatedQA
 
-            val response = client.patch("/qa/me") {
+            val response = client.patch("/users/qa/me") {
                 setAuthenticatedUser(userId)
                 contentType(ContentType.Application.Json)
                 setBody(request)
@@ -242,7 +242,7 @@ class QARoutesTest {
             val targetUser = "other-user-456"
             val request = validUpdateQARequest(targetUser)
 
-            val response = client.patch("/qa/me") {
+            val response = client.patch("/users/qa/me") {
                 setAuthenticatedUser(authenticatedUser)
                 contentType(ContentType.Application.Json)
                 setBody(request)
@@ -263,7 +263,7 @@ class QARoutesTest {
 
             coEvery { mockQAService.updateUserQA(request) } throws NotFoundException("QA not found")
 
-            val response = client.patch("/qa/me") {
+            val response = client.patch("/users/qa/me") {
                 setAuthenticatedUser(userId)
                 contentType(ContentType.Application.Json)
                 setBody(request)
@@ -279,7 +279,7 @@ class QARoutesTest {
 
             val request = validUpdateQARequest()
 
-            val response = client.patch("/qa/me") {
+            val response = client.patch("/users/qa/me") {
                 contentType(ContentType.Application.Json)
                 setBody(request)
             }
@@ -302,7 +302,7 @@ class QARoutesTest {
 
             coEvery { mockQAService.deleteUserQA(userId, 1L) } returns 1
 
-            val response = client.delete("/qa") {
+            val response = client.delete("/users/qa") {
                 setAuthenticatedUser(userId)
                 contentType(ContentType.Application.Json)
                 setBody(request)
@@ -321,7 +321,7 @@ class QARoutesTest {
             val targetUser = "other-user-456"
             val request = DeleteUserQARequest(userId = targetUser, questionId = 1L)
 
-            val response = client.delete("/qa") {
+            val response = client.delete("/users/qa") {
                 setAuthenticatedUser(authenticatedUser)
                 contentType(ContentType.Application.Json)
                 setBody(request)
@@ -342,7 +342,7 @@ class QARoutesTest {
 
             coEvery { mockQAService.deleteUserQA(userId, 999L) } returns 0
 
-            val response = client.delete("/qa") {
+            val response = client.delete("/users/qa") {
                 setAuthenticatedUser(userId)
                 contentType(ContentType.Application.Json)
                 setBody(request)
@@ -359,7 +359,7 @@ class QARoutesTest {
 
             val request = DeleteUserQARequest(userId = "test-user", questionId = 1L)
 
-            val response = client.delete("/qa") {
+            val response = client.delete("/users/qa") {
                 contentType(ContentType.Application.Json)
                 setBody(request)
             }
@@ -387,7 +387,7 @@ class QARoutesTest {
             } returns true
             coEvery { mockQAService.getAllUserQAs(targetUser) } returns listOf(qa1, qa2)
 
-            val response = client.get("/qa/$targetUser") {
+            val response = client.get("/users/qa/$targetUser") {
                 setAuthenticatedUser(authenticatedUser)
             }
 
@@ -412,7 +412,7 @@ class QARoutesTest {
                 mockProfileAccessControl.hasPublicProfileAccess(authenticatedUser, targetUser)
             } returns false
 
-            val response = client.get("/qa/$targetUser") {
+            val response = client.get("/users/qa/$targetUser") {
                 setAuthenticatedUser(authenticatedUser)
             }
 
@@ -435,7 +435,7 @@ class QARoutesTest {
             } returns true
             coEvery { mockQAService.getAllUserQAs(userId) } returns listOf(qa)
 
-            val response = client.get("/qa/$userId") {
+            val response = client.get("/users/qa/$userId") {
                 setAuthenticatedUser(userId)
             }
 
@@ -447,7 +447,7 @@ class QARoutesTest {
             setupTestApp()
             val client = configuredClient()
 
-            val response = client.get("/qa/some-user-id")
+            val response = client.get("/users/qa/some-user-id")
 
             assertEquals(HttpStatusCode.Unauthorized, response.status)
         }
@@ -465,7 +465,7 @@ class QARoutesTest {
             } returns true
             coEvery { mockQAService.getAllUserQAs(targetUser) } returns emptyList()
 
-            val response = client.get("/qa/$targetUser") {
+            val response = client.get("/users/qa/$targetUser") {
                 setAuthenticatedUser(authenticatedUser)
             }
 
@@ -489,7 +489,7 @@ class QARoutesTest {
 
             coEvery { mockQAService.createUserQACollection(request)} returns updated
 
-            val response = client.post("/qa/me/collection") {
+            val response = client.post("/users/qa/me/collection") {
                 setAuthenticatedUser("test-user-id")
                 contentType(ContentType.Application.Json)
                 setBody(request)

@@ -1,6 +1,7 @@
 package com.eros.users.routes
 
 import com.eros.auth.extensions.requireFirebasePrincipal
+import com.eros.auth.extensions.requireRoles
 import com.eros.common.errors.BadRequestException
 import com.eros.common.errors.ForbiddenException
 import com.eros.common.errors.NotFoundException
@@ -25,9 +26,10 @@ import io.ktor.server.routing.route
 fun Route.qaRoutes(qaService : QAService, profileAccessControl: ProfileAccessControl) {
 
     /**
-     * Base route /qa.
+     * Base route /users/qa.
      */
-    route("/qa") {
+    route("/users/qa") {
+        requireRoles("ADMIN", "USER", "EMPLOYEE")
 
         // Add a single QA to the authorized user
         post{
