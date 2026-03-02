@@ -14,7 +14,7 @@ import java.time.Instant
 
 class CityRepositoryImpl(
     private val clock: Clock = Clock.systemUTC()
-) : BaseDAOImpl<Long, City>(Cities, Cities.id), CityRepository {
+) : BaseDAOImpl<Long, City>(Cities, Cities.cityId), CityRepository {
 
     // -------------------------------------------------------------------------
     // Mapping
@@ -47,7 +47,7 @@ class CityRepositoryImpl(
     /**
      * Function for finding if a city exists in the Cities table with the name cityName.
      */
-    override fun doesExist(cityName: String): Boolean {
+    override suspend fun doesExist(cityName: String): Boolean {
         return Cities.selectAll()
             .where { Cities.cityName eq cityName }
             .empty().not()

@@ -20,7 +20,7 @@ import java.time.Instant
 object UserCitiesPreference : Table("user_cities_preference") {
 
     val userId = varchar("user_id", 128).references(Users.userId)
-    val cityId = long("city_id").references(Cities.id)
+    val cityId = long("city_id").references(Cities.cityId)
 
     // Timestamps
     val createdAt = timestamp("created_at").clientDefault { Instant.now() }

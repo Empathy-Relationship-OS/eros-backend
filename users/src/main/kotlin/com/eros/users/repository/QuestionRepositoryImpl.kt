@@ -23,7 +23,6 @@ class QuestionRepositoryImpl(
 
     override fun toStatement(statement: UpdateBuilder<*>, entity: Question) {
         statement.apply {
-            this[Questions.questionId] = entity.questionId
             this[Questions.question] = entity.question
             this[Questions.createdAt] = entity.createdAt
             this[Questions.updatedAt] = Instant.now(clock)
