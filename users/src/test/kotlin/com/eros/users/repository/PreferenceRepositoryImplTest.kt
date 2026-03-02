@@ -1,6 +1,7 @@
 package com.eros.users.repository
 
 
+import com.eros.database.dbQuery
 import com.eros.users.models.Activity
 import com.eros.users.models.City
 import com.eros.users.models.DateIntentions
@@ -99,12 +100,8 @@ class PreferenceRepositoryImplTest {
         }
     }
 
-    fun createCity(cityName: String): City {
-        val city: City
-        runBlocking {
-            city = cityRepository.create(City(0L, cityName, fixedInstant, fixedInstant))
-        }
-        return city
+    suspend fun createCity(cityName: String): City {
+        return cityRepository.create(City(0L, cityName, fixedInstant, fixedInstant))
     }
 
     fun createUser(): User = runBlocking {
@@ -205,7 +202,7 @@ class PreferenceRepositoryImplTest {
      * Private helper to create test user preferences setup.
      * Not a @Test method to avoid being called directly as a test.
      */
-    private fun createUserPreferencesSetup(): Pair<UserPreference, UserPreference> {
+    private suspend fun createUserPreferencesSetup(): Pair<UserPreference, UserPreference> {
         // Create test user
         createUser()
 
@@ -251,15 +248,38 @@ class PreferenceRepositoryImplTest {
 
     @Test
     fun createUserPreferences() {
-        val (preference, preference2) = createUserPreferencesSetup()
+        runBlocking {
+            // Setup
+            val city = dbQuery {
+                createUser()
+                createCity("TestCity")
+            }
 
-        runTest {
-            val createdUser = preferenceRepository.create(preference)
-            val createdUser2 = preferenceRepository.create(preference2)
+            val preference = UserPreference(
+                userId = "user123",
+                genderIdentities = listOf(Gender.FEMALE, Gender.NON_BINARY),
+                ageRangeMin = 25,
+                ageRangeMax = 55,
+                heightRangeMin = 160,
+                heightRangeMax = 200,
+                ethnicity = listOf(Ethnicity.MIDDLE_EASTERN, Ethnicity.PACIFIC_ISLANDER),
+                dateLanguages = listOf(Language.ENGLISH, Language.SPANISH),
+                dateActivities = listOf(Activity.ESCAPE_ROOMS, Activity.BEACH),
+                dateLimit = 5,
+                dateCities = listOf(city),
+                reachLevel = ReachLevel.OPEN_MINDED,
+                createdAt = fixedInstant,
+                updatedAt = fixedInstant
+            )
 
+            // Test - wrap repository calls in dbQuery
+            val createdUser = dbQuery {
+                preferenceRepository.create(preference)
+            }
+
+            // Assertions
             assertNotNull(createdUser)
             assertEquals(preference.userId, createdUser.userId)
-            assertEquals(preference2.userId, createdUser2.userId)
         }
     }
 

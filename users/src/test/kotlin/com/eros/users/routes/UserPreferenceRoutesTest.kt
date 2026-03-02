@@ -162,6 +162,7 @@ class UserPreferenceRoutesTest {
         ageRangeMin: Int = 25,
         ageRangeMax: Int = 35
     ): UserPreference {
+        val now = Instant.now()
         return UserPreference(
             userId = userId,
             genderIdentities = listOf(Gender.FEMALE),
@@ -182,8 +183,8 @@ class UserPreferenceRoutesTest {
                 )
             ),
             reachLevel = ReachLevel.OPEN_MINDED,
-            createdAt = Instant.now(),
-            updatedAt = Instant.now()
+            createdAt = now,
+            updatedAt = now
         )
     }
 
@@ -230,6 +231,7 @@ class UserPreferenceRoutesTest {
         userId: String = "test-user-id",
         firstName: String = "John"
     ): User {
+        val now = Instant.now()
         return User(
             userId = userId,
             firstName = firstName,
@@ -262,8 +264,8 @@ class UserPreferenceRoutesTest {
             brainDescription = DisplayableField(null, false),
             bodyAttributes = DisplayableField(null, false),
             bodyDescription = DisplayableField(null, false),
-            createdAt = Instant.now(),
-            updatedAt = Instant.now(),
+            createdAt = now,
+            updatedAt = now,
             deletedAt = null,
             profileStatus = ProfileStatus.ACTIVE,
             eloScore = 1000,
@@ -281,6 +283,7 @@ class UserPreferenceRoutesTest {
         firstName: String = "John",
         profileStatus: ProfileStatus = ProfileStatus.ACTIVE
     ): User {
+        val now = Instant.now()
         return User(
             userId = userId,
             firstName = firstName,
@@ -318,8 +321,8 @@ class UserPreferenceRoutesTest {
             brainDescription = DisplayableField("Maybe this is string?", true),
             bodyAttributes = DisplayableField(listOf(BodyAttribute.WHEELCHAIR), true),
             bodyDescription = DisplayableField("Is this a string?", true),
-            createdAt = Instant.now(),
-            updatedAt = Instant.now(),
+            createdAt = now,
+            updatedAt = now,
             deletedAt = null,
             profileStatus = profileStatus,
             eloScore = 1000,

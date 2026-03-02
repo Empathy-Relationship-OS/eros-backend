@@ -1,6 +1,7 @@
 package com.eros.users.service
 
 import com.eros.common.errors.NotFoundException
+import com.eros.database.dbQuery
 import com.eros.users.models.City
 import com.eros.users.models.CreatePreferenceRequest
 import com.eros.users.models.UpdatePreferenceRequest
@@ -15,7 +16,7 @@ class PreferenceService(
     private val clock: Clock = Clock.systemUTC()
 ) {
 
-    suspend fun createPreferences(request: CreatePreferenceRequest): UserPreference {
+    suspend fun createPreferences(request: CreatePreferenceRequest): UserPreference = dbQuery {
         val now = Instant.now(clock)
         val preference = UserPreference(
             userId = request.userId,
@@ -37,10 +38,10 @@ class PreferenceService(
             createdAt = now,
             updatedAt = now
         )
-        return preferenceRepository.create(preference)
+        preferenceRepository.create(preference)
     }
 
-    suspend fun updatePreferences(userId: String, request: UpdatePreferenceRequest): UserPreference? {
+    suspend fun updatePreferences(userId: String, request: UpdatePreferenceRequest): UserPreference? = dbQuery {
         val now = Instant.now(clock)
         val preference = UserPreference(
             userId = request.userId,
@@ -62,7 +63,7 @@ class PreferenceService(
             createdAt = now,
             updatedAt = now
         )
-        return preferenceRepository.update(userId, preference)
+        preferenceRepository.update(userId, preference)
     }
 
     /**
@@ -73,13 +74,13 @@ class PreferenceService(
      *
      * @return Boolean `true` if the candidate user matches the preferences of the user, otherwise `false`
      */
-    suspend fun matchesUser(userId: String, candidateId: String): Boolean {
+    suspend fun matchesUser(userId: String, candidateId: String): Boolean = dbQuery {
         // todo: Replace the entire user with a simple `UserMatchCandidate` dto? Less data wasted? Pass in User not id?
-        val prefs = findByUserId(userId)
+        val prefs = findByUserId(userId) ?:throw NotFoundException("Can't find user $userId preferences.")
         val candidateProfile = userService.findByUserId(candidateId) ?:
             throw NotFoundException("User not found.")
-        val candidatePreferences = findByUserId(candidateId)
-        return prefs.matchesUser(candidateProfile, candidatePreferences)
+        val candidatePreferences = findByUserId(candidateId) ?: throw NotFoundException("Can't find user $candidateId preferences.")
+        prefs.matchesUser(candidateProfile, candidatePreferences)
     }
 
     /**
@@ -90,15 +91,15 @@ class PreferenceService(
      *
      * @return Boolean `true` if both profiles match the others preference list, otherwise `false`.
      */
-    suspend fun usersBothMatchingPreferences(userId: String, candidateId: String): Boolean {
+    suspend fun usersBothMatchingPreferences(userId: String, candidateId: String): Boolean = dbQuery {
         // todo: Replace the entire user with a simple `UserMatchCandidate` dto? Less data wasted? Pass in User not id?
-        val preferences = findByUserId(userId)
+        val preferences = findByUserId(userId) ?:throw NotFoundException("Can't find user $userId preferences.")
         val profile = userService.findByUserId(userId) ?: throw NotFoundException("User not found.")
         val candidateProfile = userService.findByUserId(candidateId)?:throw NotFoundException("User not found.")
-        val candidatePreferences = findByUserId(candidateId)
+        val candidatePreferences = findByUserId(candidateId) ?: throw NotFoundException("Can't find user $candidateId preferences.")
         val matches1 = preferences.matchesUser(candidateProfile, candidatePreferences)
         val matches2 = candidatePreferences.matchesUser(profile, preferences)
-        return matches1 && matches2
+        matches1 && matches2
     }
 
     suspend fun estimateMatches() {
@@ -111,20 +112,25 @@ class PreferenceService(
      * @param userId Firebase user ID to search for
      * @return UserPreference if found, null otherwise
      */
-    suspend fun findByUserId(userId: String): UserPreference {
-        return preferenceRepository.getUserPreferenceWithCities(userId)
+    suspend fun findByUserId(userId: String): UserPreference? = dbQuery {
+        preferenceRepository.getUserPreferenceWithCities(userId)
     }
 
-    suspend fun doesExist(userId: String): Boolean {
-        return preferenceRepository.userPreferencesDoesExist(userId)
+
+    /**
+     * Function to check
+     */
+    suspend fun doesExist(userId: String): Boolean = dbQuery {
+        preferenceRepository.doesExist(userId)
     }
+
 
     /**
      * Function to delete the UserPreferences and the UserCitiesPreferences
      *
      * @return `1` if deleted otherwise `0`
      */
-    suspend fun delete(userId: String): Int{
-        return preferenceRepository.delete(userId)
+    suspend fun delete(userId: String): Int = dbQuery {
+        preferenceRepository.delete(userId)
     }
 }

@@ -4,7 +4,9 @@ import io.ktor.server.application.*
 import io.ktor.util.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.jetbrains.exposed.v1.core.Transaction
 import org.jetbrains.exposed.v1.jdbc.Database
+import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import javax.sql.DataSource
 
@@ -74,22 +76,44 @@ class DatabasePlugin(private val config: DatabaseConfig) {
 }
 
 /**
- * Extension function for executing database queries in a suspending transaction.
+ * Executes a database query within a coroutine-safe transaction context.
  *
- * Wraps database operations in Exposed's transaction context on the IO dispatcher.
- * All database operations should use this wrapper to ensure proper transaction management.
+ * This function provides a safe way to interact with the database in a suspended context
+ * by wrapping database operations in a transaction and executing them on the IO dispatcher.
  *
- * Example:
- * ```
- * suspend fun getUser(id: UUID): User? = dbQuery {
- *     Users.select { Users.id eq id }.singleOrNull()?.toUser()
+ * ## Usage Guidelines
+ * - **MUST** be called from a suspend function
+ * - **MUST** only be used in the Service Layer
+ * - **DO NOT** use in Controllers/Routes or Repository classes directly
+ *
+ * ## Why Service Layer Only?
+ * Database queries should be encapsulated in the service layer to:
+ * - Maintain separation of concerns
+ * - Enable proper transaction management
+ * - Facilitate testing and mocking
+ * - Keep business logic separate from data access
+ *
+ * @param T The return type of the database operation
+ * @param block The database operation to execute within the transaction
+ * @return The result of the database operation
+ *
+ * @sample
+ * ```kotlin
+ * class UserService {
+ *     suspend fun getUserById(id: String): User? = dbQuery {
+ *         UserTable.select { UserTable.id eq id }
+ *             .map { it.toUser() }
+ *             .singleOrNull()
+ *     }
  * }
  * ```
  *
- * @param block Lambda containing database operations
- * @return Result of the database operation
+ * @see kotlinx.coroutines.Dispatchers.IO
+ * @see org.jetbrains.exposed.sql.transactions.experimental.suspendTransaction
  */
-suspend fun <T> dbQuery(block: () -> T): T =
+suspend fun <T> dbQuery(block: suspend Transaction.() -> T): T =
     withContext(Dispatchers.IO) {
-        transaction { block() }
+        suspendTransaction {
+            block()
+        }
     }

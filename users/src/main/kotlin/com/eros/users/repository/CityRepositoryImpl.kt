@@ -1,6 +1,5 @@
 package com.eros.users.repository
 
-import com.eros.database.dbQuery
 import com.eros.database.repository.BaseDAOImpl
 import com.eros.users.models.City
 import com.eros.users.table.Cities
@@ -15,7 +14,7 @@ import java.time.Instant
 
 class CityRepositoryImpl(
     private val clock: Clock = Clock.systemUTC()
-) : BaseDAOImpl<Long, City>(Cities, Cities.id), CityRepository {
+) : BaseDAOImpl<Long, City>(Cities, Cities.cityId), CityRepository {
 
     // -------------------------------------------------------------------------
     // Mapping
@@ -36,9 +35,9 @@ class CityRepositoryImpl(
     // -------------------------------------------------------------------------
 
     /** Uses insertReturning to avoid a separate re-fetch round-trip after insert. */
-    override suspend fun create(entity: City): City = dbQuery {
+    override suspend fun create(entity: City): City {
         val now = Instant.now(clock)
-        Cities.insertReturning {
+        return Cities.insertReturning {
             it[cityName] = entity.cityName
             it[createdAt] = now
             it[updatedAt] = now
@@ -48,9 +47,9 @@ class CityRepositoryImpl(
     /**
      * Function for finding if a city exists in the Cities table with the name cityName.
      */
-    override fun doesExist(cityName: String): Boolean {
+    override suspend fun doesExist(cityName: String): Boolean {
         return Cities.selectAll()
             .where { Cities.cityName eq cityName }
-            .count() > 0
+            .empty().not()
     }
 }

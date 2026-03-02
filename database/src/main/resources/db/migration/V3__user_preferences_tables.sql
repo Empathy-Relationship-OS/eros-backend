@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS user_preferences (
 -- Junction table: User city preferences
 CREATE TABLE IF NOT EXISTS user_cities_preference (
     user_id VARCHAR(128) NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
-    city_id BIGINT NOT NULL REFERENCES cities(id) ON DELETE CASCADE,
+    city_id BIGINT NOT NULL REFERENCES cities(city_id) ON DELETE CASCADE,
     -- Timestamps
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     PRIMARY KEY (user_id, city_id)

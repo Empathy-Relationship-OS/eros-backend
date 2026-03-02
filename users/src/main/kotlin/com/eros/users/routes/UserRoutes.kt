@@ -116,26 +116,26 @@ fun Route.userProfileRoutes(userService: UserService, profileAccessControl: Prof
                 val targetUserId = call.parameters["id"]
                     ?: throw BadRequestException("User ID is required")
 
-                // Ensure the user has access to the account or not.
-                //todo: Replace the true values in method once matchService created
-                profileAccessControl.hasPublicProfileAccess(principal.uid, targetUserId)
+            // Ensure the user has access to the account or not.
+            //todo: Replace the true values in method once matchService created
+            profileAccessControl.hasPublicProfileAccess(principal.uid, targetUserId)
 
-                val targetUser = userService.findByUserId(targetUserId)
-                    ?: throw NotFoundException("User profile not found")
+            val targetUser = userService.findByUserId(targetUserId)
+                ?: throw NotFoundException("User profile not found")
 
-                //todo: Alter with media service
-                val media = UserMediaCollection(
-                    targetUser.userId,
-                    emptyList(),
-                    2
-                )//userMediaService.getMediaForUser(targetUserId)
+            //todo: Alter with media service
+            val media = UserMediaCollection(
+                targetUser.userId,
+                emptyList(),
+                2
+            )//userMediaService.getMediaForUser(targetUserId)
 
-                val principalUser = userService.findByUserId(principal.uid)
-                    ?: throw NotFoundException("User profile not found")
+            val principalUser = userService.findByUserId(principal.uid)
+                ?: throw NotFoundException("User profile not found")
 
-                val sharedInterests = userService.getSharedInterests(principalUser, targetUser)
-                call.respond(HttpStatusCode.OK, PublicProfileResponse.from(targetUser, media, sharedInterests))
-            }
+            val sharedInterests = userService.getSharedInterests(principalUser.interests, targetUser.interests)
+            call.respond(HttpStatusCode.OK, PublicProfileResponse.from(targetUser, media, sharedInterests))
+        }
 
             /**
              * GET /users/me
@@ -193,52 +193,52 @@ get("/id/{id}") {
                 call.respond(HttpStatusCode.OK, user)
             }
 
-            /**
-             * DELETE /users/me
-             *
-             * Deletes (soft delete) the current authenticated user's account.
-             *
-             * Request Headers:
-             * - Authorization: Bearer <firebase-id-token>
-             *
-             * Response: 204 No Content on success
-             */
-            delete("/me") {
-                val principal = call.requireFirebasePrincipal()
-                val rowsDeleted = userService.deleteUser(principal.uid)
+        /**
+         * DELETE /users/me
+         *
+         * Deletes (soft delete) the current authenticated user's account.
+         *
+         * Request Headers:
+         * - Authorization: Bearer <firebase-id-token>
+         *
+         * Response: 204 No Content on success
+         */
+        delete("/me") {
+            val principal = call.requireFirebasePrincipal()
+            val rowsDeleted = userService.deleteUser(principal.uid)
 
-                if (rowsDeleted == 0) throw NotFoundException("User profile not found")
+            if (rowsDeleted == 0) throw NotFoundException("User profile not found")
 
-                call.application.log.info("User account deleted: ${principal.uid}")
-                call.respond(HttpStatusCode.NoContent)
-            }
+            call.application.log.info("User account deleted: ${principal.uid}")
+            call.respond(HttpStatusCode.NoContent)
         }
+    }
 
-        // Admin-only routes
-        route("/id/{id}/admin") {
-            requireRoles("ADMIN", "EMPLOYEE")
+    // Admin-only routes
+    route("/id/{id}/admin") {
+        requireRoles("ADMIN", "EMPLOYEE")
 
-            /**
-             * PATCH /users/id/{id}/admin
-             *
-             * Updates server-managed fields for a user (admin-only).
-             *
-             * This endpoint allows ADMIN and EMPLOYEE roles to modify sensitive fields
-             * such as role, ELO score, badges, profile status, and validation status.
-             *
-             * Request Headers:
-             * - Authorization: Bearer <firebase-id-token> (must have ADMIN or EMPLOYEE role)
-             *
-             * Request Body: AdminUpdateUserRequest JSON
-             * Response: User JSON
-             */
-            patch {
-                val targetUserId = call.parameters["id"]
-                    ?: throw BadRequestException("User ID is required")
+        /**
+         * PATCH /users/id/{id}/admin
+         *
+         * Updates server-managed fields for a user (admin-only).
+         *
+         * This endpoint allows ADMIN and EMPLOYEE roles to modify sensitive fields
+         * such as role, ELO score, badges, profile status, and validation status.
+         *
+         * Request Headers:
+         * - Authorization: Bearer <firebase-id-token> (must have ADMIN or EMPLOYEE role)
+         *
+         * Request Body: AdminUpdateUserRequest JSON
+         * Response: User JSON
+         */
+        patch {
+            val targetUserId = call.parameters["id"]
+                ?: throw BadRequestException("User ID is required")
 
-                val request = call.receive<AdminUpdateUserRequest>()
-                val user = userService.adminUpdateUser(targetUserId, request)
-                    ?: throw NotFoundException("User profile not found")
+            val request = call.receive<AdminUpdateUserRequest>()
+            val user = userService.adminUpdateUser(targetUserId, request)
+                ?: throw NotFoundException("User profile not found")
 
                 call.application.log.info("Admin update performed on user $targetUserId by ${call.requireFirebasePrincipal().uid}")
                 call.respond(HttpStatusCode.OK, user)

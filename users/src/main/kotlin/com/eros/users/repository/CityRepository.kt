@@ -8,5 +8,5 @@ interface CityRepository : IBaseDAO<Long, City> {
     /**
      * Function for finding if a cityName existing in the Cities table.
      */
-    fun doesExist(cityName: String) : Boolean
+    suspend fun doesExist(cityName: String) : Boolean
 }

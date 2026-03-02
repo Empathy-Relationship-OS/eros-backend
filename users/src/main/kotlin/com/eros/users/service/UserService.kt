@@ -1,6 +1,8 @@
 package com.eros.users.service
 
 import com.eros.users.models.*
+import com.eros.common.errors.NotFoundException
+import com.eros.database.dbQuery
 import com.eros.users.models.AdminUpdateUserRequest
 import com.eros.users.repository.UserRepository
 import com.eros.users.table.badgeHelper
@@ -32,7 +34,7 @@ class UserService(
      * @throws IllegalArgumentException if input validation fails
      * @throws IllegalStateException if user already exists
      */
-    suspend fun createUser(request: CreateUserRequest): User {
+    suspend fun createUser(request: CreateUserRequest): User = dbQuery {
         // Check if user already exists
         if (userRepository.doesExist(request.userId)) {
             throw IllegalStateException("User with ID ${request.userId} already exists")
@@ -82,7 +84,7 @@ class UserService(
             coordinatesLatitude = request.coordinatesLatitude,
             profileCompleteness = 50
         )
-        return userRepository.create(user)
+        userRepository.create(user)
     }
 
     /**
@@ -99,8 +101,8 @@ class UserService(
      * @return The updated User, or null if user not found
      * @throws IllegalArgumentException if input validation fails
      */
-    suspend fun updateUser(userId: String, request: UpdateUserRequest): User? {
-        val existing = userRepository.findById(userId) ?: return null
+    suspend fun updateUser(userId: String, request: UpdateUserRequest): User? = dbQuery {
+        val existing = userRepository.findById(userId) ?: throw NotFoundException("User $userId not found.")
         val merged = existing.copy(
             firstName = request.firstName ?: existing.firstName,
             lastName = request.lastName ?: existing.lastName,
@@ -133,7 +135,7 @@ class UserService(
             coordinatesLongitude = request.coordinatesLongitude ?: existing.coordinatesLongitude,
             coordinatesLatitude = request.coordinatesLatitude ?: existing.coordinatesLatitude
         )
-        return userRepository.update(userId, merged)
+        userRepository.update(userId, merged)
     }
 
     /**
@@ -148,8 +150,8 @@ class UserService(
      * @return The updated User, or null if user not found
      * @throws IllegalArgumentException if input validation fails
      */
-    suspend fun adminUpdateUser(userId: String, request: AdminUpdateUserRequest): User? {
-        val existing = userRepository.findById(userId) ?: return null
+    suspend fun adminUpdateUser(userId: String, request: AdminUpdateUserRequest): User? = dbQuery {
+        val existing = userRepository.findById(userId) ?: throw NotFoundException("User $userId not found.")
         val merged = existing.copy(
             eloScore = request.eloScore ?: existing.eloScore,
             photoValidationStatus = request.photoValidationStatus ?: existing.photoValidationStatus,
@@ -177,8 +179,7 @@ class UserService(
                 FirebaseAuth.getInstance().setCustomUserClaims(userId, claims)
             }
         }
-
-        return updated
+        updated
     }
 
     /**
@@ -187,8 +188,8 @@ class UserService(
      * @param userId Firebase user ID to search for
      * @return User if found, null otherwise
      */
-    suspend fun findByUserId(userId: String): User? {
-        return userRepository.findById(userId)
+    suspend fun findByUserId(userId: String): User? = dbQuery {
+        userRepository.findById(userId)
     }
 
     /**
@@ -197,8 +198,8 @@ class UserService(
      * @param email Email address to search for
      * @return User if found, null otherwise
      */
-    suspend fun findByEmail(email: String): User? {
-        return userRepository.findByEmail(email)
+    suspend fun findByEmail(email: String): User? = dbQuery {
+        userRepository.findByEmail(email)
     }
 
     /**
@@ -209,8 +210,8 @@ class UserService(
      * @param userId Firebase UID of the user to delete
      * @return Number of rows updated (1 if successful, 0 if user not found)
      */
-    suspend fun deleteUser(userId: String): Int {
-        return userRepository.delete(userId)
+    suspend fun deleteUser(userId: String): Int = dbQuery {
+        userRepository.delete(userId)
     }
 
     /**
@@ -219,16 +220,21 @@ class UserService(
      * @param userId Firebase UID to check
      * @return True if user exists, false otherwise
      */
-    suspend fun userExists(userId: String): Boolean {
-        return userRepository.doesExist(userId)
+    suspend fun userExists(userId: String): Boolean = dbQuery {
+        userRepository.doesExist(userId)
     }
 
     /**
      * Function to return the shared interests of two users.
+     *
+     * @param user1Interests [User] List of Strings of user 1's interests.
+     * @param user1Interests [User] List of Strings of user 2's interests.
+     *
+     * @return List of strings containing only interests that are in both user 1 and user 2's lists.
      */
-    fun getSharedInterests(user1: User, user2: User): List<String> {
-        if (user1 == user2){return user1.interests}
-        return (user1.interests intersect user2.interests.toSet()).toList()
+    fun getSharedInterests(user1Interests: List<String>, user2Interests: List<String>): List<String> {
+        return if (user1Interests == user2Interests){user1Interests}
+        else(user1Interests intersect user2Interests.toSet()).toList()
     }
 
 }
