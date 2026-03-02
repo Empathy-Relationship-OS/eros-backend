@@ -147,7 +147,7 @@ class PreferenceRepositoryImpl(
             .where { UserCitiesPreference.userId eq userId }
             .map { row ->
                 City(
-                    cityId = row[Cities.id],
+                    cityId = row[Cities.cityId],
                     cityName = row[Cities.cityName],
                     createdAt = row[Cities.createdAt],
                     updatedAt = row[Cities.updatedAt]

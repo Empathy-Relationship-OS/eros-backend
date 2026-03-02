@@ -207,11 +207,8 @@ class CityRepositoryImplTest {
 
         @Test
         fun `should return true when city name exists`() = runBlocking {
-            dbQuery {
+            val exists = dbQuery {
                 repository.create(City(0L, "London", fixedInstant, fixedInstant))
-            }
-
-            val exists = transaction {
                 repository.doesExist("London")
             }
 
@@ -220,42 +217,37 @@ class CityRepositoryImplTest {
 
         @Test
         fun `should return false when city name does not exist`() = runBlocking {
-            val exists = transaction { repository.doesExist("NonExistentCity") }
+            val exists = dbQuery { repository.doesExist("NonExistentCity") }
 
             assertFalse(exists)
         }
 
         @Test
         fun `should be case sensitive`() = runBlocking {
-            dbQuery {
+            val existsLowercase = dbQuery {
                 repository.create(City(0L, "London", fixedInstant, fixedInstant))
-            }
-            val existsLowercase = transaction {
                 repository.doesExist("london")
             }
-
 
             assertFalse(existsLowercase)
         }
 
         @Test
         fun `should not match partial names`() = runBlocking {
-            dbQuery {
+            val existsPartial = dbQuery {
                 repository.create(City(0L, "New York", fixedInstant, fixedInstant))
+                repository.doesExist("New")
             }
-
-            val existsPartial = transaction { repository.doesExist("New") }
 
             assertFalse(existsPartial)
         }
 
         @Test
         fun `should handle special characters in city names`() = runBlocking {
-            dbQuery {
+            val exists =  dbQuery {
                 repository.create(City(0L, "São Paulo", fixedInstant, fixedInstant))
+                repository.doesExist("São Paulo")
             }
-
-            val exists = transaction { repository.doesExist("São Paulo") }
 
             assertTrue(exists)
         }

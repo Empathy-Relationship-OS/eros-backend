@@ -1,6 +1,6 @@
 -- Master table: Cities
 CREATE TABLE IF NOT EXISTS cities (
-    id BIGSERIAL PRIMARY KEY,
+    city_id BIGSERIAL PRIMARY KEY,
     name VARCHAR(128) NOT NULL UNIQUE,
 
     -- Timestamps
