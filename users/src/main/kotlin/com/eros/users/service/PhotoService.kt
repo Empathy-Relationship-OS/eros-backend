@@ -3,7 +3,6 @@ package com.eros.users.service
 import com.eros.common.config.S3Config
 import com.eros.users.models.*
 import com.eros.users.repository.PhotoRepository
-import io.ktor.util.logging.Logger
 import org.slf4j.LoggerFactory
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider
