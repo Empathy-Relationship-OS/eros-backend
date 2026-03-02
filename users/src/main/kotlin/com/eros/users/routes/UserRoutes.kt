@@ -9,11 +9,11 @@ import com.eros.common.errors.NotFoundException
 import com.eros.users.ProfileAccessControl
 import com.eros.users.models.AdminUpdateUserRequest
 import com.eros.users.models.CreateUserRequest
-import com.eros.users.models.ProfileStatusUpdateRequest
 import com.eros.users.models.PublicProfileResponse
 import com.eros.users.models.UpdateUserRequest
 import com.eros.users.models.UserMediaCollection
 import com.eros.users.service.UserService
+import com.google.firebase.auth.FirebaseAuth
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
@@ -35,19 +35,18 @@ data class UserExistsResponse(
  *
  * These routes handle user profile CRUD operations.
  * All routes require Firebase authentication.
+ * User creation (POST /users) and existence check (GET /users/exists) do not require a role.
+ * All other routes require ADMIN, USER, or EMPLOYEE role.
  *
  * @param userService Service for user data operations
  */
-fun Route.userProfileRoutes(userService: UserService, profileAccessControl: ProfileAccessControl) {
-
-    /**
-     * Base route /users.
-     */
+fun Route.userProfileRoutes(userService: UserService, profileAccessControl : ProfileAccessControl) {
     route("/users") {
         /**
          * POST /users
          *
          * Creates a new user profile.
+         * NO ROLE REQUIRED - New users don't have roles until profile is created.
          *
          * Request Headers:
          * - Authorization: Bearer <firebase-id-token>
@@ -65,25 +64,57 @@ fun Route.userProfileRoutes(userService: UserService, profileAccessControl: Prof
             if (userService.userExists(request.userId))
                 throw ConflictException("User profile already exists")
 
+            // Create user in database
             val user = userService.createUser(request)
+
+            // Sync Firebase custom claims
+            try {
+                val claims = mapOf("role" to user.role.name)
+                FirebaseAuth.getInstance().setCustomUserClaims(user.userId, claims)
+            } catch (e: Exception) {
+                // Log but don't fail - claims can be synced later or retried
+                call.application.log.error("Failed to set Firebase custom claims for user ${user.userId}", e)
+            }
+
             call.respond(HttpStatusCode.Created, user)
         }
 
         /**
-         * GET /users/{id}/public
+         * GET /users/exists
          *
-         * Retrieves a user's public profile by ID.
+         * Checks if the current authenticated user has a profile.
+         * NO ROLE REQUIRED - Needed to determine if user should create profile.
          *
          * Request Headers:
          * - Authorization: Bearer <firebase-id-token>
          *
-         * Response: User JSON
+         * Response: UserExistsResponse JSON
          */
-        get("/id/{id}/public") {
-            //todo: Alter with matches, and media collection
+        get("/exists") {
             val principal = call.requireFirebasePrincipal()
-            val targetUserId = call.parameters["id"]
-                ?: throw BadRequestException("User ID is required")
+            val exists = userService.userExists(principal.uid)
+            call.respond(HttpStatusCode.OK, UserExistsResponse(exists = exists, userId = principal.uid))
+        }
+
+        // All routes below require a role (user must have created profile first)
+        route("/") {
+            requireRoles("ADMIN", "USER", "EMPLOYEE")
+
+            /**
+             * GET /users/{id}/public
+             *
+             * Retrieves a user's public profile by ID.
+             *
+             * Request Headers:
+             * - Authorization: Bearer <firebase-id-token>
+             *
+             * Response: User JSON
+             */
+            get("/id/{id}/public") {
+                //todo: Alter with matches, and media collection
+                val principal = call.requireFirebasePrincipal()
+                val targetUserId = call.parameters["id"]
+                    ?: throw BadRequestException("User ID is required")
 
             // Ensure the user has access to the account or not.
             //todo: Replace the true values in method once matchService created
@@ -106,80 +137,61 @@ fun Route.userProfileRoutes(userService: UserService, profileAccessControl: Prof
             call.respond(HttpStatusCode.OK, PublicProfileResponse.from(targetUser, media, sharedInterests))
         }
 
+            /**
+             * GET /users/me
+             *
+             * Retrieves the current authenticated user's profile.
+             *
+             * Request Headers:
+             * - Authorization: Bearer <firebase-id-token>
+             *
+             * Response: User JSON
+             */
+            get("/me") {
+                val principal = call.requireFirebasePrincipal()
+                val user = userService.findByUserId(principal.uid)
+                    ?: throw NotFoundException("User profile not found. Create a profile first.")
+                call.respond(HttpStatusCode.OK, user)
+            }
 
-        /**
-         * GET /users/me
-         *
-         * Retrieves the current authenticated user's profile.
-         *
-         * Request Headers:
-         * - Authorization: Bearer <firebase-id-token>
-         *
-         * Response: User JSON
-         */
-        get("/me") {
-            val principal = call.requireFirebasePrincipal()
-            val user = userService.findByUserId(principal.uid)
-                ?: throw NotFoundException("User profile not found. Create a profile first.")
-            call.respond(HttpStatusCode.OK, user)
-        }
+            //todo: This function should be moved to the admin/employee route
+                        /*
+            /**
+             * GET /users/{id}
+             *
+             * Retrieves a user full profile by ID.
+             *
+             * Request Headers:
+             * - Authorization: Bearer <firebase-id-token>
+             *
+             * Response: User JSON
+             */
+            get("/id/{id}") {
+                val principal = call.requireFirebasePrincipal()
+                val userId = call.parameters["id"] ?: throw BadRequestException("User ID is required")
+                val user = userService.findByUserId(userId) ?: throw NotFoundException("User profile not found")
+                call.respond(HttpStatusCode.OK, user)
+            }
+            */
 
-        /**
-         * GET /users/exists
-         *
-         * Checks if the current authenticated user has a profile.
-         *
-         * Request Headers:
-         * - Authorization: Bearer <firebase-id-token>
-         *
-         * Response: UserExistsResponse JSON
-         */
-        get("/exists") {
-            val principal = call.requireFirebasePrincipal()
-            val exists = userService.userExists(principal.uid)
-            call.respond(HttpStatusCode.OK, UserExistsResponse(exists = exists, userId = principal.uid))
-        }
-
-
-        //todo: This function should be moved to the admin/employee route
-        /*
-        /**
-         * GET /users/{id}
-         *
-         * Retrieves a user full profile by ID.
-         *
-         * Request Headers:
-         * - Authorization: Bearer <firebase-id-token>
-         *
-         * Response: User JSON
-         */
-        get("/id/{id}") {
-            val principal = call.requireFirebasePrincipal()
-            val userId = call.parameters["id"] ?: throw BadRequestException("User ID is required")
-            val user = userService.findByUserId(userId) ?: throw NotFoundException("User profile not found")
-            call.respond(HttpStatusCode.OK, user)
-        }
-         */
-
-
-        /**
-         * PATCH /users/me
-         *
-         * Updates the current authenticated user's profile.
-         *
-         * Request Headers:
-         * - Authorization: Bearer <firebase-id-token>
-         *
-         * Request Body: UpdateUserRequest JSON
-         * Response: User JSON
-         */
-        patch("/me") {
-            val principal = call.requireFirebasePrincipal()
-            val request = call.receive<UpdateUserRequest>()
-            val user = userService.updateUser(principal.uid, request)
-                ?: throw NotFoundException("User profile not found")
-            call.respond(HttpStatusCode.OK, user)
-        }
+            /**
+             * PATCH /users/me
+             *
+             * Updates the current authenticated user's profile.
+             *
+             * Request Headers:
+             * - Authorization: Bearer <firebase-id-token>
+             *
+             * Request Body: UpdateUserRequest JSON
+             * Response: User JSON
+             */
+            patch("/me") {
+                val principal = call.requireFirebasePrincipal()
+                val request = call.receive<UpdateUserRequest>()
+                val user = userService.updateUser(principal.uid, request)
+                    ?: throw NotFoundException("User profile not found")
+                call.respond(HttpStatusCode.OK, user)
+            }
 
         /**
          * DELETE /users/me
@@ -228,8 +240,9 @@ fun Route.userProfileRoutes(userService: UserService, profileAccessControl: Prof
             val user = userService.adminUpdateUser(targetUserId, request)
                 ?: throw NotFoundException("User profile not found")
 
-            call.application.log.info("Admin update performed on user $targetUserId by ${call.requireFirebasePrincipal().uid}")
-            call.respond(HttpStatusCode.OK, user)
+                    call.application.log.info("Admin update performed on user $targetUserId by ${call.requireFirebasePrincipal().uid}")
+                    call.respond(HttpStatusCode.OK, user)
+                }
+            }
         }
-    }
 }

@@ -1,6 +1,5 @@
 package com.eros
 
-import com.eros.auth.extensions.requireRoles
 import com.eros.common.config.S3Config
 import com.eros.users.repository.CityRepositoryImpl
 import com.eros.users.ProfileAccessControl
@@ -61,13 +60,12 @@ fun Application.configureRouting() {
             call.respondText("Hello World!")
         }
 
-        // All /users routes require Firebase authentication
+        // All routes require Firebase authentication
         authenticate("firebase-auth") {
-            requireRoles("ADMIN", "USER", "EMPLOYEE")
-            // User profile routes
+            // User profile routes (handles role requirements internally)
             userProfileRoutes(userService, profileAccessControl)
 
-            // Photo management routes
+            // Photo management routes (all require roles)
             userPhotoRoutes(photoService)
 
             cityRoutes(cityService)
