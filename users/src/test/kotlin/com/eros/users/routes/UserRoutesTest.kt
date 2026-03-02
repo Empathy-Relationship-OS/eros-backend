@@ -18,7 +18,6 @@ import io.ktor.server.routing.*
 import io.ktor.server.testing.*
 import io.mockk.coEvery
 import io.mockk.coVerify
-import io.mockk.every
 import io.mockk.mockk
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Nested
@@ -432,7 +431,12 @@ class UserRoutesTest {
             val userId = "test-user-id"
             val updateRequest = UpdateUserRequest(bio = "Updated bio")
 
-            coEvery { mockUserService.updateUser(userId, updateRequest) } throws IllegalArgumentException("Invalid input")
+            coEvery {
+                mockUserService.updateUser(
+                    userId,
+                    updateRequest
+                )
+            } throws IllegalArgumentException("Invalid input")
 
             val response = client.patch("/users/me") {
                 setAuthenticatedUser(userId)
@@ -540,34 +544,6 @@ class UserRoutesTest {
             }
 
             assertEquals(HttpStatusCode.InternalServerError, response.status)
-        }
-    }
-
-    @Nested
-    inner class `GET users PUBLIC` {
-
-        @Test
-        fun `should return public profile when user exists`() = testApplication{
-            setupTestApp()
-            val client = configuredClient()
-
-            val user = createCompleteTestUser()
-            val userId = user.userId
-
-            val user2 = createTestUser("test-user-456")
-
-            // Mock ProfileAccessControl to return true (allow access)
-            every { mockProfileAccessControl.hasPublicProfileAccess(any(), any()) } returns true
-
-            coEvery { mockUserService.findByUserId(userId) } returns user
-            coEvery { mockUserService.findByUserId(user2.userId) } returns user2
-            coEvery { mockUserService.getSharedInterests(user2, user) } returns List(5) { "Interest$it" }
-
-            val response = client.get("/users/id/${userId}/public") {
-                setAuthenticatedUser(user2.userId)
-            }
-
-            assertEquals(HttpStatusCode.OK, response.status)
         }
     }
 

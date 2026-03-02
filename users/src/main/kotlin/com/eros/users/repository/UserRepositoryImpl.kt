@@ -1,8 +1,6 @@
 package com.eros.users.repository
 
-import com.eros.database.dbQuery
 import com.eros.database.repository.BaseDAOImpl
-import com.eros.users.models.Badge
 import com.eros.users.models.User
 import com.eros.users.table.BADGE_COLUMN_MAP
 import com.eros.users.table.Users
@@ -13,7 +11,6 @@ import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.isNull
 import org.jetbrains.exposed.v1.core.lowerCase
 import org.jetbrains.exposed.v1.core.statements.UpdateBuilder
-import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
 import java.time.Clock
@@ -68,13 +65,13 @@ class UserRepositoryImpl(
             this[Users.smokingStatusDisplay] = entity.smokingStatus.display
             this[Users.diet] = entity.diet.field?.name
             this[Users.dietDisplay] = entity.diet.display
-            this[Users.dateIntentions] = entity.dateIntentions.field?.name
+            this[Users.dateIntentions] = entity.dateIntentions.field.name
             this[Users.dateIntentionsDisplay] = entity.dateIntentions.display
-            this[Users.relationshipType] = entity.relationshipType.field?.name
+            this[Users.relationshipType] = entity.relationshipType.field.name
             this[Users.relationshipTypeDisplay] = entity.relationshipType.display
-            this[Users.kidsPreference] = entity.kidsPreference.field?.name
+            this[Users.kidsPreference] = entity.kidsPreference.field.name
             this[Users.kidsPreferenceDisplay] = entity.kidsPreference.display
-            this[Users.sexualOrientation] = entity.sexualOrientation.field?.name
+            this[Users.sexualOrientation] = entity.sexualOrientation.field.name
             this[Users.sexualOrientationDisplay] = entity.sexualOrientation.display
             this[Users.pronouns] = entity.pronouns.field?.name
             this[Users.pronounsDisplay] = entity.pronouns.display
@@ -110,57 +107,34 @@ class UserRepositoryImpl(
     // IBaseDAO overrides — domain-specific behaviour
     // -------------------------------------------------------------------------
 
-    /**
-     * Creates a new user and re-fetches by Firebase UID.
-     *
-     * Checks for existing user (respecting soft-delete) before insertion.
-     *
-     * @throws IllegalStateException if a user with the given ID already exists
-     */
-    override suspend fun create(entity: User): User = dbQuery {
-        val hasExisted = Users.selectAll()
-            .where { (Users.userId eq entity.userId) }
-            .count() > 0
-
-        if (hasExisted) {
-            throw IllegalStateException("User with ID ${entity.userId} already exists")
-        }
-
-        Users.insert { toStatement(it, entity) }
-        Users.selectAll()
-            .where { Users.userId eq entity.userId }
-            .single()
-            .toDomain()
-    }
-
     /** Respects soft-delete (excludes rows where deletedAt is not null). */
-    override suspend fun findById(id: String): User? = dbQuery {
-        Users.selectAll()
+    override suspend fun findById(id: String): User?  {
+        return Users.selectAll()
             .where { (Users.userId eq id) and Users.deletedAt.isNull() }
             .singleOrNull()
             ?.toDomain()
     }
 
     /** Soft-delete: sets deletedAt timestamp instead of removing the row. */
-    override suspend fun delete(id: String): Int = dbQuery {
-        Users.update({ Users.userId eq id }) {
+    override suspend fun delete(id: String): Int  {
+        return Users.update({ Users.userId eq id }) {
             it[deletedAt] = Instant.now(clock)
         }
     }
 
     /** Respects soft-delete. */
-    override suspend fun doesExist(id: String): Boolean = dbQuery {
-        Users.selectAll()
+    override suspend fun doesExist(id: String): Boolean  {
+        return Users.selectAll()
             .where { (Users.userId eq id) and Users.deletedAt.isNull() }
-            .count() > 0
+            .empty().not()
     }
 
     // -------------------------------------------------------------------------
     // UserRepository extras
     // -------------------------------------------------------------------------
 
-    override suspend fun findByEmail(email: String): User? = dbQuery {
-        Users.selectAll()
+    override suspend fun findByEmail(email: String): User?  {
+        return Users.selectAll()
             .where { (Users.email.lowerCase() eq email.lowercase()) and Users.deletedAt.isNull() }
             .singleOrNull()
             ?.toDomain()

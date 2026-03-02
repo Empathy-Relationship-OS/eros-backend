@@ -17,14 +17,12 @@ import java.time.Instant
  * - User-defined ordering (displayOrder 1-3)
  */
 object UserQA : Table("user_qa") {
-    // Primary key
-    val id = long("id").autoIncrement()
-    
+
     // Foreign key to Users table
     val userId = varchar("user_id", 128).references(Users.userId)
     
     // Q&A content
-    val question = varchar("question", 100) // PredefinedQuestion enum value
+    val questionId = long("question_id").references(Questions.questionId) // Index of the question
     val answer = varchar("answer", 200) // User's answer, max 200 chars
     
     // Ordering
@@ -33,16 +31,14 @@ object UserQA : Table("user_qa") {
     // Timestamps
     val createdAt = timestamp("created_at").clientDefault { Instant.now() }
     val updatedAt = timestamp("updated_at").clientDefault { Instant.now() }
-    
-    override val primaryKey = PrimaryKey(id)
-    
+
+    // Set primary key.
+    override val primaryKey = PrimaryKey(userId, questionId)
+
     init {
         // Ensure displayOrder is unique per user
         uniqueIndex("unique_qa_display_order_per_user", userId, displayOrder)
-        
-        // Ensure same question isn't answered twice by same user
-        uniqueIndex("unique_question_per_user", userId, question)
-        
+
         // Check constraint: displayOrder must be between 1 and 3
         check("qa_display_order_range") { displayOrder.between(1, 3) }
     }

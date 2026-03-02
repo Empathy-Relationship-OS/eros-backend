@@ -15,7 +15,10 @@ import org.slf4j.LoggerFactory
  * @see TwilioSettings
  */
 class TwilioServiceImpl(private val settings: TwilioSettings) : TwilioService {
-    private val logger = LoggerFactory.getLogger(TwilioServiceImpl::class.java)
+
+    companion object {
+        private val logger = LoggerFactory.getLogger(TwilioServiceImpl::class.java)
+    }
 
     /**
      * Sends an SMS to the specified phone number.

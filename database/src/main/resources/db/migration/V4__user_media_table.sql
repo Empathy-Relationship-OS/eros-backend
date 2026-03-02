@@ -32,6 +32,8 @@ CREATE UNIQUE INDEX idx_user_media_unique_primary
     ON user_media (user_id)
     WHERE is_primary = TRUE;
 
+-- Fast lookup of all media for a user ordered by display_order
+CREATE INDEX idx_user_media_user_id ON user_media (user_id, display_order);
 
 COMMENT ON TABLE user_media IS 'User photos (and future videos). Max 6 per user.';
 COMMENT ON COLUMN user_media.media_url IS 'Public URL for the original file (S3 or CDN)';

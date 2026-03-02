@@ -6,7 +6,6 @@ import org.junit.jupiter.api.*
 import org.testcontainers.junit.jupiter.Testcontainers
 import java.time.Instant
 import java.time.LocalDate
-import java.time.LocalDateTime
 import kotlin.test.assertEquals
 
 @Testcontainers
@@ -138,38 +137,42 @@ class ProfileCompletenessTest {
     }
 
     // Helper functions
+    // Test questions map
+    private val testQuestions = hashMapOf(
+        1L to "What's your favorite food?",
+        2L to "What's your dream vacation destination?",
+        3L to "What's your favorite hobby?",
+        4L to "What's your biggest fear?",
+        5L to "What's your favorite movie?",
+        6L to "What makes you happy?",
+        7L to "What's your hidden talent?",
+        8L to "What's your favorite season?"
+    )
+
     private fun createQAItem(
-        id: Long = 1L,
         userId: String = "user-123",
-        question: PredefinedQuestion = PredefinedQuestion.LAST_MEAL_EVER,
+        questionId: Long = testQuestions.keys.random(),
         answer: String = "Pizza and ice cream",
         displayOrder: Int = 1
     ): UserQAItem {
         return UserQAItem(
-            id = id,
             userId = userId,
-            question = question,
+            question = Question(questionId,testQuestions.get(questionId)?:"error",Instant.now(),Instant.now()),
             answer = answer,
             displayOrder = displayOrder,
-            createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now()
+            createdAt = Instant.now(),
+            updatedAt = Instant.now()
         )
     }
 
     private fun createQAList(count: Int): List<UserQAItem> {
-        val questions = listOf(
-            PredefinedQuestion.LAST_MEAL_EVER,
-            PredefinedQuestion.FAVOURITE_BOOK_MOVIE_TV,
-            PredefinedQuestion.DREAM_JOB_NO_MONEY,
-            PredefinedQuestion.LIFE_GOAL
-        )
-
+        val questionIds = testQuestions.keys.toList()
         return (1..count).map { index ->
             createQAItem(
-                id = index.toLong(),
-                question = questions[(index - 1) % questions.size],
+                userId = "user-123",
+                questionId = questionIds[(index - 1) % questionIds.size],
                 answer = "Answer $index",
-                displayOrder = index.coerceAtMost(3)
+                displayOrder = index.coerceAtMost(3),
             )
         }
     }

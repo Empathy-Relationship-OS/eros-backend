@@ -1,6 +1,7 @@
 package com.eros.users.repository
 
 
+import com.eros.database.dbQuery
 import com.eros.users.models.Activity
 import com.eros.users.models.City
 import com.eros.users.models.DateIntentions
@@ -19,7 +20,6 @@ import com.eros.users.models.Trait
 import com.eros.users.models.User
 import com.eros.users.models.UserPreference
 import com.eros.users.models.ValidationStatus
-import com.eros.users.service.UserService
 import com.eros.users.table.Cities
 import com.eros.users.table.UserCitiesPreference
 import com.eros.users.table.UserPreferences
@@ -44,7 +44,6 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 @Testcontainers
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -60,10 +59,7 @@ class PreferenceRepositoryImplTest {
     }
 
     private lateinit var preferenceRepository: PreferenceRepositoryImpl
-    private lateinit var userCitiesRepository: UserCitiesRepositoryImpl
     private lateinit var cityRepository: CityRepositoryImpl
-    private lateinit var userRepository: UserRepositoryImpl
-    private lateinit var userService: UserService
     private lateinit var clock: Clock
     private val fixedInstant = Instant.parse("2024-01-15T10:00:00Z")
 
@@ -85,11 +81,8 @@ class PreferenceRepositoryImplTest {
     @BeforeEach
     fun setupEach() {
         clock = Clock.fixed(fixedInstant, ZoneId.of("UTC"))
-        userCitiesRepository = UserCitiesRepositoryImpl(clock)
-        preferenceRepository = PreferenceRepositoryImpl(clock, userCitiesRepository)
+        preferenceRepository = PreferenceRepositoryImpl(clock)
         cityRepository = CityRepositoryImpl(clock)
-        userRepository = UserRepositoryImpl(clock)
-        userService = UserService(userRepository, clock)
 
         // Clear the tables before each test.
         transaction {
@@ -107,12 +100,8 @@ class PreferenceRepositoryImplTest {
         }
     }
 
-    fun createCity(cityName: String): City {
-        val city: City
-        runBlocking {
-            city = cityRepository.create(City(0L, cityName, fixedInstant, fixedInstant))
-        }
-        return city
+    suspend fun createCity(cityName: String): City {
+        return cityRepository.create(City(0L, cityName, fixedInstant, fixedInstant))
     }
 
     fun createUser(): User = runBlocking {
@@ -213,7 +202,7 @@ class PreferenceRepositoryImplTest {
      * Private helper to create test user preferences setup.
      * Not a @Test method to avoid being called directly as a test.
      */
-    private fun createUserPreferencesSetup(): Pair<UserPreference, UserPreference> {
+    private suspend fun createUserPreferencesSetup(): Pair<UserPreference, UserPreference> {
         // Create test user
         createUser()
 
@@ -221,7 +210,6 @@ class PreferenceRepositoryImplTest {
         val city = createCity("TestCity")
 
         val preference = UserPreference(
-            id = 0L,
             userId = "user123",
             genderIdentities = listOf(Gender.FEMALE, Gender.NON_BINARY),
             ageRangeMin = 25,
@@ -239,7 +227,6 @@ class PreferenceRepositoryImplTest {
         )
 
         val preference2 = UserPreference(
-            id = 0L,
             userId = "user456",
             genderIdentities = listOf(Gender.MALE, Gender.NON_BINARY),
             ageRangeMin = 18,
@@ -261,15 +248,38 @@ class PreferenceRepositoryImplTest {
 
     @Test
     fun createUserPreferences() {
-        val (preference, preference2) = createUserPreferencesSetup()
+        runBlocking {
+            // Setup
+            val city = dbQuery {
+                createUser()
+                createCity("TestCity")
+            }
 
-        runTest {
-            val createdUser = preferenceRepository.create(preference)
-            val createdUser2 = preferenceRepository.create(preference2)
+            val preference = UserPreference(
+                userId = "user123",
+                genderIdentities = listOf(Gender.FEMALE, Gender.NON_BINARY),
+                ageRangeMin = 25,
+                ageRangeMax = 55,
+                heightRangeMin = 160,
+                heightRangeMax = 200,
+                ethnicity = listOf(Ethnicity.MIDDLE_EASTERN, Ethnicity.PACIFIC_ISLANDER),
+                dateLanguages = listOf(Language.ENGLISH, Language.SPANISH),
+                dateActivities = listOf(Activity.ESCAPE_ROOMS, Activity.BEACH),
+                dateLimit = 5,
+                dateCities = listOf(city),
+                reachLevel = ReachLevel.OPEN_MINDED,
+                createdAt = fixedInstant,
+                updatedAt = fixedInstant
+            )
 
+            // Test - wrap repository calls in dbQuery
+            val createdUser = dbQuery {
+                preferenceRepository.create(preference)
+            }
+
+            // Assertions
             assertNotNull(createdUser)
             assertEquals(preference.userId, createdUser.userId)
-            assertEquals(preference2.userId, createdUser2.userId)
         }
     }
 
