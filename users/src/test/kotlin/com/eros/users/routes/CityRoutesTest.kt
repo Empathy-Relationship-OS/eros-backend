@@ -36,6 +36,7 @@ import io.mockk.mockk
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import java.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
@@ -116,18 +117,15 @@ class CityRoutesTest{
             setupTestApp("ADMIN")
             val client = configuredClient()
 
-            val request = CreateCityRequest("    ", -5.2, 45.2)
-
-            coEvery { mockCityService.doesExists(request.cityName) } returns false
-            coEvery { mockCityService.createCity(request) } throws IllegalArgumentException("City name must not be empty.")
-
-            val response = client.post("/city/admin") {
-                setAuthenticatedUser("test-user-id")
-                contentType(ContentType.Application.Json)
-                setBody(request)
+            val exception = assertThrows<IllegalArgumentException> {
+                client.post("/city/admin") {
+                    setAuthenticatedUser("test-user-id")
+                    contentType(ContentType.Application.Json)
+                    setBody(CreateCityRequest("    ", -5.2, 45.2))
+                }
             }
 
-            assertEquals(HttpStatusCode.BadRequest, response.status)
+            assertEquals("City name must not be empty.", exception.message)
         }
 
     }
