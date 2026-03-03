@@ -26,6 +26,9 @@ object Cities : Table("cities") {
     // Foreign key to Users table
     val cityName = varchar("city_name", 128).uniqueIndex()
 
+    val longitude = double("longitude")
+    val latitude = double("latitude")
+
     // Timestamps
     val createdAt = timestamp("created_at").clientDefault { Instant.now() }
     val updatedAt = timestamp("updated_at").clientDefault { Instant.now() }
@@ -37,6 +40,8 @@ object Cities : Table("cities") {
 fun ResultRow.toCityDTO() = City(
     cityId = this[Cities.cityId],
     cityName = this[Cities.cityName],
+    longitude = this[Cities.longitude],
+    latitude = this[Cities.latitude],
     createdAt = this[Cities.createdAt],
     updatedAt = this[Cities.updatedAt]
 )

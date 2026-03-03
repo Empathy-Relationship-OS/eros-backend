@@ -1,9 +1,9 @@
 package com.eros.users.models
 
 import kotlinx.serialization.Serializable
+import kotlin.String
 
-@Serializable
-data class PublicProfileResponse(
+data class PublicProfile(
     val userId: String,
     val name: String,
     val age: Int,
@@ -13,15 +13,15 @@ data class PublicProfileResponse(
     val education: String,
     val occupation: String?,
     val badges: Set<String>?,
-    val profile: PublicProfile
+    val profile: PublicProfileDetails
 ) {
     companion object {
         fun from(
             user: User,
             userMediaCollection: UserMediaCollection,
             sharedInterests: List<String>
-        ): PublicProfileResponse {
-            return PublicProfileResponse(
+        ): PublicProfile {
+            return PublicProfile(
                 userId = user.userId,
                 name = user.firstName,
                 age = user.getAge(),
@@ -31,11 +31,41 @@ data class PublicProfileResponse(
                 occupation = user.occupation,
                 badges = user.badges?.map { it.name }?.toSet(),
                 language = user.preferredLanguage.name,
-                profile = PublicProfile.from(user, sharedInterests,userMediaCollection)
+                profile = PublicProfileDetails.from(user, sharedInterests,userMediaCollection)
             )
         }
     }
 }
+
+
+@Serializable
+data class PublicProfileDTO(
+    val userId: String,
+    val name: String,
+    val age: Int,
+    val height: Int,
+    val city: String,
+    val language : String,
+    val education: String,
+    val occupation: String?,
+    val badges: Set<String>?,
+    val profile: PublicProfileDetailsDTO
+)
+
+
+fun PublicProfile.toDTO() = PublicProfileDTO(
+    userId = this.userId,
+    name = this.name,
+    age = this.age,
+    height = this.height,
+    city = this.city,
+    language = this.language,
+    education = this.education,
+    occupation = this.occupation,
+    badges = this.badges,
+    profile = this.profile.toDTO()
+)
+
 
 @Serializable
 data class HabitsResponse(
@@ -71,9 +101,7 @@ data class RelationshipResponse(
     }
 }
 
-//todo: Add the rest of the optional fields
-@Serializable
-data class PublicProfile(
+data class PublicProfileDetails(
     val coverPhoto: String?,
     val photos: List<String>,
     val bio: String?,
@@ -97,8 +125,8 @@ data class PublicProfile(
     val bodyDescription: String?,
 ) {
     companion object {
-        fun from(user: User, sharedInterests: List<String>, userMediaCollection: UserMediaCollection): PublicProfile {
-            return PublicProfile(
+        fun from(user: User, sharedInterests: List<String>, userMediaCollection: UserMediaCollection): PublicProfileDetails {
+            return PublicProfileDetails(
                 coverPhoto = userMediaCollection.getPrimaryMedia()?.mediaUrl,
                 photos = userMediaCollection.media.map { it.mediaUrl },
                 bio = user.bio,
@@ -123,3 +151,52 @@ data class PublicProfile(
         }
     }
 }
+
+@Serializable
+data class PublicProfileDetailsDTO(
+    val coverPhoto: String?,
+    val photos: List<String>,
+    val bio: String?,
+    val hobbies: List<String>,
+    val traits: List<String>,
+    val habits: HabitsResponse,
+    val relationshipGoals: RelationshipResponse,
+    val sharedInterests: List<String>,
+
+    val spokenLanguages: List<String>?,
+    val religion: String?,
+    val politicalView : String?,
+    val sexualOrientation: String?,
+    val pronouns : String?,
+    val starSign : String?,
+    val ethnicity : List<String>?,
+
+    val brainAttribute: List<String>?,
+    val brainDescription: String?,
+    val bodyAttribute: List<String>?,
+    val bodyDescription: String?,
+)
+
+fun PublicProfileDetails.toDTO() = PublicProfileDetailsDTO(
+    coverPhoto = this.coverPhoto,
+    photos = this.photos,
+    bio = this.bio,
+    hobbies = this.hobbies,
+    traits = this.traits,
+    habits = this.habits,
+    relationshipGoals = this.relationshipGoals,
+    sharedInterests = this.sharedInterests,
+    
+    spokenLanguages = this.spokenLanguages,
+    religion = this.religion,
+    politicalView  = this.politicalView,
+    sexualOrientation = this.sexualOrientation,
+    pronouns  = this.pronouns,
+    starSign  = this.starSign,
+    ethnicity  = this.ethnicity,
+    
+    brainAttribute = this.brainAttribute,
+    brainDescription = this.brainDescription,
+    bodyAttribute = this.bodyAttribute,
+    bodyDescription = this.bodyDescription,
+)

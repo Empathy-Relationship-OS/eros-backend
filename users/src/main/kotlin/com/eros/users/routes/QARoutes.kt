@@ -1,13 +1,13 @@
 package com.eros.users.routes
 
 import com.eros.auth.extensions.requireFirebasePrincipal
+import com.eros.auth.extensions.requireRoles
 import com.eros.common.errors.BadRequestException
 import com.eros.common.errors.ForbiddenException
 import com.eros.common.errors.NotFoundException
 import com.eros.common.errors.UnauthorizedException
 import com.eros.users.ProfileAccessControl
 import com.eros.users.models.AddUserQARequest
-import com.eros.users.models.DeleteUserQARequest
 import com.eros.users.models.UpdateUserQARequest
 import com.eros.users.models.UserQACollectionDTO
 import com.eros.users.models.toDTO
@@ -25,9 +25,10 @@ import io.ktor.server.routing.route
 fun Route.qaRoutes(qaService : QAService, profileAccessControl: ProfileAccessControl) {
 
     /**
-     * Base route /qa.
+     * Base route /users/qa.
      */
-    route("/qa") {
+    route("/users/qa") {
+        requireRoles("ADMIN", "USER", "EMPLOYEE")
 
         // Add a single QA to the authorized user
         post{
@@ -77,13 +78,33 @@ fun Route.qaRoutes(qaService : QAService, profileAccessControl: ProfileAccessCon
         }
 
         // Delete a single record.
-        delete{
+        delete("/{id}/{qaId}"){
             val principal = call.requireFirebasePrincipal()
-            val request = call.receive<DeleteUserQARequest>()
 
-            if (principal.uid != request.userId) throw UnauthorizedException("User does not have access to delete ${request.userId} QA.")
+            val targetUserId = call.parameters["id"]
+                ?: throw BadRequestException("User ID is required")
+            val targetQuestionId = call.parameters["qaId"]
+                ?: throw BadRequestException("Question ID is required")
 
-            val deleted = qaService.deleteUserQA(request.userId, request.questionId)
+            if (principal.uid != targetUserId) throw UnauthorizedException("User does not have access to delete $targetUserId QA.")
+
+            val deleted = qaService.deleteUserQA(targetUserId, targetQuestionId.toLong())
+
+            if (deleted == 0) throw NotFoundException("User QA could not be found.")
+            call.respond(HttpStatusCode.NoContent)
+
+        }
+
+        // Delete all records for a user.
+        delete("/{id}"){
+            val principal = call.requireFirebasePrincipal()
+
+            val targetUserId = call.parameters["uid"]
+                ?: throw BadRequestException("User ID is required")
+
+            if (principal.uid != targetUserId) throw UnauthorizedException("User does not have access to delete $targetUserId QA.")
+
+            val deleted = qaService.deleteAllUserQA(targetUserId)
 
             if (deleted == 0) throw NotFoundException("User QA could not be found.")
             call.respond(HttpStatusCode.NoContent)

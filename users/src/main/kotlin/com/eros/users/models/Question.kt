@@ -19,6 +19,15 @@ data class CreateQuestionRequest(
 )
 
 /**
+ * Admin only request for updating a question to the list.
+ */
+@Serializable
+data class UpdateQuestionRequest(
+    val questionId : Long,
+    val question : String
+)
+
+/**
  * Admin only response/request for adding/updating/response regarding a question to the list.
  */
 @Serializable

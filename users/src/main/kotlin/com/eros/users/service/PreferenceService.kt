@@ -32,7 +32,7 @@ class PreferenceService(
             // Stub City objects carrying just the IDs the repo needs for its batch insert.
             // The full City data is populated by the repo via getUserPreferenceWithCities.
             dateCities = request.dateCities.map { city ->
-                City(cityId = city.cityId, cityName = city.cityName,now,now)
+                City(cityId = city.cityId, cityName = "", longitude = 0.0, latitude = 0.0,now,now)
             },
             reachLevel = request.reachLevel,
             createdAt = now,
@@ -57,7 +57,7 @@ class PreferenceService(
             // Stub City objects carrying just the IDs the repo needs for its batch insert.
             // The full City data is populated by the repo via getUserPreferenceWithCities.
             dateCities = request.dateCities.map { city ->
-                City(cityId = city.cityId, cityName = city.cityName,now,now)
+                City(cityId = city.cityId, cityName = "", longitude = 0.0, latitude = 0.0,now,now)
             },
             reachLevel = request.reachLevel,
             createdAt = now,

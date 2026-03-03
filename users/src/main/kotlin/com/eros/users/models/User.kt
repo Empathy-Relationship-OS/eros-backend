@@ -9,7 +9,6 @@ import java.time.LocalDate
 /**
  * User domain model representing a complete user profile
  */
-@Serializable
 data class User(
     val userId: String,
 
@@ -18,7 +17,6 @@ data class User(
     val lastName: String,
     val email: String,
     val heightCm: Int,
-    @Serializable(with = LocalDateSerializer::class)
     val dateOfBirth: LocalDate,
     val city: String,
     val educationLevel: EducationLevel,
@@ -77,11 +75,8 @@ data class User(
     val bodyDescription: DisplayableField<String?>, // max 100 chars
 
     // Timestamps
-    @Serializable(with = InstantSerializer::class)
     val createdAt: Instant,
-    @Serializable(with = InstantSerializer::class)
     val updatedAt: Instant,
-    @Serializable(with = InstantSerializer::class)
     val deletedAt: Instant? = null
 ) {
     /**
@@ -146,6 +141,90 @@ data class User(
                hasValidTraitsCount()
     }
 }
+
+fun User.toDTO() = UserDTO(
+    userId = this.userId,
+    firstName = this.firstName,
+    lastName = this.lastName,
+    email = this.email,
+    heightCm = this.heightCm,
+    dateOfBirth = this.dateOfBirth,
+    city = this.city,
+    educationLevel = this.educationLevel,
+    gender = this.gender,
+    preferredLanguage = this.preferredLanguage,
+    coordinatesLatitude = this.coordinatesLatitude,
+    coordinatesLongitude = this.coordinatesLongitude,
+    occupation = this.occupation,
+    bio = this.bio,
+    interests = this.interests ,
+    traits = this.traits ,
+    spokenLanguages = this.spokenLanguages ,
+    religion = this.religion ,
+    politicalView = this.politicalView ,
+    alcoholConsumption = this.alcoholConsumption ,
+    smokingStatus = this.smokingStatus ,
+    diet = this.diet ,
+    dateIntentions = this.dateIntentions ,
+    kidsPreference = this.kidsPreference ,
+    relationshipType = this.relationshipType ,
+    sexualOrientation = this.sexualOrientation ,
+    pronouns = this.pronouns ,
+    starSign = this.starSign ,
+    ethnicity = this.ethnicity ,
+    brainAttributes = this.brainAttributes ,
+    brainDescription = this.brainDescription ,
+    bodyAttributes = this.bodyAttributes ,
+    bodyDescription = this.bodyDescription
+)
+
+/**
+ * User DTO.
+ */
+@Serializable
+data class UserDTO(
+    val userId: String, // From Firebase JWT
+    val firstName: String,
+    val lastName: String,
+    val email: String,
+    val heightCm: Int,
+    @Serializable(with = LocalDateSerializer::class)
+    val dateOfBirth: LocalDate,
+    val city: String,
+    val educationLevel: EducationLevel,
+    val gender: Gender,
+    val preferredLanguage: Language,
+
+    val coordinatesLatitude: Double,
+    val coordinatesLongitude: Double,
+
+    // Optional fields
+    val occupation: String? = null,
+    val bio: String = "",
+    val interests: List<String>,
+    val traits: List<Trait>,
+
+    // Displayable fields — client controls both value and visibility
+    val spokenLanguages: DisplayableField<List<Language>>,
+    val religion: DisplayableField<Religion?>,
+    val politicalView: DisplayableField<PoliticalView?>,
+    val alcoholConsumption: DisplayableField<AlcoholConsumption?>,
+    val smokingStatus: DisplayableField<SmokingStatus?>,
+    val diet: DisplayableField<Diet?>,
+    val dateIntentions: DisplayableField<DateIntentions>,
+    val relationshipType: DisplayableField<RelationshipType>,
+    val kidsPreference: DisplayableField<KidsPreference>,
+    val sexualOrientation: DisplayableField<SexualOrientation>,
+    val pronouns: DisplayableField<Pronouns?>,
+    val starSign: DisplayableField<StarSign?>,
+    val ethnicity: DisplayableField<List<Ethnicity>>,
+    val brainAttributes: DisplayableField<List<BrainAttribute>?>,
+    val brainDescription: DisplayableField<String?>,
+    val bodyAttributes: DisplayableField<List<BodyAttribute>?>,
+    val bodyDescription: DisplayableField<String?>
+)
+
+
 
 /**
  * Request DTO for creating a new user

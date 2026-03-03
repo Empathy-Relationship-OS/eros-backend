@@ -9,9 +9,10 @@ import com.eros.common.errors.NotFoundException
 import com.eros.users.ProfileAccessControl
 import com.eros.users.models.AdminUpdateUserRequest
 import com.eros.users.models.CreateUserRequest
-import com.eros.users.models.PublicProfileResponse
+import com.eros.users.models.PublicProfile
 import com.eros.users.models.UpdateUserRequest
 import com.eros.users.models.UserMediaCollection
+import com.eros.users.models.toDTO
 import com.eros.users.service.UserService
 import com.google.firebase.auth.FirebaseAuth
 import io.ktor.http.*
@@ -76,7 +77,7 @@ fun Route.userProfileRoutes(userService: UserService, profileAccessControl: Prof
                 call.application.log.error("Failed to set Firebase custom claims for user ${user.userId}", e)
             }
 
-            call.respond(HttpStatusCode.Created, user)
+            call.respond(HttpStatusCode.Created, user.toDTO())
         }
 
         /**
@@ -108,7 +109,7 @@ fun Route.userProfileRoutes(userService: UserService, profileAccessControl: Prof
              * Request Headers:
              * - Authorization: Bearer <firebase-id-token>
              *
-             * Response: User JSON
+             * Response: PublicProfileResponse JSON
              */
             get("/id/{id}/public") {
                 //todo: Alter with matches, and media collection
@@ -118,23 +119,12 @@ fun Route.userProfileRoutes(userService: UserService, profileAccessControl: Prof
 
             // Ensure the user has access to the account or not.
             //todo: Replace the true values in method once matchService created
-            profileAccessControl.hasPublicProfileAccess(principal.uid, targetUserId)
+            if (!profileAccessControl.hasPublicProfileAccess(principal.uid, targetUserId)){
+                throw ForbiddenException("User doesn't have access to $targetUserId profile.")
+            }
 
-            val targetUser = userService.findByUserId(targetUserId)
-                ?: throw NotFoundException("User profile not found")
-
-            //todo: Alter with media service
-            val media = UserMediaCollection(
-                targetUser.userId,
-                emptyList(),
-                2
-            )//userMediaService.getMediaForUser(targetUserId)
-
-            val principalUser = userService.findByUserId(principal.uid)
-                ?: throw NotFoundException("User profile not found")
-
-            val sharedInterests = userService.getSharedInterests(principalUser.interests, targetUser.interests)
-            call.respond(HttpStatusCode.OK, PublicProfileResponse.from(targetUser, media, sharedInterests))
+            val publicProfile = userService.getPublicProfile(principal.uid, targetUserId)
+            call.respond(HttpStatusCode.OK, publicProfile.toDTO())
         }
 
             /**
@@ -151,7 +141,7 @@ fun Route.userProfileRoutes(userService: UserService, profileAccessControl: Prof
                 val principal = call.requireFirebasePrincipal()
                 val user = userService.findByUserId(principal.uid)
                     ?: throw NotFoundException("User profile not found. Create a profile first.")
-                call.respond(HttpStatusCode.OK, user)
+                call.respond(HttpStatusCode.OK, user.toDTO())
             }
 
             //todo: This function should be moved to the admin/employee route
@@ -190,7 +180,7 @@ get("/id/{id}") {
                 val request = call.receive<UpdateUserRequest>()
                 val user = userService.updateUser(principal.uid, request)
                     ?: throw NotFoundException("User profile not found")
-                call.respond(HttpStatusCode.OK, user)
+                call.respond(HttpStatusCode.OK, user.toDTO())
             }
 
         /**
@@ -241,7 +231,7 @@ get("/id/{id}") {
                 ?: throw NotFoundException("User profile not found")
 
                 call.application.log.info("Admin update performed on user $targetUserId by ${call.requireFirebasePrincipal().uid}")
-                call.respond(HttpStatusCode.OK, user)
+                call.respond(HttpStatusCode.OK, user.toDTO())
             }
         }
     }
