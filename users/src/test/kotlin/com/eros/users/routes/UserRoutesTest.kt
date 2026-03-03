@@ -55,8 +55,8 @@ class UserRoutesTest {
             }
 
             assertEquals(HttpStatusCode.Created, response.status)
-            val returnedUser = response.body<User>()
-            assertEquals(createdUser, returnedUser)
+            val returnedUser = response.body<UserDTO>()
+            assertEquals(createdUser.toDTO(), returnedUser)
             coVerify { mockUserService.userExists(request.userId) }
             coVerify { mockUserService.createUser(request) }
         }
@@ -190,8 +190,8 @@ class UserRoutesTest {
             }
 
             assertEquals(HttpStatusCode.OK, response.status)
-            val returnedUser = response.body<User>()
-            assertEquals(user, returnedUser)
+            val returnedUser = response.body<UserDTO>()
+            assertEquals(user.toDTO(), returnedUser)
             coVerify { mockUserService.findByUserId(userId) }
         }
 
@@ -397,9 +397,9 @@ class UserRoutesTest {
             }
 
             assertEquals(HttpStatusCode.OK, response.status)
-            val returnedUser = response.body<User>()
+            val returnedUser = response.body<UserDTO>()
             assertEquals("UpdatedName", returnedUser.firstName)
-            assertEquals(updatedUser, returnedUser)
+            assertEquals(updatedUser.toDTO(), returnedUser)
             coVerify { mockUserService.updateUser(userId, updateRequest) }
         }
 
@@ -547,6 +547,56 @@ class UserRoutesTest {
         }
     }
 
+    @Nested
+    inner class `GET Public profile`{
+
+        @Test
+        fun `should successfully return users public profile`() = testApplication {
+
+            setupTestApp()
+            val client = configuredClient()
+
+            val requestingUserId = "test-user-id"
+            val targetUserId = "target-user-id"
+            val targetUser = createCompleteTestUser(targetUserId)
+            val publicProfile = createValidPublicProfile(targetUser)
+
+            coEvery { mockUserService.getPublicProfile(requestingUserId,targetUserId) } returns publicProfile
+            coEvery { mockProfileAccessControl.hasPublicProfileAccess(requestingUserId,targetUserId) } returns true
+
+            val response = client.get("/users/id/$targetUserId/public") {
+                setAuthenticatedUser(requestingUserId)
+            }
+
+            assertEquals(HttpStatusCode.OK , response.status)
+
+            val profile = response.body<PublicProfileDTO>()
+
+            assertEquals(listOf("trait1","trait2"), profile.profile.sharedInterests)
+            assertEquals(targetUserId, profile.userId)
+
+        }
+
+        @Test
+        fun `return forbidden if user's don't have access`() = testApplication{
+            setupTestApp()
+            val client = configuredClient()
+
+            val requestingUserId = "test-user-id"
+            val targetUserId = "target-user-id"
+
+            coEvery { mockProfileAccessControl.hasPublicProfileAccess(requestingUserId,targetUserId) } returns false
+
+            val response = client.get("/users/id/$targetUserId/public") {
+                setAuthenticatedUser(requestingUserId)
+            }
+
+            assertEquals(HttpStatusCode.Forbidden , response.status)
+            coVerify (exactly = 0){ mockUserService.getPublicProfile(requestingUserId,targetUserId) }
+        }
+
+    }
+
 
     // Helper functions
 
@@ -607,6 +657,14 @@ class UserRoutesTest {
 
     private fun HttpRequestBuilder.setAuthenticatedUser(userId: String) {
         header(HttpHeaders.Authorization, "Bearer user-$userId")
+    }
+
+
+    private fun createValidPublicProfile(user: User = createCompleteTestUser("target-user-id")) : PublicProfile {
+        return PublicProfile.from(user, UserMediaCollection(
+            user.userId,
+            emptyList(),
+            0), listOf("trait1","trait2"))
     }
 
     private fun createValidUserRequest(userId: String = "test-user-id"): CreateUserRequest {

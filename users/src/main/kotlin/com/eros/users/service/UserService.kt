@@ -164,6 +164,7 @@ class UserService(
                         (request.trustedBadge ?: false) to Badge.TRUSTED
                     )
                 }
+
                 else -> existing.badges
             },
             role = request.role ?: existing.role,
@@ -181,6 +182,35 @@ class UserService(
         }
         updated
     }
+
+    /**
+     * Get and return a users full PUBLIC profile.
+     *
+     * @param requestingUserId Firebase user ID of the user.
+     * @param targetUserId Firebase user ID of the other user to get their profile.
+     * @return [PublicProfile] if user is found.
+     *
+     * @throws NotFoundException if either user profile is not found.
+     */
+    // In UserService
+    suspend fun getPublicProfile(requestingUserId: String, targetUserId: String): PublicProfile {
+        val targetUser = findByUserId(targetUserId)
+            ?: throw NotFoundException("User profile not found")
+
+        val principalUser = findByUserId(requestingUserId)
+            ?: throw NotFoundException("User profile not found")
+
+        // TODO: Alter with media service
+        val media = UserMediaCollection(
+            targetUser.userId,
+            emptyList(),
+            0)
+        // userMediaService.getMediaForUser(targetUserId)
+
+        val sharedInterests = getSharedInterests(principalUser.interests, targetUser.interests)
+        return PublicProfile.from(targetUser, media, sharedInterests)
+    }
+
 
     /**
      * Finds a user by Firebase UID.
@@ -233,8 +263,9 @@ class UserService(
      * @return List of strings containing only interests that are in both user 1 and user 2's lists.
      */
     fun getSharedInterests(user1Interests: List<String>, user2Interests: List<String>): List<String> {
-        return if (user1Interests == user2Interests){user1Interests}
-        else(user1Interests intersect user2Interests.toSet()).toList()
+        return if (user1Interests == user2Interests) {
+            user1Interests
+        } else (user1Interests intersect user2Interests.toSet()).toList()
     }
 
 }

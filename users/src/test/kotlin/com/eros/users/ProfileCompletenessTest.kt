@@ -114,23 +114,28 @@ class ProfileCompletenessTest {
 
     // Helper functions
     private fun createMediaItem(
+        userId : String = "test-user-id",
         id: Long = 1L,
         mediaUrl: String = "https://example.com/photo.jpg",
         mediaType: MediaType = MediaType.PHOTO,
         displayOrder: Int = 1,
         isPrimary: Boolean = false
-    ): UserMediaItemDTO {
-        return UserMediaItemDTO(
+    ): UserMediaItem {
+        val now = Instant.now()
+        return UserMediaItem(
+            userId = userId,
             id = id,
             mediaUrl = mediaUrl,
             thumbnailUrl = null,
             mediaType = mediaType,
             displayOrder = displayOrder,
-            isPrimary = isPrimary
+            isPrimary = isPrimary,
+            createdAt = now,
+            updatedAt = now,
         )
     }
 
-    private fun createMediaList(count: Int): List<UserMediaItemDTO> {
+    private fun createMediaList(count: Int): List<UserMediaItem> {
         return (1..count).map { index ->
             createMediaItem(id = index.toLong(), displayOrder = index)
         }

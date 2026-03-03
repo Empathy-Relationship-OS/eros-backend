@@ -215,16 +215,7 @@ class PhotoService(
      * Returns all media for [userId] as a [UserMediaCollection], ordered by displayOrder.
      */
     suspend fun getUserMedia(userId: String): UserMediaCollection {
-        val items = photoRepository.findByUserId(userId).map {
-            UserMediaItemDTO(
-                it.id,
-                it.mediaUrl,
-                it.thumbnailUrl,
-                it.mediaType,
-                it.displayOrder,
-                it.isPrimary
-            )
-        }
+        val items = photoRepository.findByUserId(userId)
         return UserMediaCollection(
             userId     = userId,
             media      = items,

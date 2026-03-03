@@ -19,8 +19,8 @@ import io.ktor.server.routing.delete
 import io.ktor.server.routing.patch
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
+import net.logstash.logback.argument.StructuredArguments.keyValue
 import org.slf4j.LoggerFactory
-import net.logstash.logback.argument.StructuredArguments.*
 
 
 private val logger = LoggerFactory.getLogger(Route::class.java)

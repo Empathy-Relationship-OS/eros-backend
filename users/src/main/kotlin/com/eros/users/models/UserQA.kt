@@ -23,7 +23,7 @@ data class UserQAItem(
     }
 }
 
-fun UserQAItem.toDTO() = UserQAItemResponse(
+fun UserQAItem.toDTO() = UserQAItemDTO(
     userId = this.userId,
     question = this.question.toDTO(),
     answer = this.answer,
@@ -34,7 +34,7 @@ fun UserQAItem.toDTO() = UserQAItemResponse(
  * Response DTO for QA item.
  */
 @Serializable
-data class UserQAItemResponse(
+data class UserQAItemDTO(
     val userId: String,
     val question: QuestionDTO,
     val answer: String,
@@ -122,7 +122,7 @@ fun UserQACollection.toDTO() = UserQACollectionDTO(
 @Serializable
 data class UserQACollectionDTO(
     val userId: String,
-    val qas: List<UserQAItemResponse>,
+    val qas: List<UserQAItemDTO>,
     val totalCount: Int
 )
 

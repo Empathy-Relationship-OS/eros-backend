@@ -9,6 +9,7 @@ import com.eros.common.plugins.configureExceptionHandling
 import com.eros.users.models.CreateQuestionRequest
 import com.eros.users.models.Question
 import com.eros.users.models.QuestionDTO
+import com.eros.users.models.UpdateQuestionRequest
 import com.eros.users.service.QAService
 import io.ktor.client.call.body
 import io.ktor.client.request.HttpRequestBuilder
@@ -65,9 +66,6 @@ class QuestionRoutesTest {
             }
 
             assertEquals(HttpStatusCode.Created, response.status)
-            val returnedQA = response.body<CreateQuestionRequest>()
-            println(returnedQA)
-
             coVerify { mockQAService.createNewQuestion(request) }
         }
 
@@ -136,7 +134,7 @@ class QuestionRoutesTest {
             val client = configuredClient()
 
             val question = "does this code even get reviewed"
-            val request = QuestionDTO(1L,question)
+            val request = UpdateQuestionRequest(1L,question)
             val updatedQuestion = createValidQuestion(1L,question)
             coEvery { mockQAService.updateQuestion(request) } returns updatedQuestion
 
@@ -158,7 +156,7 @@ class QuestionRoutesTest {
             val client = configuredClient()
 
             val question = "does this code even get reviewed"
-            val request = QuestionDTO(1L,question)
+            val request = UpdateQuestionRequest(1L,question)
             coEvery { mockQAService.updateQuestion(request) } throws ForbiddenException("Only admin can update question.")
 
             val response = client.patch("/questions/admin") {
@@ -174,7 +172,7 @@ class QuestionRoutesTest {
         fun `throws 404 error if question not found`()= testApplication{
             setupTestApp()
             val client = configuredClient()
-            val request = QuestionDTO(999L,"Blanket question goes here?")
+            val request = UpdateQuestionRequest(999L,"Blanket question goes here?")
 
             coEvery { mockQAService.updateQuestion(request) } throws NotFoundException("Question not found.")
 

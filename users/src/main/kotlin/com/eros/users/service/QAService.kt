@@ -8,6 +8,7 @@ import com.eros.users.models.AddUserQARequest
 import com.eros.users.models.CreateQuestionRequest
 import com.eros.users.models.Question
 import com.eros.users.models.QuestionDTO
+import com.eros.users.models.UpdateQuestionRequest
 import com.eros.users.models.UpdateUserQARequest
 import com.eros.users.models.UserQACollection
 import com.eros.users.models.UserQACollectionDTO
@@ -56,7 +57,7 @@ class QAService(
      * @param QuestionDTO The id of the question with the updated question.
      * @throws NotFoundException if the id is not in the database.
      */
-    suspend fun updateQuestion(request: QuestionDTO): Question? = dbQuery{
+    suspend fun updateQuestion(request: UpdateQuestionRequest): Question? = dbQuery{
         val existing = questionRepository.findById(request.questionId)
             ?: throw NotFoundException("Can't find question with id: ${request.questionId}")
         val updated = Question(
@@ -208,6 +209,16 @@ class QAService(
      */
     suspend fun deleteUserQA(userId: String, questionId: Long): Int = dbQuery {
         userQARepository.delete(UserQAId(userId, questionId))
+    }
+
+    /**
+     * Delete all records for a user's QA.
+     *
+     * @param userId id of the user.
+     * @return [Int] The number of rows deleted (1 or 0).
+     */
+    suspend fun deleteAllUserQA(userId: String): Int = dbQuery {
+        userQARepository.deleteAllByUserId(userId)
     }
 
 }

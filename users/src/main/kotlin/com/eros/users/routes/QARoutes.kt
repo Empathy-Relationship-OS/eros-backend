@@ -79,13 +79,33 @@ fun Route.qaRoutes(qaService : QAService, profileAccessControl: ProfileAccessCon
         }
 
         // Delete a single record.
-        delete{
+        delete("/{id}/{qaId}"){
             val principal = call.requireFirebasePrincipal()
-            val request = call.receive<DeleteUserQARequest>()
 
-            if (principal.uid != request.userId) throw UnauthorizedException("User does not have access to delete ${request.userId} QA.")
+            val targetUserId = call.parameters["id"]
+                ?: throw BadRequestException("User ID is required")
+            val targetQuestionId = call.parameters["qaId"]
+                ?: throw BadRequestException("Question ID is required")
 
-            val deleted = qaService.deleteUserQA(request.userId, request.questionId)
+            if (principal.uid != targetUserId) throw UnauthorizedException("User does not have access to delete $targetUserId QA.")
+
+            val deleted = qaService.deleteUserQA(targetUserId, targetQuestionId.toLong())
+
+            if (deleted == 0) throw NotFoundException("User QA could not be found.")
+            call.respond(HttpStatusCode.NoContent)
+
+        }
+
+        // Delete all records for a user.
+        delete("/{id}"){
+            val principal = call.requireFirebasePrincipal()
+
+            val targetUserId = call.parameters["uid"]
+                ?: throw BadRequestException("User ID is required")
+
+            if (principal.uid != targetUserId) throw UnauthorizedException("User does not have access to delete $targetUserId QA.")
+
+            val deleted = qaService.deleteAllUserQA(targetUserId)
 
             if (deleted == 0) throw NotFoundException("User QA could not be found.")
             call.respond(HttpStatusCode.NoContent)

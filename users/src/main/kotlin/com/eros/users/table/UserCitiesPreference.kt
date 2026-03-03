@@ -29,7 +29,9 @@ object UserCitiesPreference : Table("user_cities_preference") {
 
 }
 
-
+/**
+ * Convert to domain object
+ */
 fun ResultRow.toUserCityPreferenceDTO() = UserCityPreference(
     userId = this[UserCitiesPreference.userId],
     cityId= this[UserCitiesPreference.cityId],

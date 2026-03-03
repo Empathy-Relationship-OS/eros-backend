@@ -6,6 +6,7 @@ import com.eros.common.errors.BadRequestException
 import com.eros.common.errors.NotFoundException
 import com.eros.users.models.CreateQuestionRequest
 import com.eros.users.models.QuestionDTO
+import com.eros.users.models.UpdateQuestionRequest
 import com.eros.users.models.toDTO
 import com.eros.users.service.QAService
 import io.ktor.http.HttpStatusCode
@@ -59,7 +60,7 @@ fun Route.questionRoutes(qaService: QAService) {
              * Updates a question in the database.
              */
             patch{
-                val request = call.receive<QuestionDTO>()
+                val request = call.receive<UpdateQuestionRequest>()
                 val question = qaService.updateQuestion(request) ?: throw NotFoundException("Question not found.")
                 call.application.log.info("Admin updated performed on question ${question.questionId} by ${call.requireFirebasePrincipal().uid}")
                 call.respond(HttpStatusCode.OK, question.toDTO())

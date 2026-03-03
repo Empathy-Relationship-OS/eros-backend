@@ -6,7 +6,7 @@ import java.time.Instant
 /**
  * Domain object for a city.
  *
- * @param cityID - id of the city.
+ * @param cityId - id of the city.
  * @param cityName - Name of the city.
  * @param createdAt - Time of creation.
  * @param updatedAt - Time of late update.

@@ -14,7 +14,7 @@ import com.eros.users.models.UpdateUserQARequest
 import com.eros.users.models.UserQACollection
 import com.eros.users.models.UserQACollectionDTO
 import com.eros.users.models.UserQAItem
-import com.eros.users.models.UserQAItemResponse
+import com.eros.users.models.UserQAItemDTO
 import com.eros.users.service.QAService
 import io.ktor.client.call.body
 import io.ktor.client.request.HttpRequestBuilder
@@ -76,7 +76,7 @@ class QARoutesTest {
             }
 
             assertEquals(HttpStatusCode.Created, response.status)
-            val returnedQA = response.body<UserQAItemResponse>()
+            val returnedQA = response.body<UserQAItemDTO>()
             println(returnedQA)
 
             coVerify { mockQAService.createUserQA(request) }
@@ -298,14 +298,13 @@ class QARoutesTest {
             val client = configuredClient()
 
             val userId = "test-user-123"
-            val request = DeleteUserQARequest(userId = userId, questionId = 1L)
+            val qaId = 1L
 
             coEvery { mockQAService.deleteUserQA(userId, 1L) } returns 1
 
-            val response = client.delete("/users/qa") {
+            val response = client.delete("/users/qa/$userId/$qaId") {
                 setAuthenticatedUser(userId)
                 contentType(ContentType.Application.Json)
-                setBody(request)
             }
 
             assertEquals(HttpStatusCode.NoContent, response.status)
@@ -319,12 +318,10 @@ class QARoutesTest {
 
             val authenticatedUser = "user-123"
             val targetUser = "other-user-456"
-            val request = DeleteUserQARequest(userId = targetUser, questionId = 1L)
 
-            val response = client.delete("/users/qa") {
+            val response = client.delete("/users/qa/$targetUser/1") {
                 setAuthenticatedUser(authenticatedUser)
                 contentType(ContentType.Application.Json)
-                setBody(request)
             }
 
             assertEquals(HttpStatusCode.Unauthorized, response.status)
@@ -342,10 +339,9 @@ class QARoutesTest {
 
             coEvery { mockQAService.deleteUserQA(userId, 999L) } returns 0
 
-            val response = client.delete("/users/qa") {
+            val response = client.delete("/users/qa/$userId/999") {
                 setAuthenticatedUser(userId)
                 contentType(ContentType.Application.Json)
-                setBody(request)
             }
 
             assertEquals(HttpStatusCode.NotFound, response.status)
@@ -357,11 +353,8 @@ class QARoutesTest {
             setupTestApp()
             val client = configuredClient()
 
-            val request = DeleteUserQARequest(userId = "test-user", questionId = 1L)
-
-            val response = client.delete("/users/qa") {
+            val response = client.delete("/users/qa/test-user/1") {
                 contentType(ContentType.Application.Json)
-                setBody(request)
             }
 
             assertEquals(HttpStatusCode.Unauthorized, response.status)
@@ -587,10 +580,10 @@ class QARoutesTest {
         )
     }
 
-    private fun validQAList(userId: String = "test-user-id", size : Int = 3): List<UserQAItemResponse>{
-        val lst = emptyList<UserQAItemResponse>()
+    private fun validQAList(userId: String = "test-user-id", size : Int = 3): List<UserQAItemDTO>{
+        val lst = emptyList<UserQAItemDTO>()
         for(i in 1..size){
-            lst.plus(UserQAItemResponse(userId,QuestionDTO(i.toLong(),"Do is something you would change about other people?"),"Yes",i ))
+            lst.plus(UserQAItemDTO(userId,QuestionDTO(i.toLong(),"Do is something you would change about other people?"),"Yes",i ))
         }
         return lst
     }
