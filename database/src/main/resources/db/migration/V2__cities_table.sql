@@ -10,8 +10,8 @@ CREATE TABLE IF NOT EXISTS cities (
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
 
-    CONSTRAINT chk_city_latitude_range CHECK (coordinates_latitude BETWEEN -90 AND 90),
-    CONSTRAINT chk_city_longitude_range CHECK (coordinates_longitude BETWEEN -180 AND 180)
+    CONSTRAINT chk_city_latitude_range CHECK (latitude BETWEEN -90 AND 90),
+    CONSTRAINT chk_city_longitude_range CHECK (longitude BETWEEN -180 AND 180)
 );
 
 -- Indexes for master tables (name lookups)
