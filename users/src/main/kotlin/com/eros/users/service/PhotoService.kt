@@ -1,6 +1,7 @@
 package com.eros.users.service
 
 import com.eros.common.config.S3Config
+import com.eros.database.dbQuery
 import com.eros.users.models.*
 import com.eros.users.repository.PhotoRepository
 import org.slf4j.LoggerFactory
@@ -214,9 +215,9 @@ class PhotoService(
     /**
      * Returns all media for [userId] as a [UserMediaCollection], ordered by displayOrder.
      */
-    suspend fun getUserMedia(userId: String): UserMediaCollection {
+    suspend fun getUserMedia(userId: String): UserMediaCollection = dbQuery {
         val items = photoRepository.findByUserId(userId)
-        return UserMediaCollection(
+        UserMediaCollection(
             userId     = userId,
             media      = items,
             totalCount = items.size

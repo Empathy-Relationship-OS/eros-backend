@@ -4,6 +4,7 @@ import com.eros.auth.firebase.FirebaseUserPrincipal
 import com.eros.common.plugins.configureExceptionHandling
 import com.eros.users.ProfileAccessControl
 import com.eros.users.models.*
+import com.eros.users.service.PhotoService
 import com.eros.users.service.UserService
 import io.ktor.client.call.body
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation as ClientContentNegotiation
@@ -24,6 +25,7 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import java.time.Instant
 import java.time.LocalDate
+import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -32,6 +34,7 @@ class UserRoutesTest {
 
     private val mockUserService = mockk<UserService>()
     private val mockProfileAccessControl = mockk<ProfileAccessControl>()
+    private val mockPhotoService = mockk<PhotoService>()
 
 
     @Nested
@@ -563,6 +566,7 @@ class UserRoutesTest {
 
             coEvery { mockUserService.getPublicProfile(requestingUserId,targetUserId) } returns publicProfile
             coEvery { mockProfileAccessControl.hasPublicProfileAccess(requestingUserId,targetUserId) } returns true
+            coEvery { mockPhotoService.getUserMedia(targetUserId)} returns UserMediaCollection(targetUserId,createMediaList(3),3)
 
             val response = client.get("/users/id/$targetUserId/public") {
                 setAuthenticatedUser(requestingUserId)
@@ -571,7 +575,7 @@ class UserRoutesTest {
             assertEquals(HttpStatusCode.OK , response.status)
 
             val profile = response.body<PublicProfileDTO>()
-
+            println(profile)
             assertEquals(listOf("trait1","trait2"), profile.profile.sharedInterests)
             assertEquals(targetUserId, profile.userId)
 
@@ -663,8 +667,8 @@ class UserRoutesTest {
     private fun createValidPublicProfile(user: User = createCompleteTestUser("target-user-id")) : PublicProfile {
         return PublicProfile.from(user, UserMediaCollection(
             user.userId,
-            emptyList(),
-            0), listOf("trait1","trait2"))
+            createMediaList(3),
+            3), listOf("trait1","trait2"))
     }
 
     private fun createValidUserRequest(userId: String = "test-user-id"): CreateUserRequest {
@@ -804,4 +808,27 @@ class UserRoutesTest {
             photoValidationStatus = ValidationStatus.VALIDATED
         )
     }
+
+    private fun createMediaItem(
+        id: Long = 1L,
+        mediaUrl: String = "https://example.com/photo.jpg",
+        thumbnailUrl: String? = null,
+        mediaType: MediaType = MediaType.PHOTO,
+        displayOrder: Int = 1,
+        isPrimary: Boolean = false
+    ): UserMediaItem = UserMediaItem(
+        id           = id,
+        userId  = UUID.randomUUID().toString(),
+        mediaUrl     = mediaUrl,
+        thumbnailUrl = thumbnailUrl,
+        mediaType    = mediaType,
+        displayOrder = displayOrder,
+        isPrimary    = isPrimary,
+        createdAt = Instant.now(),
+        updatedAt = Instant.now()
+    )
+
+    private fun createMediaList(count: Int): List<UserMediaItem> =
+        (1..count).map { index -> createMediaItem(id = index.toLong(), displayOrder = index) }
+
 }

@@ -21,6 +21,7 @@ import java.time.Instant
  */
 class UserService(
     private val userRepository: UserRepository,
+    private val photoService: PhotoService,
     private val clock: Clock = Clock.systemUTC()
 ) {
 
@@ -192,21 +193,16 @@ class UserService(
      *
      * @throws NotFoundException if either user profile is not found.
      */
-    // In UserService
     suspend fun getPublicProfile(requestingUserId: String, targetUserId: String): PublicProfile {
-        val targetUser = findByUserId(targetUserId)
-            ?: throw NotFoundException("User profile not found")
+        val (targetUser, principalUser) = dbQuery {
+            val targetUser = findByUserId(targetUserId)
+                ?: throw NotFoundException("Target User ($targetUserId) profile not found.")
 
-        val principalUser = findByUserId(requestingUserId)
-            ?: throw NotFoundException("User profile not found")
-
-        // TODO: Alter with media service
-        val media = UserMediaCollection(
-            targetUser.userId,
-            emptyList(),
-            0)
-        // userMediaService.getMediaForUser(targetUserId)
-
+            val principalUser = findByUserId(requestingUserId)
+                ?: throw NotFoundException("Requesting User ($requestingUserId) profile not found.")
+            targetUser to principalUser
+        }
+        val media = photoService.getUserMedia(targetUserId)
         val sharedInterests = getSharedInterests(principalUser.interests, targetUser.interests)
         return PublicProfile.from(targetUser, media, sharedInterests)
     }

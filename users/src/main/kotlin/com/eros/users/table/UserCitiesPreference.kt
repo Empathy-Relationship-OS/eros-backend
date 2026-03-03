@@ -1,7 +1,6 @@
 package com.eros.users.table
 
 import com.eros.users.models.UserCityPreference
-import com.eros.users.models.UserPreference
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.javatime.timestamp
@@ -32,7 +31,7 @@ object UserCitiesPreference : Table("user_cities_preference") {
 /**
  * Convert to domain object
  */
-fun ResultRow.toUserCityPreferenceDTO() = UserCityPreference(
+fun ResultRow.toUserCityPreferenceDomain() = UserCityPreference(
     userId = this[UserCitiesPreference.userId],
     cityId= this[UserCitiesPreference.cityId],
     createdAt = this[UserCitiesPreference.createdAt],
