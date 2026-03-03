@@ -27,7 +27,13 @@ data class City(
     // Timestamps
     val createdAt: Instant,
     val updatedAt: Instant,
-)
+){
+    init {
+        require(cityName.isNotBlank()) {"City name must not be empty." }
+        require(latitude in -90.0..90.0) { "Latitude must be between -90 and 90" }
+        require(longitude in -180.0..180.0) { "Longitude must be between -180 and 180" }
+    }
+}
 
 
 /**
@@ -46,13 +52,7 @@ data class CityDTO(
     val cityName: String,
     val longitude: Double,
     val latitude: Double
-) {
-    init {
-        require(cityName.isNotBlank()) {"City name must not be empty."}
-        require(latitude in -90.0..90.0) { "Latitude must be between -90 and 90" }
-        require(longitude in -180.0..180.0) { "Longitude must be between -180 and 180" }
-    }
-}
+)
 
 
 /**
@@ -80,13 +80,7 @@ data class CreateCityRequest(
     val cityName: String,
     val longitude: Double,
     val latitude: Double
-) {
-    init {
-        require(cityName.isNotBlank()) {"City name must not be empty."}
-        require(latitude in -90.0..90.0) { "Latitude must be between -90 and 90" }
-        require(longitude in -180.0..180.0) { "Longitude must be between -180 and 180" }
-    }
-}
+)
 
 
 /**
@@ -104,10 +98,4 @@ data class UpdateCityRequest(
     val newCityName: String? = null,
     val newCityLongitude: Double? = null,
     val newCityLatitude: Double? = null,
-) {
-    init {
-        newCityName?.let { require(it.isNotBlank()) {"City name must not be empty." } }
-        newCityLatitude?.let { require(it in -90.0..90.0) { "Latitude must be between -90 and 90" } }
-        newCityLongitude?.let { require(it in -180.0..180.0) { "Longitude must be between -180 and 180" } }
-    }
-}
+)

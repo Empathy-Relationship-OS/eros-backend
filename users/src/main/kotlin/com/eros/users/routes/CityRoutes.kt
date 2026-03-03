@@ -20,39 +20,47 @@ import io.ktor.server.routing.route
 
 
 fun Route.cityRoutes(cityService: CityService) {
+    // User routes
     route("/city") {
-        requireRoles("ADMIN", "EMPLOYEE")
-
-        post {
-            val request = call.receive<CreateCityRequest>()
-
-            if (cityService.doesExists(request.cityName))
-                throw ConflictException("City already exists")
-
-            val city = cityService.createCity(request)
-            call.respond(HttpStatusCode.OK, city)
+        requireRoles("USER", "ADMIN", "EMPLOYEE")
+        get("/all"){
+            val cities = cityService.getAllCities().map { it.toDTO() }
+            call.respond(HttpStatusCode.OK, cities)
         }
 
         get("/{id}") {
             val id = call.parameters["id"]?.toLong()
                 ?: throw BadRequestException("Invalid city ID provided.")
 
-            val city = cityService.findByCityId(id) ?: throw NotFoundException("City not found.")
-            call.respond(HttpStatusCode.OK, city)
+            val city = cityService.findByCityId(id)
+                ?: throw NotFoundException("City not found.")
+            call.respond(HttpStatusCode.OK, city.toDTO())
         }
+    }
 
+    route("/city/admin") {
+        // Protected endpoints - only ADMIN, EMPLOYEE
+        requireRoles("ADMIN", "EMPLOYEE")
         patch("/{id}") {
             val id = call.parameters["id"]?.toLong()
                 ?: throw BadRequestException("Invalid city ID provided.")
 
             val request = call.receive<UpdateCityRequest>()
+            val updated = cityService.updateCity(id, request)
+                ?: throw NotFoundException("City not found")
 
-            val updated = cityService.updateCity(id, request) ?: throw NotFoundException("City not found")
+            call.respond(HttpStatusCode.OK, updated.toDTO())
+        }
+        post {
+            val request = call.receive<CreateCityRequest>()
+            if (cityService.doesExists(request.cityName))
+                throw ConflictException("City already exists")
 
-            call.respond(HttpStatusCode.OK, updated)
+            val city = cityService.createCity(request)
+            call.respond(HttpStatusCode.Created, city.toDTO())
         }
 
-        delete("/{id}") {
+        delete("/{id}"){
             val id = call.parameters["id"]?.toLong()
                 ?: throw BadRequestException("Invalid city ID provided.")
 
@@ -63,14 +71,6 @@ fun Route.cityRoutes(cityService: CityService) {
                 call.respond(HttpStatusCode.NotFound, "City not found")
             }
         }
-
-        /**
-         * Return a list of all the cities : id and name.
-         */
-        get("/all") {
-            val cities = cityService.getAllCities().map{ it.toDTO()}
-            call.respond(HttpStatusCode.OK, cities)
-        }
-
     }
+
 }

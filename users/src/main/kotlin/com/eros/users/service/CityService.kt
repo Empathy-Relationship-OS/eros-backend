@@ -28,7 +28,7 @@ class CityService(
         val now = Instant.now(clock)
         val city = City(
             cityId = 0L, // DB auto-generates the id on insert
-            cityName = request.cityName,
+            cityName = request.cityName.trim(),
             longitude = request.longitude,
             latitude = request.latitude,
             createdAt = now,
