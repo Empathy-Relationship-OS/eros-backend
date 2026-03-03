@@ -1,5 +1,6 @@
 package com.eros.users.routes
 
+import com.eros.auth.extensions.requireFirebasePrincipal
 import com.eros.auth.extensions.requireRoles
 import com.eros.common.errors.BadRequestException
 import com.eros.common.errors.ConflictException
@@ -35,6 +36,17 @@ fun Route.cityRoutes(cityService: CityService) {
             val city = cityService.findByCityId(id)
                 ?: throw NotFoundException("City not found.")
             call.respond(HttpStatusCode.OK, city.toDTO())
+        }
+
+        /**
+         * Path to retrieve the nearest SINGLE/MULTIPLE nearest city/s.
+         */
+        get("/nearest"){
+            throw NotImplementedError("/city/nearest has not been implemented")
+            /*
+            Provide NearestCityRequest (lat, long)
+            Return Single or list of nearest cities
+             */
         }
     }
 
