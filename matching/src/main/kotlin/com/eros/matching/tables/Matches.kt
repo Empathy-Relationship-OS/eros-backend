@@ -37,12 +37,13 @@ object Matches : Table("matches") {
     override val primaryKey = PrimaryKey(matchId)
 
     init {
+        require(user1Id != user2Id) {"Cannot have the same user in a match"}
         // Unique constraint on (user1_id, user2_id) pair
         uniqueIndex("matches_user_pair_unique", user1Id, user2Id)
 
         // Additional indexes for query optimization (defined in migration)
         index("idx_matches_user1_id", false, user1Id)
         index("idx_matches_user2_id", false, user2Id)
-        index("idx_matches_user_pair", false, user1Id, user2Id)
+        index("idx_matches_user_pair", true, user1Id, user2Id)
     }
 }
