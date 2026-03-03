@@ -149,6 +149,8 @@ class PreferenceRepositoryImpl(
                 City(
                     cityId = row[Cities.cityId],
                     cityName = row[Cities.cityName],
+                    longitude = row[Cities.longitude],
+                    latitude = row[Cities.latitude],
                     createdAt = row[Cities.createdAt],
                     updatedAt = row[Cities.updatedAt]
                 )

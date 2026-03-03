@@ -101,7 +101,7 @@ class PreferenceRepositoryImplTest {
     }
 
     suspend fun createCity(cityName: String): City {
-        return cityRepository.create(City(0L, cityName, fixedInstant, fixedInstant))
+        return cityRepository.create(City(0L, cityName, 5.0 ,5.0,fixedInstant, fixedInstant))
     }
 
     fun createUser(): User = runBlocking {

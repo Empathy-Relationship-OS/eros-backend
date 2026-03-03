@@ -8,7 +8,6 @@ import com.eros.common.errors.NotFoundException
 import com.eros.common.errors.UnauthorizedException
 import com.eros.users.ProfileAccessControl
 import com.eros.users.models.AddUserQARequest
-import com.eros.users.models.DeleteUserQARequest
 import com.eros.users.models.UpdateUserQARequest
 import com.eros.users.models.UserQACollectionDTO
 import com.eros.users.models.toDTO
