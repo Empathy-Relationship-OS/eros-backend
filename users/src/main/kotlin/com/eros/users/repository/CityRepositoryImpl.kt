@@ -26,6 +26,8 @@ class CityRepositoryImpl(
         statement.apply {
             this[Cities.cityName] = entity.cityName
             this[Cities.createdAt] = entity.createdAt
+            this[Cities.longitude] = entity.longitude
+            this[Cities.latitude] = entity.latitude
             this[Cities.updatedAt] = Instant.now(clock)
         }
     }
@@ -39,6 +41,8 @@ class CityRepositoryImpl(
         val now = Instant.now(clock)
         return Cities.insertReturning {
             it[cityName] = entity.cityName
+            it[longitude] = entity.longitude
+            it[latitude] = entity.latitude
             it[createdAt] = now
             it[updatedAt] = now
         }.single().toDomain()

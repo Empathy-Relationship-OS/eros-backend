@@ -179,7 +179,9 @@ class UserPreferenceRoutesTest {
                     cityId = 1L,
                     cityName = "London",
                     createdAt = Instant.now(),
-                    updatedAt = Instant.now()
+                    updatedAt = Instant.now(),
+                    longitude = 5.0,
+                    latitude = 5.0
                 )
             ),
             reachLevel = ReachLevel.OPEN_MINDED,

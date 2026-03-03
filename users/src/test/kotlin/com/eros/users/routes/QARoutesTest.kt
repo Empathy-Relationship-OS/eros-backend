@@ -7,7 +7,6 @@ import com.eros.common.errors.NotFoundException
 import com.eros.common.plugins.configureExceptionHandling
 import com.eros.users.ProfileAccessControl
 import com.eros.users.models.AddUserQARequest
-import com.eros.users.models.DeleteUserQARequest
 import com.eros.users.models.Question
 import com.eros.users.models.QuestionDTO
 import com.eros.users.models.UpdateUserQARequest
@@ -335,7 +334,6 @@ class QARoutesTest {
             val client = configuredClient()
 
             val userId = "test-user-123"
-            val request = DeleteUserQARequest(userId = userId, questionId = 999L)
 
             coEvery { mockQAService.deleteUserQA(userId, 999L) } returns 0
 

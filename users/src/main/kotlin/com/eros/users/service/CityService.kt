@@ -28,7 +28,9 @@ class CityService(
         val now = Instant.now(clock)
         val city = City(
             cityId = 0L, // DB auto-generates the id on insert
-            cityName = request.cityName,
+            cityName = request.cityName.trim(),
+            longitude = request.longitude,
+            latitude = request.latitude,
             createdAt = now,
             updatedAt = now
         )
@@ -45,7 +47,9 @@ class CityService(
      */
     suspend fun updateCity(cityId: Long, request: UpdateCityRequest): City? = dbQuery {
         val existing = cityRepository.findById(cityId) ?: throw NotFoundException("No city with the provided id: $cityId")
-        val updated = existing.copy(cityName = request.newCityName)
+        val updated = existing.copy(cityName = request.newCityName ?: existing.cityName,
+            longitude = request.newCityLongitude ?: existing.longitude,
+            latitude = request.newCityLatitude ?: existing.latitude)
         cityRepository.update(cityId, updated)
     }
 
