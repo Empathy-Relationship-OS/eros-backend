@@ -410,9 +410,35 @@ class CityRoutesTest{
             }
 
             assertEquals(HttpStatusCode.OK, response.status)
-            val returnedCity = response.body<CityDTO>()
-            assertEquals(city.cityId, returnedCity.cityId)
-            assertEquals(city.cityName, returnedCity.cityName)
+            val returnedCities = response.body<NearestCityResponse>()
+            assertEquals(city.cityId, returnedCities.cities[0].cityId)
+            assertEquals(city.cityName, returnedCities.cities[0].cityName)
+        }
+
+        @Test
+        fun `successfully get nearest cities`() = testApplication {
+            setupTestApp()
+            val client = configuredClient()
+            val lat = 2.45
+            val long = 50.3
+            val city = createCity()
+            val city2 = createCity(cityName = "Liverpool")
+            coEvery { mockCityService.findNearestCities(2,lat, long) } returns listOf(city,city2)
+
+            val response = client.get("/city/nearest") {
+                setAuthenticatedUser("test-user-id")
+                contentType(ContentType.Application.Json)
+                parameter("lat", lat)
+                parameter("lon", long)
+                parameter("limit",2)
+            }
+
+            assertEquals(HttpStatusCode.OK, response.status)
+            val returnedCities = response.body<NearestCityResponse>()
+            assertEquals(2, returnedCities.count)
+            assertEquals(city.cityId, returnedCities.cities[0].cityId)
+            assertEquals(city.cityName, returnedCities.cities[0].cityName)
+            assertEquals(city2.cityName, returnedCities.cities[1].cityName)
         }
 
     }
