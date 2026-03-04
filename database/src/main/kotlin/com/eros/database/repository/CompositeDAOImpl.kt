@@ -117,33 +117,33 @@ abstract class CompositeKeyDAOImpl<ID, T>(
     // service layer.
     // -------------------------------------------------------------------------
 
-    override fun create(entity: T): T {
+    override suspend fun create(entity: T): T {
         return table.insertReturning { toStatement(it, entity) }.single().toDomain()
     }
 
-    override fun findById(id: ID): T? {
+    override suspend fun findById(id: ID): T? {
         return table.selectAll()
             .where { buildKeyCondition(id) }
             .singleOrNull()
             ?.toDomain()
     }
 
-    override fun findAll(): List<T> {
+    override suspend fun findAll(): List<T> {
         return table.selectAll().map { it.toDomain() }
     }
 
-    override fun update(id: ID, entity: T): T? {
+    override suspend fun update(id: ID, entity: T): T? {
         return table.updateReturning(
             where = {buildKeyCondition(id)},
             body = { toStatement(it, entity) }
         ).singleOrNull()?.toDomain()
     }
 
-    override fun delete(id: ID): Int {
+    override suspend fun delete(id: ID): Int {
         return table.deleteWhere { buildKeyCondition(id) }
     }
 
-    override fun doesExist(id: ID): Boolean {
+    override suspend fun doesExist(id: ID): Boolean {
         return table.selectAll()
             .where { buildKeyCondition(id) }
             .empty().not()

@@ -11,12 +11,12 @@ interface UserQARepository : ICompositeKeyDAO<UserQAId, UserQAItem> {
      * @param userId String id of the user to search.
      * @return List of [UserQAItem] related to the user, ordered by displayOrder.
      */
-    fun findAllByUserId(userId: String): List<UserQAItem>
+    suspend fun findAllByUserId(userId: String): List<UserQAItem>
 
     /**
      * Deletes all the QA records for a specific user.
      * @param userId id of the user to delete all their QA records.
      * @return Integer of the number of records deleted.
      */
-    fun deleteAllByUserId(userId: String): Int
+    suspend fun deleteAllByUserId(userId: String): Int
 }
