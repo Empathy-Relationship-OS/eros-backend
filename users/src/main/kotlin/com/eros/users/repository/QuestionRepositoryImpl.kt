@@ -34,7 +34,7 @@ class QuestionRepositoryImpl(
      * @param questionId id of the question to find
      * @return [Question] domain object of the record.
      */
-    override fun getQuestionById(questionId: Long) : Question? {
+    override suspend fun getQuestionById(questionId: Long) : Question? {
         return table.selectAll()
             .where {Questions.questionId eq questionId}
             .singleOrNull()?.toDomain()
@@ -47,7 +47,7 @@ class QuestionRepositoryImpl(
      * @param question String of the question to search for
      * @return `true` if the question is in the database, otherwise `false`
      */
-    override fun questionExists(question: String): Boolean {
+    override suspend fun questionExists(question: String): Boolean {
         return !table.selectAll()
             .where { Questions.question eq question }
             .empty().not()
