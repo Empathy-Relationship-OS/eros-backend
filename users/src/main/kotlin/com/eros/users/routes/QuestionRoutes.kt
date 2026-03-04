@@ -72,9 +72,9 @@ fun Route.questionRoutes(qaService: QAService) {
              * Deletes a question from the database.
              */
             delete("/{id}"){
-                val targetQuestionId = call.parameters["id"]
+                val targetQuestionId = call.parameters["id"]?.toLongOrNull()
                     ?: throw BadRequestException("Invalid questionId provided")
-                val deleted = qaService.deleteQuestion(targetQuestionId.toLong())
+                val deleted = qaService.deleteQuestion(targetQuestionId)
 
                 if (deleted == 0){ throw NotFoundException("Question not found.")}
 
