@@ -9,10 +9,13 @@ import com.eros.common.errors.NotFoundException
 import com.eros.users.ProfileAccessControl
 import com.eros.users.models.AdminUpdateUserRequest
 import com.eros.users.models.CreateUserRequest
+import com.eros.users.models.ProfileStatus
+import com.eros.users.models.ProfileStatusUpdateRequest
 import com.eros.users.models.PublicProfile
 import com.eros.users.models.UpdateUserRequest
 import com.eros.users.models.UserMediaCollection
 import com.eros.users.models.toDTO
+import com.eros.users.models.toVisibilityDTO
 import com.eros.users.service.UserService
 import com.google.firebase.auth.FirebaseAuth
 import io.ktor.http.*
@@ -144,25 +147,22 @@ fun Route.userProfileRoutes(userService: UserService, profileAccessControl: Prof
                 call.respond(HttpStatusCode.OK, user.toDTO())
             }
 
-            //todo: This function should be moved to the admin/employee route
-            /*
-/**
- * GET /users/{id}
- *
- * Retrieves a user full profile by ID.
- *
- * Request Headers:
- * - Authorization: Bearer <firebase-id-token>
- *
- * Response: User JSON
- */
-get("/id/{id}") {
-    val principal = call.requireFirebasePrincipal()
-    val userId = call.parameters["id"] ?: throw BadRequestException("User ID is required")
-    val user = userService.findByUserId(userId) ?: throw NotFoundException("User profile not found")
-    call.respond(HttpStatusCode.OK, user)
-}
-*/
+
+            /**
+             * PATCH /users/me/visibility
+             *
+             * Will set the [ProfileStatus] between active and sleep_mode.
+             *
+             * Request Body: ProfileStatusUpdateRequest JSON
+             * Response:
+             */
+            patch("/me/visibility"){
+                val principal = call.requireFirebasePrincipal()
+                val request = call.receive<ProfileStatusUpdateRequest>()
+                val user = userService.updateVisibility(principal.uid, request) ?: throw NotFoundException("Can't find profile ${principal.uid} to update.")
+                call.respond(HttpStatusCode.OK, user.toVisibilityDTO())
+            }
+
 
             /**
              * PATCH /users/me

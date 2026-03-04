@@ -725,5 +725,6 @@ enum class Role{
 enum class ProfileStatus {
     SLEEP_MODE,
     ACTIVE,
-    FROZEN
+    FROZEN,
+    BANNED
 }

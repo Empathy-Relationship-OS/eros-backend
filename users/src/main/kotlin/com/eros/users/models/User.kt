@@ -401,9 +401,17 @@ data class AdminUpdateUserRequest(
  */
 @Serializable
 data class ProfileStatusUpdateRequest(
-    val profileStatus: ProfileStatus
+    val isVisible: Boolean
 )
 
+@Serializable
+data class ProfileStatusDTO(
+    val isVisible: Boolean
+)
+
+fun User.toVisibilityDTO() = ProfileStatusDTO(
+    isVisible = this.profileStatus == ProfileStatus.ACTIVE
+)
 
 /**
  * This is an encapsulating class for DTOs to reflect if a field should be viewable
