@@ -572,7 +572,6 @@ class UserRoutesTest {
             assertEquals(HttpStatusCode.OK , response.status)
 
             val profile = response.body<PublicProfileDTO>()
-            println(profile)
             assertEquals(listOf("trait1","trait2"), profile.profile.sharedInterests)
             assertEquals(targetUserId, profile.userId)
 

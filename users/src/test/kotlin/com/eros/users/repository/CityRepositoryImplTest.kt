@@ -154,8 +154,6 @@ class CityRepositoryImplTest {
             val updatedCity = dbQuery {
                 repository.update(city.cityId, city.copy(cityName = newName))
             }
-            println("XXXXX")
-            println(updatedCity)
             assertNotNull(updatedCity)
             assertEquals(newName, updatedCity.cityName)
             assertEquals(city.cityId, updatedCity.cityId)

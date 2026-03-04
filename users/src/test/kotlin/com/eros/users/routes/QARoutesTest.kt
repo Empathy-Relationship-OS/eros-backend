@@ -75,8 +75,7 @@ class QARoutesTest {
             }
 
             assertEquals(HttpStatusCode.Created, response.status)
-            val returnedQA = response.body<UserQAItemDTO>()
-            println(returnedQA)
+            response.body<UserQAItemDTO>()
 
             coVerify { mockQAService.createUserQA(request) }
         }

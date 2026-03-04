@@ -59,7 +59,6 @@ class UserPreferenceRoutesTest {
             assertEquals(testPreference.genderIdentities, responseBody.genderIdentities)
             assertEquals(testPreference.ageRangeMin, responseBody.ageRangeMin)
             assertEquals(testPreference.ageRangeMax, responseBody.ageRangeMax)
-            println(responseBody)
             coVerify(exactly = 1) { mockUserPreferenceService.findByUserId(testUserId) }
         }
 
