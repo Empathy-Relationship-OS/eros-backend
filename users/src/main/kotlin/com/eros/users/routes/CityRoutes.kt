@@ -65,9 +65,8 @@ fun Route.cityRoutes(cityService: CityService) {
         }
         post {
             val request = call.receive<CreateCityRequest>()
-            if (cityService.doesExists(request.cityName))
-                throw ConflictException("City already exists")
-
+            // Database unique constraint handles duplicate prevention
+            // ConflictException is thrown from repository layer on duplicate key violation
             val city = cityService.createCity(request)
             call.respond(HttpStatusCode.Created, city.toDTO())
         }
