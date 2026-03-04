@@ -6,6 +6,8 @@ import com.eros.users.table.Cities
 import com.eros.users.table.toCityDTO
 import org.jetbrains.exposed.v1.core.CustomFunction
 import org.jetbrains.exposed.v1.core.DoubleColumnType
+import org.jetbrains.exposed.v1.core.Expression
+import org.jetbrains.exposed.v1.core.QueryBuilder
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.doubleParam
 import org.jetbrains.exposed.v1.core.eq
@@ -61,21 +63,41 @@ class CityRepositoryImpl(
     }
 
     /**
-     * Function to find the nearest city to a given latitude and longitude
+     * Finds the nearest city to a given latitude and longitude using PostgreSQL's earthdistance extension.
+     *
+     * This function uses the `ll_to_earth` function to convert lat/lon coordinates to earth-centered points,
+     * then calculates the great-circle distance using `earth_distance` to find the closest city.
+     *
+     * @param latitude The latitude coordinate to search from (-90 to 90)
+     * @param longitude The longitude coordinate to search from (-180 to 180)
+     * @return The nearest [City] to the given coordinates, or null if no cities exist in the database
+     *
      */
     override suspend fun findNearest(latitude: Double, longitude: Double): City? {
+        val targetPoint = CustomFunction(
+            "ll_to_earth",
+            DoubleColumnType(),
+            doubleParam(latitude),
+            doubleParam(longitude)
+        )
+
+        val cityPoint = CustomFunction(
+            "ll_to_earth",
+            DoubleColumnType(),
+            Cities.latitude,
+            Cities.longitude
+        )
+
+        val distance = CustomFunction(
+            "earth_distance",
+            DoubleColumnType(),
+            cityPoint,
+            targetPoint
+        )
+
         return Cities
             .selectAll()
-            .orderBy(
-                CustomFunction(
-                    "earth_distance",
-                    DoubleColumnType(),
-                    Cities.latitude,
-                    Cities.longitude,
-                    doubleParam(latitude),
-                    doubleParam(longitude)
-                )
-            )
+            .orderBy(distance)
             .limit(1)
             .map { it.toDomain() }
             .firstOrNull()
