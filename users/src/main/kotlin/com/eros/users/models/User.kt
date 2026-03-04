@@ -331,7 +331,10 @@ data class UpdateUserRequest(
     val brainAttributes: DisplayableField<List<BrainAttribute>?>? = null,
     val brainDescription: DisplayableField<String?>? = null,
     val bodyAttributes: DisplayableField<List<BodyAttribute>?>? = null,
-    val bodyDescription: DisplayableField<String?>? = null
+    val bodyDescription: DisplayableField<String?>? = null,
+
+    // Profile Visibility
+    val setVisible : Boolean? = null
 ) {
     init {
         if (interests != null) {

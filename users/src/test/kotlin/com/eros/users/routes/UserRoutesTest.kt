@@ -1,6 +1,7 @@
 package com.eros.users.routes
 
 import com.eros.auth.firebase.FirebaseUserPrincipal
+import com.eros.common.errors.ForbiddenException
 import com.eros.common.plugins.configureExceptionHandling
 import com.eros.users.ProfileAccessControl
 import com.eros.users.models.*
@@ -23,11 +24,14 @@ import io.mockk.mockk
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
+import software.amazon.awssdk.profiles.Profile
 import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
 class UserRoutesTest {
@@ -711,7 +715,8 @@ class UserRoutesTest {
 
     private fun createTestUser(
         userId: String = "test-user-id",
-        firstName: String = "John"
+        firstName: String = "John",
+        visibility: ProfileStatus = ProfileStatus.ACTIVE
     ): User {
         return User(
             userId = userId,
@@ -748,7 +753,7 @@ class UserRoutesTest {
             createdAt = Instant.now(),
             updatedAt = Instant.now(),
             deletedAt = null,
-            profileStatus = ProfileStatus.ACTIVE,
+            profileStatus = visibility,
             eloScore = 1000,
             badges = setOf(),
             profileCompleteness = 75,

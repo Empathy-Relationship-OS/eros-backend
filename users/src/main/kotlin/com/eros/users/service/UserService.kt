@@ -1,5 +1,6 @@
 package com.eros.users.service
 
+import com.eros.common.errors.ForbiddenException
 import com.eros.users.models.*
 import com.eros.common.errors.NotFoundException
 import com.eros.database.dbQuery
@@ -104,6 +105,18 @@ class UserService(
      */
     suspend fun updateUser(userId: String, request: UpdateUserRequest): User? = dbQuery {
         val existing = userRepository.findById(userId) ?: throw NotFoundException("User $userId not found.")
+        var newProfileStatus : ProfileStatus
+        // Check if visibility is changed - if so ensure it's a valid change, otherwise throw exception
+        if (existing.profileStatus == ProfileStatus.ACTIVE || existing.profileStatus == ProfileStatus.SLEEP_MODE){
+            newProfileStatus = when(request.setVisible) {
+                true -> ProfileStatus.ACTIVE
+                false -> ProfileStatus.SLEEP_MODE
+                null -> existing.profileStatus
+            }
+        }else{
+            throw ForbiddenException("Can't update a profile that is banned or suspended.")
+        }
+
         val merged = existing.copy(
             firstName = request.firstName ?: existing.firstName,
             lastName = request.lastName ?: existing.lastName,
@@ -134,7 +147,8 @@ class UserService(
             bodyAttributes = request.bodyAttributes ?: existing.bodyAttributes,
             bodyDescription = request.bodyDescription ?: existing.bodyDescription,
             coordinatesLongitude = request.coordinatesLongitude ?: existing.coordinatesLongitude,
-            coordinatesLatitude = request.coordinatesLatitude ?: existing.coordinatesLatitude
+            coordinatesLatitude = request.coordinatesLatitude ?: existing.coordinatesLatitude,
+            profileStatus = newProfileStatus
         )
         userRepository.update(userId, merged)
     }
