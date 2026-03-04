@@ -36,9 +36,8 @@ fun Route.userPreferenceRoutes(userPreferenceService: PreferenceService) {
             if (request.userId != principal.uid)
                 throw ForbiddenException("Cannot create preferences for another user")
 
-            if (userPreferenceService.doesExist(request.userId))
-                throw ConflictException("User preferences already exist")
-
+            // Database primary key constraint handles duplicate prevention
+            // ConflictException is thrown from repository layer on duplicate key violation
             val userPreferences = userPreferenceService.createPreferences(request)
             logger.info("Successful preference creation: ${userPreferences.toDTO()}")
             call.respond(HttpStatusCode.Created, userPreferences.toDTO())

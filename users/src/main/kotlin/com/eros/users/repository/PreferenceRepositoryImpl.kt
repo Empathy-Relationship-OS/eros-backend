@@ -1,6 +1,7 @@
 package com.eros.users.repository
 
 import com.eros.common.errors.BadRequestException
+import com.eros.common.errors.ConflictException
 import com.eros.database.repository.BaseDAOImpl
 import com.eros.users.models.*
 import com.eros.users.table.Cities
@@ -12,6 +13,7 @@ import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.core.statements.UpdateBuilder
+import org.jetbrains.exposed.v1.exceptions.ExposedSQLException
 import org.jetbrains.exposed.v1.jdbc.batchInsert
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
@@ -82,19 +84,28 @@ class PreferenceRepositoryImpl(
     // -------------------------------------------------------------------------
 
     override suspend fun create(entity: UserPreference): UserPreference {
-        // Insert preference
-        UserPreferences.insert { toStatement(it, entity) }
+        try {
+            // Insert preference
+            UserPreferences.insert { toStatement(it, entity) }
 
-        // Insert cities
-        val now = Instant.now(clock)
-        UserCitiesPreference.batchInsert(entity.dateCities) { cityId ->
-            this[UserCitiesPreference.userId] = entity.userId
-            this[UserCitiesPreference.cityId] = cityId.cityId
-            this[UserCitiesPreference.createdAt] = now
+            // Insert cities
+            val now = Instant.now(clock)
+            UserCitiesPreference.batchInsert(entity.dateCities) { cityId ->
+                this[UserCitiesPreference.userId] = entity.userId
+                this[UserCitiesPreference.cityId] = cityId.cityId
+                this[UserCitiesPreference.createdAt] = now
+            }
+
+            // Return the result (still inside transaction)
+            return getUserPreferenceWithCities(entity.userId)
+        } catch (e: ExposedSQLException) {
+            // PostgreSQL unique constraint violation error code is 23505
+            // Primary key constraint on user_id prevents duplicate preferences
+            if (e.sqlState == "23505" && e.message?.contains("user_preferences_pkey") == true) {
+                throw ConflictException("User preferences already exist")
+            }
+            throw e
         }
-
-        // Return the result (still inside transaction)
-        return getUserPreferenceWithCities(entity.userId)
     }
 
     override suspend fun update(id: String, entity: UserPreference): UserPreference? {
