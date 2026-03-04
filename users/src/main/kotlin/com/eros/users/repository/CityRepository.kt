@@ -14,4 +14,9 @@ interface CityRepository : IBaseDAO<Long, City> {
      * Function to find the city that is nearest the provided lat and long.
      */
     suspend fun findNearest(latitude: Double, longitude: Double) : City?
+
+    /**
+     * Function to find the nearest [limit] cities to the provided lat and long.
+     */
+    suspend fun findNearestMultiple(limit: Int, latitude: Double, longitude: Double) : List<City>
 }

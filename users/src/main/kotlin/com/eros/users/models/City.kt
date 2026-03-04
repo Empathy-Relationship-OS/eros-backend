@@ -123,3 +123,14 @@ data class UpdateCityRequest(
         }
     }
 }
+
+@Serializable
+data class NearestCityResponse(
+    val count : Int,
+    val cities : List<CityDTO>
+)
+
+fun toNearestCityResponse(cities : List<City>) = NearestCityResponse(
+    count = cities.size,
+    cities = cities.map { it.toDTO() }
+)

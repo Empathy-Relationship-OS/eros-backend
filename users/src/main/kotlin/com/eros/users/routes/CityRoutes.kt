@@ -8,6 +8,7 @@ import com.eros.common.errors.NotFoundException
 import com.eros.users.models.CreateCityRequest
 import com.eros.users.models.UpdateCityRequest
 import com.eros.users.models.toDTO
+import com.eros.users.models.toNearestCityResponse
 import com.eros.users.service.CityService
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
@@ -36,6 +37,30 @@ fun Route.cityRoutes(cityService: CityService) {
             val city = cityService.findByCityId(id)
                 ?: throw NotFoundException("City not found.")
             call.respond(HttpStatusCode.OK, city.toDTO())
+        }
+
+        /**
+         * Path to retrieve the nearest city to provided lat and long.
+         *
+         * Example usage: /city/nearest?lat=40.7&lon=-74.1
+         *
+         * Response: List of CityDTO
+         */
+        get("/nearest"){
+            val latitude = call.request.queryParameters["lat"]?.toDouble() ?: throw BadRequestException("Latitude requires a double.")
+            val longitude = call.request.queryParameters["lon"]?.toDouble() ?: throw BadRequestException("Longitude requires a double.")
+            val limit = call.request.queryParameters["limit"]?.toIntOrNull()
+
+            val result = if (limit != null && limit > 1) {
+                val cities = cityService.findNearestCities(limit, latitude, longitude)
+                if (cities.isEmpty()) throw NotFoundException("No cities found.")
+                cities
+            } else {
+                val city = cityService.findNearestCity(latitude, longitude)
+                    ?: throw NotFoundException("No city can be found.")
+                listOf(city)
+            }
+            call.respond(HttpStatusCode.OK, toNearestCityResponse(result))
         }
 
         /**

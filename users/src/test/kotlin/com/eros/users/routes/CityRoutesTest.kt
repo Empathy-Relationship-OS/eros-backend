@@ -6,6 +6,7 @@ import com.eros.common.plugins.configureExceptionHandling
 import com.eros.users.models.City
 import com.eros.users.models.CityDTO
 import com.eros.users.models.CreateCityRequest
+import com.eros.users.models.NearestCityResponse
 import com.eros.users.models.UpdateCityRequest
 import com.eros.users.service.CityService
 import com.google.firebase.auth.FirebaseToken
@@ -413,6 +414,7 @@ class CityRoutesTest{
             assertEquals(city.cityId, returnedCity.cityId)
             assertEquals(city.cityName, returnedCity.cityName)
         }
+
     }
 
 
