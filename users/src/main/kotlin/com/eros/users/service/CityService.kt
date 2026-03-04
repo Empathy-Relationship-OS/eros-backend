@@ -6,9 +6,6 @@ import com.eros.users.models.City
 import com.eros.users.models.CreateCityRequest
 import com.eros.users.models.UpdateCityRequest
 import com.eros.users.repository.CityRepository
-import com.eros.users.table.Cities
-import com.eros.users.table.toCityDTO
-import org.jetbrains.exposed.v1.jdbc.selectAll
 import java.time.Clock
 import java.time.Instant
 

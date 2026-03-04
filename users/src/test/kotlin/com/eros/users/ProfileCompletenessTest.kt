@@ -17,7 +17,7 @@ class ProfileCompletenessTest {
         val user = createTestUser()
         val userMedia = createMediaList(3)
         val userMediaCollection = UserMediaCollection(user.userId, userMedia, userMedia.size)
-        val userQA = createQAList(2)
+        val userQA = createQAList(2, user.userId)
         val userQACollection = UserQACollection(user.userId, userQA, userQA.size)
         val completeness = ProfileCompleteness().calculateCompleteness(user, userMediaCollection, userQACollection)
         assertEquals(completeness, 65)
@@ -170,11 +170,11 @@ class ProfileCompletenessTest {
         )
     }
 
-    private fun createQAList(count: Int): List<UserQAItem> {
+    private fun createQAList(count: Int, userId: String = "test-user-id"): List<UserQAItem> {
         val questionIds = testQuestions.keys.toList()
         return (1..count).map { index ->
             createQAItem(
-                userId = "user-123",
+                userId = userId,
                 questionId = questionIds[(index - 1) % questionIds.size],
                 answer = "Answer $index",
                 displayOrder = index.coerceAtMost(3),

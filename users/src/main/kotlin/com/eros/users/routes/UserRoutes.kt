@@ -62,10 +62,7 @@ fun Route.userProfileRoutes(userService: UserService, profileAccessControl: Prof
             if (request.userId != principal.uid)
                 throw ForbiddenException("Cannot create profile for another user")
 
-            if (userService.userExists(request.userId))
-                throw ConflictException("User profile already exists")
-
-            // Create user in database
+            // Create user in database - ConflictException will be thrown if user already exists
             val user = userService.createUser(request)
 
             // Sync Firebase custom claims

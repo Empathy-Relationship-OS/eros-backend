@@ -325,7 +325,12 @@ class UserQATest {
     ): UserQAItem {
         return UserQAItem(
             userId = userId,
-            question = Question(questionId,testQuestions.get(questionId)?:"error",Instant.now(),Instant.now()),
+            question = Question(
+                questionId,
+                requireNotNull(testQuestions[questionId]) { "Missing test question for id=$questionId" },
+                Instant.now(),
+                Instant.now()
+            ),
             answer = answer,
             displayOrder = displayOrder,
             createdAt = Instant.now(),

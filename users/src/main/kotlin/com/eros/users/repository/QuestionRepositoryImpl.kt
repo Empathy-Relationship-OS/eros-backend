@@ -18,7 +18,7 @@ class QuestionRepositoryImpl(
         questionId = this[Questions.questionId],
         question = this[Questions.question],
         createdAt = this[Questions.createdAt],
-        updatedAt =  Instant.now(clock)
+        updatedAt =  this[Questions.updatedAt],
     )
 
     override fun toStatement(statement: UpdateBuilder<*>, entity: Question) {

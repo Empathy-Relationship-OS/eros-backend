@@ -4,7 +4,7 @@ import com.eros.common.errors.ConflictException
 import com.eros.database.repository.BaseDAOImpl
 import com.eros.users.models.City
 import com.eros.users.table.Cities
-import com.eros.users.table.toCityDTO
+import com.eros.users.table.toCity
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.statements.UpdateBuilder
@@ -22,7 +22,7 @@ class CityRepositoryImpl(
     // Mapping
     // -------------------------------------------------------------------------
 
-    override fun ResultRow.toDomain(): City = toCityDTO()
+    override fun ResultRow.toDomain(): City = toCity()
 
     override fun toStatement(statement: UpdateBuilder<*>, entity: City) {
         statement.apply {
