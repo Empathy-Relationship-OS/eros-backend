@@ -14,6 +14,7 @@ import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.header
+import io.ktor.client.request.parameter
 import io.ktor.client.request.patch
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -387,6 +388,32 @@ class CityRoutesTest{
         }
     }
 
+
+    @Nested
+    inner class `GET nearest` {
+
+        @Test
+        fun `successfully get nearest`() = testApplication {
+            setupTestApp()
+            val client = configuredClient()
+            val lat = 2.45
+            val long = 50.3
+            val city = createCity()
+            coEvery { mockCityService.findNearestCity(lat, long) } returns city
+
+            val response = client.get("/city/nearest") {
+                setAuthenticatedUser("test-user-id")
+                contentType(ContentType.Application.Json)
+                parameter("lat", lat)
+                parameter("lon", long)
+            }
+
+            assertEquals(HttpStatusCode.OK, response.status)
+            val returnedCity = response.body<CityDTO>()
+            assertEquals(city.cityId, returnedCity.cityId)
+            assertEquals(city.cityName, returnedCity.cityName)
+        }
+    }
 
 
     // Helper functions

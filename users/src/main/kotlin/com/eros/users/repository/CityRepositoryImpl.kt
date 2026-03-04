@@ -4,7 +4,10 @@ import com.eros.database.repository.BaseDAOImpl
 import com.eros.users.models.City
 import com.eros.users.table.Cities
 import com.eros.users.table.toCityDTO
+import org.jetbrains.exposed.v1.core.CustomFunction
+import org.jetbrains.exposed.v1.core.DoubleColumnType
 import org.jetbrains.exposed.v1.core.ResultRow
+import org.jetbrains.exposed.v1.core.doubleParam
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.statements.UpdateBuilder
 import org.jetbrains.exposed.v1.jdbc.insertReturning
@@ -55,5 +58,26 @@ class CityRepositoryImpl(
         return Cities.selectAll()
             .where { Cities.cityName eq cityName }
             .empty().not()
+    }
+
+    /**
+     * Function to find the nearest city to a given latitude and longitude
+     */
+    override suspend fun findNearest(latitude: Double, longitude: Double): City? {
+        return Cities
+            .selectAll()
+            .orderBy(
+                CustomFunction(
+                    "earth_distance",
+                    DoubleColumnType(),
+                    Cities.latitude,
+                    Cities.longitude,
+                    doubleParam(latitude),
+                    doubleParam(longitude)
+                )
+            )
+            .limit(1)
+            .map { it.toDomain() }
+            .firstOrNull()
     }
 }

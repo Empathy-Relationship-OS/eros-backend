@@ -39,14 +39,15 @@ fun Route.cityRoutes(cityService: CityService) {
         }
 
         /**
-         * Path to retrieve the nearest SINGLE/MULTIPLE nearest city/s.
+         * Path to retrieve the nearest city to provided lat and long.
+         *
+         * Example usage: /city/nearest?lat=40.7&lon=-74.1
          */
         get("/nearest"){
-            throw NotImplementedError("/city/nearest has not been implemented")
-            /*
-            Provide NearestCityRequest (lat, long)
-            Return Single or list of nearest cities
-             */
+            val latitude = call.request.queryParameters["lat"]?.toDouble() ?: throw BadRequestException("Latitude requires a double.")
+            val longitude = call.request.queryParameters["lon"]?.toDouble()?: throw BadRequestException("Longitude requires a double.")
+            val nearestCity = cityService.findNearestCity(latitude,longitude) ?: throw NotFoundException("No city can be found.")
+            call.respond(HttpStatusCode.OK, nearestCity.toDTO())
         }
     }
 
