@@ -102,13 +102,18 @@ class CityRepositoryImplTest {
             val customInstant = Instant.parse("2025-06-01T12:30:00Z")
             val customClock = Clock.fixed(customInstant, ZoneId.of("UTC"))
             val customRepository = CityRepositoryImpl(customClock)
+            val inputCreatedAt = Instant.parse("2000-01-01T00:00:00Z")
+            val inputUpdatedAt = Instant.parse("2000-01-02T00:00:00Z")
+
 
             val city = dbQuery {
-                customRepository.create(City(0L, "Tokyo", 5.0 ,5.0,customInstant, customInstant))
+                customRepository.create(City(0L, "Tokyo", 5.0, 5.0, inputCreatedAt, inputUpdatedAt))
             }
 
             assertEquals(customInstant, city.createdAt)
             assertEquals(customInstant, city.updatedAt)
+            assertNotEquals(inputCreatedAt, city.createdAt)
+            assertNotEquals(inputUpdatedAt, city.updatedAt)
         }
 
         @Test
