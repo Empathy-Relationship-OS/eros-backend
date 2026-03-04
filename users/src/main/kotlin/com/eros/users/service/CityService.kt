@@ -47,7 +47,7 @@ class CityService(
      */
     suspend fun updateCity(cityId: Long, request: UpdateCityRequest): City? = dbQuery {
         val existing = cityRepository.findById(cityId) ?: throw NotFoundException("No city with the provided id: $cityId")
-        val updated = existing.copy(cityName = request.newCityName ?: existing.cityName,
+        val updated = existing.copy(cityName = request.newCityName?.trim() ?: existing.cityName,
             longitude = request.newCityLongitude ?: existing.longitude,
             latitude = request.newCityLatitude ?: existing.latitude)
         cityRepository.update(cityId, updated)
@@ -108,7 +108,7 @@ class CityService(
      * @return List of [City] objects for every city in the database.
      */
     suspend fun getAllCities() : List<City> = dbQuery {
-        Cities.selectAll().map { it.toCityDTO()}
+        cityRepository.findAll()
     }
 
 }
