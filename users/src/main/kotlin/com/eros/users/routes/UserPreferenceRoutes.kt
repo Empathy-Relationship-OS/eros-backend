@@ -88,12 +88,11 @@ fun Route.userPreferenceRoutes(userPreferenceService: PreferenceService) {
             val hasMatch = true //matchService.findMatch(principal.uid, targetUserId)
             val preferences = userPreferenceService.findByUserId(targetUserId)
                 ?: throw NotFoundException("User preferences not found.")
+            logger.info("Successful preference retrieval of another user: ${preferences.toDTO()}")
             logger.info(
-                "Preference retrieval successful",
-                keyValue("operation", "get"),
+                "Creating preferences for user",
                 keyValue("userId", preferences.userId),
-                keyValue("requesterId", principal.uid),
-                keyValue("status", "success")
+                keyValue("cityCount", preferences.dateCities.size)
             )
             call.respond(HttpStatusCode.OK, preferences.toDTO())
         }
@@ -117,7 +116,7 @@ fun Route.userPreferenceRoutes(userPreferenceService: PreferenceService) {
 
             if (deleted > 0) {
                 logger.info("Successful preference deletion for user: ${principal.uid}")
-                call.respond(HttpStatusCode.NoContent, "User Preference successfully deleted")
+                call.respond(HttpStatusCode.NoContent)
             } else {
                 throw NotFoundException("User preferences not found.")
             }
