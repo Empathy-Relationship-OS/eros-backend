@@ -155,18 +155,20 @@ class ProfileCompletenessTest {
     )
 
     private fun createQAItem(
-        userId: String = "user-123",
+        userId: String = "test-user-id",
         questionId: Long = testQuestions.keys.random(),
         answer: String = "Pizza and ice cream",
         displayOrder: Int = 1
     ): UserQAItem {
+        val now = Instant.now()
+        val questionText = requireNotNull(testQuestions[questionId]) { "Missing test question for id=$questionId" }
         return UserQAItem(
             userId = userId,
-            question = Question(questionId,testQuestions.get(questionId)?:"error",Instant.now(),Instant.now()),
+            question = Question(questionId, questionText, now, now),
             answer = answer,
             displayOrder = displayOrder,
-            createdAt = Instant.now(),
-            updatedAt = Instant.now()
+            createdAt = now,
+            updatedAt = now
         )
     }
 
