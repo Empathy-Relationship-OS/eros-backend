@@ -39,7 +39,12 @@ fun Route.userPreferenceRoutes(userPreferenceService: PreferenceService) {
             // Database primary key constraint handles duplicate prevention
             // ConflictException is thrown from repository layer on duplicate key violation
             val userPreferences = userPreferenceService.createPreferences(request)
-            logger.info("Successful preference creation: ${userPreferences.toDTO()}")
+            logger.info(
+                "Preference creation successful",
+                keyValue("operation", "create"),
+                keyValue("userId", userPreferences.userId),
+                keyValue("status", "success")
+            )
             call.respond(HttpStatusCode.Created, userPreferences.toDTO())
         }
 
@@ -52,7 +57,12 @@ fun Route.userPreferenceRoutes(userPreferenceService: PreferenceService) {
 
             val preferences = userPreferenceService.updatePreferences(request.userId, request)
                 ?: throw NotFoundException("User preferences not found.")
-            logger.info("Successful preference update: ${preferences.toDTO()}")
+            logger.info(
+                "Preference update successful",
+                keyValue("operation", "update"),
+                keyValue("userId", preferences.userId),
+                keyValue("status", "success")
+            )
             call.respond(HttpStatusCode.OK, preferences.toDTO())
         }
 
@@ -60,7 +70,12 @@ fun Route.userPreferenceRoutes(userPreferenceService: PreferenceService) {
             val principal = call.requireFirebasePrincipal()
             val preferences = userPreferenceService.findByUserId(principal.uid)
                 ?: throw NotFoundException("User preferences not found.")
-            logger.info("Successful preference retrieval: ${preferences.toDTO()}")
+            logger.info(
+                "Preference retrieval successful",
+                keyValue("operation", "get"),
+                keyValue("userId", preferences.userId),
+                keyValue("status", "success")
+            )
             call.respond(HttpStatusCode.OK, preferences.toDTO())
         }
 
@@ -73,11 +88,12 @@ fun Route.userPreferenceRoutes(userPreferenceService: PreferenceService) {
             val hasMatch = true //matchService.findMatch(principal.uid, targetUserId)
             val preferences = userPreferenceService.findByUserId(targetUserId)
                 ?: throw NotFoundException("User preferences not found.")
-            logger.info("Successful preference retrieval of another user: ${preferences.toDTO()}")
             logger.info(
-                "Creating preferences for user",
+                "Preference retrieval successful",
+                keyValue("operation", "get"),
                 keyValue("userId", preferences.userId),
-                keyValue("cityCount", preferences.dateCities.size)
+                keyValue("requesterId", principal.uid),
+                keyValue("status", "success")
             )
             call.respond(HttpStatusCode.OK, preferences.toDTO())
         }
