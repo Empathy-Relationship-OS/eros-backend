@@ -4,7 +4,7 @@ import com.eros.database.repository.IBaseDAO
 import com.eros.users.models.Question
 
 /**
- * Interface for creating, updating and deleting
+ * Repository interface for Question entity CRUD operations.
  */
 interface QuestionRepository : IBaseDAO<Long, Question> {
 
