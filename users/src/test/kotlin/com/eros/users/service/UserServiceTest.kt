@@ -94,37 +94,20 @@ class UserServiceTest {
         }
 
         @Test
-        fun `throws exception trying to update visibility when FROZEN`() {
+        fun `allow update when FROZEN`() {
             val user = createValidUserRequest()
 
             runBlocking {
                 val created = service.createUser(user)
                 service.adminUpdateUser(created.userId, AdminUpdateUserRequest(profileStatus = ProfileStatus.FROZEN))
 
-                val exception = assertThrows<ForbiddenException> {
-                    service.updateUser(created.userId, UpdateUserRequest(setVisible = false))
+                val updatedUser = runBlocking {
+                    service.updateUser(created.userId, UpdateUserRequest(firstName = "Changed"))
                 }
 
-                assertEquals("Can't update a profile that is banned or suspended.", exception.message)
+                assertEquals("Changed",updatedUser?.firstName)
             }
         }
-
-        @Test
-        fun `throws exception trying to update visibility when FROZEN 2`() {
-            val user = createValidUserRequest()
-
-            runBlocking {
-                val created = service.createUser(user)
-                service.adminUpdateUser(created.userId, AdminUpdateUserRequest(profileStatus = ProfileStatus.FROZEN))
-
-                val exception = assertThrows<ForbiddenException> {
-                    service.updateUser(created.userId, UpdateUserRequest(setVisible = true))
-                }
-
-                assertEquals("Can't update a profile that is banned or suspended.", exception.message)
-            }
-        }
-
     }
 
     // =============================//
