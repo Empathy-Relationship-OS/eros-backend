@@ -44,35 +44,16 @@ fun Route.cityRoutes(cityService: CityService) {
          *
          * Example usage: /city/nearest?lat=40.7&lon=-74.1
          *
-         * Response: List of CityDTO
+         * Response: NearestCityResponse: Count of cities and List of CityDTO
          */
         get("/nearest"){
             val latitude = call.request.queryParameters["lat"]?.toDouble() ?: throw BadRequestException("Latitude requires a double.")
             val longitude = call.request.queryParameters["lon"]?.toDouble() ?: throw BadRequestException("Longitude requires a double.")
-            val limit = call.request.queryParameters["limit"]?.toIntOrNull()
+            val limit = call.request.queryParameters["limit"]?.toInt()?.coerceIn(1, 100) ?: 1
 
-            val result = if (limit != null && limit > 1) {
-                val cities = cityService.findNearestCities(limit, latitude, longitude)
-                if (cities.isEmpty()) throw NotFoundException("No cities found.")
-                cities
-            } else {
-                val city = cityService.findNearestCity(latitude, longitude)
-                    ?: throw NotFoundException("No city can be found.")
-                listOf(city)
-            }
-            call.respond(HttpStatusCode.OK, toNearestCityResponse(result))
-        }
-
-        /**
-         * Path to retrieve the nearest city to provided lat and long.
-         *
-         * Example usage: /city/nearest?lat=40.7&lon=-74.1
-         */
-        get("/nearest"){
-            val latitude = call.request.queryParameters["lat"]?.toDouble() ?: throw BadRequestException("Latitude requires a double.")
-            val longitude = call.request.queryParameters["lon"]?.toDouble()?: throw BadRequestException("Longitude requires a double.")
-            val nearestCity = cityService.findNearestCity(latitude,longitude) ?: throw NotFoundException("No city can be found.")
-            call.respond(HttpStatusCode.OK, nearestCity.toDTO())
+            val cities = cityService.findNearestCities(limit, latitude, longitude)
+            if (cities.isEmpty()) throw NotFoundException("No cities found.")
+            call.respond(HttpStatusCode.OK, toNearestCityResponse(cities))
         }
     }
 

@@ -39,7 +39,7 @@ class CityServiceTest {
                 cityService.createCity(CreateCityRequest("Toilet",19.034, -45.1))
                 cityService.findNearestCity(10.034, 10.034)
             }
-            assertEquals("London", nearestCity?.cityName)
+            assertEquals("London", nearestCity[0].cityName)
         }
 
         @Test
@@ -53,7 +53,7 @@ class CityServiceTest {
                 cityService.createCity(CreateCityRequest("HRH",45.034, -4.1))
                 cityService.findNearestCity(-40.034, -88.034)
             }
-            assertEquals("ABC", nearestCity?.cityName)
+            assertEquals("ABC", nearestCity[0].cityName)
         }
 
         @Test
@@ -67,7 +67,7 @@ class CityServiceTest {
                 cityService.createCity(CreateCityRequest("HRH",45.034, -4.1))
                 cityService.findNearestCity(85.1, -25.0)
             }
-            assertEquals("Brazil", nearestCity?.cityName)
+            assertEquals("Brazil", nearestCity[0].cityName)
         }
     }
 

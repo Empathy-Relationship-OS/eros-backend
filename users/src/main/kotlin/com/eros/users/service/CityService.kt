@@ -63,8 +63,8 @@ class CityService(
      *
      * @throws NotFoundException if no nearest city can be found.
      */
-    suspend fun findNearestCity(latitude: Double, longitude: Double) : City? = dbQuery {
-        cityRepository.findNearest(latitude, longitude) ?: throw NotFoundException("No cities found")
+    suspend fun findNearestCity(latitude: Double, longitude: Double) : List<City> = dbQuery {
+        cityRepository.findNearest(1,latitude, longitude)
     }
 
 
@@ -76,7 +76,7 @@ class CityService(
      * @return List of nearest [limit] [City] to the provided coordinates.
      */
     suspend fun findNearestCities(limit: Int, latitude: Double, longitude: Double) : List<City> = dbQuery {
-        cityRepository.findNearestMultiple(limit, latitude, longitude)
+        cityRepository.findNearest(limit, latitude, longitude)
     }
 
 

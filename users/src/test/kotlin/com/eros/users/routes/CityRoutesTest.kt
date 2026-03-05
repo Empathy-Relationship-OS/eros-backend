@@ -400,7 +400,7 @@ class CityRoutesTest{
             val lat = 2.45
             val long = 50.3
             val city = createCity()
-            coEvery { mockCityService.findNearestCity(lat, long) } returns city
+            coEvery { mockCityService.findNearestCities(1,lat, long) } returns listOf(city)
 
             val response = client.get("/city/nearest") {
                 setAuthenticatedUser("test-user-id")
