@@ -48,8 +48,9 @@ class QuestionRepositoryImpl(
      * @return `true` if the question is in the database, otherwise `false`
      */
     override suspend fun questionExists(question: String): Boolean {
-        return !table.selectAll()
+        return table.selectAll()
             .where { Questions.question eq question }
-            .empty().not()
+            .empty()
+            .not()
     }
 }
