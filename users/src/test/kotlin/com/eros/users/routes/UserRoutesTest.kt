@@ -578,7 +578,7 @@ class UserRoutesTest {
         }
 
         @Test
-        fun `return forbidden if user's don't have access`() = testApplication{
+        fun `return forbidden if users don't have access`() = testApplication{
             setupTestApp()
             val client = configuredClient()
 
