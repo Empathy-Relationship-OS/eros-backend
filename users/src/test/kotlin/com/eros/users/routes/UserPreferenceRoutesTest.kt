@@ -31,7 +31,6 @@ import kotlin.test.assertTrue
 
 class UserPreferenceRoutesTest {
 
-    //todo: Implement tests
     private val mockUserPreferenceService = mockk<PreferenceService>()
 
 

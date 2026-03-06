@@ -578,18 +578,18 @@ class QARoutesTest {
     }
 
     private fun validQAList(userId: String = "test-user-id", size : Int = 3): List<UserQAItemDTO>{
-        val lst = emptyList<UserQAItemDTO>()
+        val lst = mutableListOf<UserQAItemDTO>()
         for(i in 1..size){
-            lst.plus(UserQAItemDTO(userId,QuestionDTO(i.toLong(),"Do is something you would change about other people?"),"Yes",i ))
+            lst.add(UserQAItemDTO(userId,QuestionDTO(i.toLong(),"Do is something you would change about other people?"),"Yes",i ))
         }
         return lst
     }
 
     private fun validQAItemList(userId: String = "test-user-id", size : Int = 3): List<UserQAItem>{
-        val lst = emptyList<UserQAItem>()
+        val lst = mutableListOf<UserQAItem>()
         val now = Instant.now()
         for(i in 1..size){
-            lst.plus(UserQAItem(userId,
+            lst.add(UserQAItem(userId,
                 Question(i.toLong(),"Do is something you would change about other people?",now, now),
                 "Yes",
                 i,
