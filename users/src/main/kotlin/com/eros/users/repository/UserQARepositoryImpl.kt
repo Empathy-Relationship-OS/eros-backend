@@ -15,6 +15,7 @@ import org.jetbrains.exposed.v1.core.statements.UpdateBuilder
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.updateReturning
 import java.time.Clock
 import java.time.Instant
 
@@ -136,5 +137,17 @@ class UserQARepositoryImpl(
         UserQA.insert { toStatement(it, entity) }
         return findById(UserQAId(entity.userId, entity.question.questionId))
             ?: throw NotFoundException("Can't find the Q&A after creation")
+    }
+
+    /**
+     * Override to add Questions join after update.
+     */
+    override suspend fun update(id: UserQAId, entity: UserQAItem): UserQAItem? {
+        UserQA.updateReturning(
+            where = { buildKeyCondition(id) },
+            body = { toStatement(it, entity) }
+        ).singleOrNull() ?: return null
+
+        return findById(id)
     }
 }
