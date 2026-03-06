@@ -1,24 +1,11 @@
 package com.eros
 
-import com.eros.common.config.S3Config
-import com.eros.users.repository.CityRepositoryImpl
-import com.eros.users.ProfileAccessControl
-import com.eros.users.repository.PhotoRepositoryImpl
-import com.eros.users.repository.PreferenceRepositoryImpl
-import com.eros.users.repository.QuestionRepositoryImpl
-import com.eros.users.repository.UserQARepositoryImpl
-import com.eros.users.repository.UserRepositoryImpl
 import com.eros.users.routes.qaRoutes
 import com.eros.users.routes.cityRoutes
 import com.eros.users.routes.questionRoutes
 import com.eros.users.routes.userPhotoRoutes
 import com.eros.users.routes.userPreferenceRoutes
 import com.eros.users.routes.userProfileRoutes
-import com.eros.users.service.CityService
-import com.eros.users.service.PhotoService
-import com.eros.users.service.PreferenceService
-import com.eros.users.service.QAService
-import com.eros.users.service.UserService
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.plugins.requestvalidation.*
@@ -34,27 +21,9 @@ fun Application.configureRouting() {
         }
     }
 
-    // Initialize repositories
-    val userRepository = UserRepositoryImpl()
-    val photoRepository = PhotoRepositoryImpl()
+    // Get the services from the ServiceContainer.kt
+    val services = this.services
 
-    val cityRepositoryImpl = CityRepositoryImpl()
-    val preferenceRepositoryImpl = PreferenceRepositoryImpl()
-
-    val qaRepository = UserQARepositoryImpl()
-    val questionRepository = QuestionRepositoryImpl()
-
-    // Initialize configs
-    val s3Config = S3Config.fromApplicationConfig(environment.config)
-
-    // Initialize services
-    val photoService = PhotoService(photoRepository, s3Config)
-    val userService = UserService(userRepository, photoService)
-    val cityService = CityService(cityRepositoryImpl)
-    val preferenceService = PreferenceService(preferenceRepositoryImpl, userService)
-    val qaService = QAService(questionRepository, qaRepository)
-
-    val profileAccessControl = ProfileAccessControl()
     routing {
         get("/") {
             call.respondText("Hello World!")
@@ -62,19 +31,12 @@ fun Application.configureRouting() {
 
         // All routes require Firebase authentication
         authenticate("firebase-auth") {
-            // User profile routes (handles role requirements internally)
-            userProfileRoutes(userService, profileAccessControl)
-
-            // Photo management routes (all require roles)
-            userPhotoRoutes(photoService)
-
-            cityRoutes(cityService)
-
-            userPreferenceRoutes(preferenceService)
-
-            qaRoutes(qaService,profileAccessControl)
-
-            questionRoutes(qaService)
+            userProfileRoutes(services.userService, services.profileAccessControl)
+            userPhotoRoutes(services.photoService)
+            cityRoutes(services.cityService)
+            userPreferenceRoutes(services.preferenceService)
+            qaRoutes(services.qaService, services.profileAccessControl)
+            questionRoutes(services.qaService)
         }
     }
 }
