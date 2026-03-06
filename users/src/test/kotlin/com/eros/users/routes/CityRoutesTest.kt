@@ -266,7 +266,7 @@ class CityRoutesTest{
         @Test
         fun `should delete city EMPLOYEE`() = testApplication{
 
-            setupTestApp("ADMIN")
+            setupTestApp("EMPLOYEE")
             val client = configuredClient()
 
             coEvery { mockCityService.deleteCity(0L) } returns 1
