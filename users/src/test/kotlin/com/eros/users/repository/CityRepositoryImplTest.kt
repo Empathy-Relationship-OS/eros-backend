@@ -3,6 +3,9 @@ package com.eros.users.repository
 import com.eros.database.dbQuery
 import com.eros.users.models.City
 import com.eros.users.table.Cities
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
@@ -529,10 +532,14 @@ class CityRepositoryImplTest {
         fun `should handle concurrent city creation`() = runBlocking {
             val cityNames = listOf("London", "Paris", "Berlin", "Madrid", "Rome")
 
-            val cities = dbQuery  {
+            val cities = coroutineScope {
                 cityNames.map { name ->
-                    repository.create(City(0L, name, 5.0 ,5.0,fixedInstant, fixedInstant))
-                }
+                    async {
+                        dbQuery {
+                            repository.create(City(0L, name, 5.0 ,5.0,fixedInstant, fixedInstant))
+                        }
+                    }
+                }.awaitAll()
             }
 
             assertEquals(5, cities.size)
