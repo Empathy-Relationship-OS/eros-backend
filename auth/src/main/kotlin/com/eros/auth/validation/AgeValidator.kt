@@ -2,8 +2,6 @@ package com.eros.auth.validation
 
 import java.time.LocalDate
 import java.time.Period
-import java.time.format.DateTimeParseException
-import org.slf4j.LoggerFactory
 
 
 /**
@@ -19,7 +17,6 @@ import org.slf4j.LoggerFactory
  * `isValid` - Returns `true` if a valid age otherwise `false`.
  */
 object AgeValidator {
-    private val logger = LoggerFactory.getLogger(AgeValidator::class.javaObjectType)
 
     /**
      * Validates that the user is at least 18 years old.

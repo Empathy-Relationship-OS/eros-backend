@@ -5,21 +5,14 @@ import com.eros.auth.extensions.requireRoles
 import com.eros.common.errors.BadRequestException
 import com.eros.common.errors.NotFoundException
 import com.eros.users.models.CreateQuestionRequest
-import com.eros.users.models.QuestionDTO
 import com.eros.users.models.UpdateQuestionRequest
 import com.eros.users.models.toDTO
 import com.eros.users.service.QAService
-import io.ktor.http.HttpStatusCode
-import io.ktor.server.application.log
-import io.ktor.server.request.receive
-import io.ktor.server.response.respond
-import io.ktor.server.routing.Route
-import io.ktor.server.routing.delete
-import io.ktor.server.routing.get
-import io.ktor.server.routing.patch
-import io.ktor.server.routing.post
-import io.ktor.server.routing.route
-import kotlin.text.toLong
+import io.ktor.http.*
+import io.ktor.server.application.*
+import io.ktor.server.request.*
+import io.ktor.server.response.*
+import io.ktor.server.routing.*
 
 fun Route.questionRoutes(qaService: QAService) {
 

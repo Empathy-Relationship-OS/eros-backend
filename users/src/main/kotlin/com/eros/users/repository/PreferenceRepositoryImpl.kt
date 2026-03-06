@@ -108,7 +108,7 @@ class PreferenceRepositoryImpl(
         }
     }
 
-    override suspend fun update(id: String, entity: UserPreference): UserPreference? {
+    override suspend fun update(id: String, entity: UserPreference): UserPreference {
 
         //val rowsUpdated = super.update(id, entity)
         val rowsUpdated = UserPreferences.update({ UserPreferences.userId eq id }) { toStatement(it, entity) }

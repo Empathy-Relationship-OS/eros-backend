@@ -3,15 +3,12 @@ package com.eros.users.routes
 import com.eros.auth.extensions.requireFirebasePrincipal
 import com.eros.auth.extensions.requireRoles
 import com.eros.common.errors.BadRequestException
-import com.eros.common.errors.ConflictException
 import com.eros.common.errors.ForbiddenException
 import com.eros.common.errors.NotFoundException
 import com.eros.users.ProfileAccessControl
 import com.eros.users.models.AdminUpdateUserRequest
 import com.eros.users.models.CreateUserRequest
-import com.eros.users.models.PublicProfile
 import com.eros.users.models.UpdateUserRequest
-import com.eros.users.models.UserMediaCollection
 import com.eros.users.models.toDTO
 import com.eros.users.service.UserService
 import com.google.firebase.auth.FirebaseAuth

@@ -197,54 +197,6 @@ class PreferenceRepositoryImplTest {
     }
 
 
-    /**
-     * Private helper to create test user preferences setup.
-     * Not a @Test method to avoid being called directly as a test.
-     */
-    private suspend fun createUserPreferencesSetup(): Pair<UserPreference, UserPreference> {
-        // Create test user
-        createUser()
-
-        // Create Test City
-        val city = createCity("TestCity")
-
-        val preference = UserPreference(
-            userId = "user123",
-            genderIdentities = listOf(Gender.FEMALE, Gender.NON_BINARY),
-            ageRangeMin = 25,
-            ageRangeMax = 55,
-            heightRangeMin = 160,
-            heightRangeMax = 200,
-            ethnicity = listOf(Ethnicity.MIDDLE_EASTERN, Ethnicity.PACIFIC_ISLANDER),
-            dateLanguages = listOf(Language.ENGLISH, Language.SPANISH),
-            dateActivities = listOf(Activity.ESCAPE_ROOMS, Activity.BEACH),
-            dateLimit = 5,
-            dateCities = listOf(city),
-            reachLevel = ReachLevel.OPEN_MINDED,
-            createdAt = fixedInstant,
-            updatedAt = fixedInstant
-        )
-
-        val preference2 = UserPreference(
-            userId = "user456",
-            genderIdentities = listOf(Gender.MALE, Gender.NON_BINARY),
-            ageRangeMin = 18,
-            ageRangeMax = 80,
-            heightRangeMin = 160,
-            heightRangeMax = 200,
-            ethnicity = listOf(Ethnicity.MIDDLE_EASTERN, Ethnicity.PACIFIC_ISLANDER),
-            dateLanguages = listOf(Language.ENGLISH, Language.SPANISH),
-            dateActivities = listOf(Activity.ESCAPE_ROOMS, Activity.BEACH),
-            dateLimit = 5,
-            dateCities = listOf(city),
-            reachLevel = ReachLevel.OPEN_MINDED,
-            createdAt = fixedInstant,
-            updatedAt = fixedInstant
-        )
-
-        return Pair(preference, preference2)
-    }
-
     @Test
     fun createUserPreferences() = runTest {
         // Setup

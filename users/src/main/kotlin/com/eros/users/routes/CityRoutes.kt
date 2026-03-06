@@ -1,23 +1,16 @@
 package com.eros.users.routes
 
-import com.eros.auth.extensions.requireFirebasePrincipal
 import com.eros.auth.extensions.requireRoles
 import com.eros.common.errors.BadRequestException
-import com.eros.common.errors.ConflictException
 import com.eros.common.errors.NotFoundException
 import com.eros.users.models.CreateCityRequest
 import com.eros.users.models.UpdateCityRequest
 import com.eros.users.models.toDTO
 import com.eros.users.service.CityService
-import io.ktor.http.HttpStatusCode
-import io.ktor.server.request.receive
-import io.ktor.server.response.respond
-import io.ktor.server.routing.Route
-import io.ktor.server.routing.delete
-import io.ktor.server.routing.get
-import io.ktor.server.routing.patch
-import io.ktor.server.routing.post
-import io.ktor.server.routing.route
+import io.ktor.http.*
+import io.ktor.server.request.*
+import io.ktor.server.response.*
+import io.ktor.server.routing.*
 
 
 fun Route.cityRoutes(cityService: CityService) {

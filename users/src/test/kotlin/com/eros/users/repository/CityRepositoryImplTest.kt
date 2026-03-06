@@ -334,13 +334,13 @@ class CityRepositoryImplTest {
 
         @Test
         fun `should return correct city among multiple cities`() = runBlocking {
-            val paris = dbQuery {
+            dbQuery {
                 repository.create(City(0L, "Paris", 5.0 ,5.0,fixedInstant, fixedInstant))
             }
             val london = dbQuery {
                 repository.create(City(0L, "London", 5.0 ,5.0,fixedInstant, fixedInstant))
             }
-            val berlin = dbQuery {
+            dbQuery {
                 repository.create(City(0L, "Berlin", 5.0 ,5.0,fixedInstant, fixedInstant))
             }
 

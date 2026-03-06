@@ -3,22 +3,16 @@ package com.eros.users.routes
 import com.eros.auth.extensions.requireFirebasePrincipal
 import com.eros.auth.extensions.requireRoles
 import com.eros.common.errors.BadRequestException
-import com.eros.common.errors.ConflictException
 import com.eros.common.errors.ForbiddenException
 import com.eros.common.errors.NotFoundException
 import com.eros.users.models.CreatePreferenceRequest
 import com.eros.users.models.UpdatePreferenceRequest
 import com.eros.users.models.toDTO
 import com.eros.users.service.PreferenceService
-import io.ktor.http.HttpStatusCode
-import io.ktor.server.request.receive
-import io.ktor.server.response.respond
-import io.ktor.server.routing.Route
-import io.ktor.server.routing.get
-import io.ktor.server.routing.delete
-import io.ktor.server.routing.patch
-import io.ktor.server.routing.post
-import io.ktor.server.routing.route
+import io.ktor.http.*
+import io.ktor.server.request.*
+import io.ktor.server.response.*
+import io.ktor.server.routing.*
 import net.logstash.logback.argument.StructuredArguments.keyValue
 import org.slf4j.LoggerFactory
 
@@ -81,7 +75,7 @@ fun Route.userPreferenceRoutes(userPreferenceService: PreferenceService) {
 
 
         get("/id/{id}"){
-            val principal = call.requireFirebasePrincipal()
+            call.requireFirebasePrincipal()
             val targetUserId = call.parameters["id"] ?: throw BadRequestException("User ID is required")
 
             //todo: Ensure the user has a match
