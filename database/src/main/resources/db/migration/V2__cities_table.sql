@@ -1,7 +1,7 @@
 -- Master table: Cities
 CREATE TABLE IF NOT EXISTS cities (
     city_id BIGSERIAL PRIMARY KEY,
-    name VARCHAR(128) NOT NULL UNIQUE,
+    city_name VARCHAR(128) NOT NULL UNIQUE,
 
     latitude DOUBLE PRECISION NOT NULL,
     longitude DOUBLE PRECISION NOT NULL,
@@ -15,10 +15,10 @@ CREATE TABLE IF NOT EXISTS cities (
 );
 
 -- Indexes for master tables (name lookups)
-CREATE INDEX idx_cities_name ON cities(name);
+CREATE INDEX idx_cities_city_name ON cities(city_name);
 
 -- Comments for columns or table
 COMMENT ON TABLE cities IS 'List of all cities available for dating preferences';
-COMMENT ON COLUMN cities.name IS 'Name of a city containing an activity';
+COMMENT ON COLUMN cities.city_name IS 'Name of a city containing an activity';
 COMMENT ON COLUMN cities.longitude IS 'Longitude of the city centre';
 COMMENT ON COLUMN cities.latitude IS 'Latitude of the city centre';

@@ -7,8 +7,8 @@
 CREATE TABLE IF NOT EXISTS user_qa(
 
     -- Foreign key.
-    question_id BIGSERIAL REFERENCES questions(question_id) ON DELETE CASCADE,
-    user_id varchar(128) NOT NULL UNIQUE REFERENCES users(user_id) ON DELETE CASCADE,
+    question_id BIGINT NOT NULL REFERENCES questions(question_id) ON DELETE CASCADE,
+    user_id varchar(128) NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
 
     answer varchar(200) NOT NULL,
     display_order INTEGER NOT NULL,
@@ -19,6 +19,5 @@ CREATE TABLE IF NOT EXISTS user_qa(
     PRIMARY KEY (user_id, question_id),
 
     -- Constraints
-    CONSTRAINT user_and_question_unique UNIQUE (user_id, question_id),
     CONSTRAINT user_and_order_unique UNIQUE (user_id, display_order)
 );

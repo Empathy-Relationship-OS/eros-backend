@@ -126,7 +126,7 @@ class QuestionRoutesTest {
     }
 
     @Nested
-    inner class `PATCH Questions`(){
+    inner class `PATCH Questions` {
 
         @Test
         fun `successful patch a question`() = testApplication{
@@ -188,7 +188,7 @@ class QuestionRoutesTest {
     }
 
     @Nested
-    inner class `GET Questions`(){
+    inner class `GET Questions` {
 
         @Test
         fun `successful ADMIN retrieval of all questions`() = testApplication{
@@ -254,7 +254,7 @@ class QuestionRoutesTest {
     }
 
     @Nested
-    inner class `DELETE Question`(){
+    inner class `DELETE Question` {
 
         @Test
         fun `successful DELETE question`() = testApplication{

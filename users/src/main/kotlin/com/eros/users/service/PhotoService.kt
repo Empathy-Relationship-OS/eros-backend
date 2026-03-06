@@ -188,7 +188,7 @@ class PhotoService(
             if (photoRepository.deleteById(it.id) == 0) {
                 throw IllegalStateException("Photo with id ${it.id} wasn't deleted")
             } else {
-                logger.info("Successfully deleted media: $mediaUrl")
+                logger.info("Successfully deleted media: ${it.mediaUrl}")
             }
         }
 

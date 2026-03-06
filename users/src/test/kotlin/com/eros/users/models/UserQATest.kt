@@ -4,13 +4,10 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import java.time.Instant
-import java.time.LocalDateTime
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-
-
 
 
 class UserQATest {
@@ -223,7 +220,7 @@ class UserQATest {
     }
 
     @Nested
-    inner class `UserQACollection` {
+    inner class UserQACollection {
 
         @Test
         fun `hasMinimumQAs should return true when count is 1 or more`() {
@@ -325,7 +322,12 @@ class UserQATest {
     ): UserQAItem {
         return UserQAItem(
             userId = userId,
-            question = Question(questionId,testQuestions.get(questionId)?:"error",Instant.now(),Instant.now()),
+            question = Question(
+                questionId,
+                requireNotNull(testQuestions[questionId]) { "Missing test question for id=$questionId" },
+                Instant.now(),
+                Instant.now()
+            ),
             answer = answer,
             displayOrder = displayOrder,
             createdAt = Instant.now(),
