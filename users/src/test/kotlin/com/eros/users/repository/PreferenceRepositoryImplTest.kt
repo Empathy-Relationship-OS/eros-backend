@@ -24,7 +24,6 @@ import com.eros.users.table.Cities
 import com.eros.users.table.UserCitiesPreference
 import com.eros.users.table.UserPreferences
 import com.eros.users.table.Users
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
@@ -104,7 +103,7 @@ class PreferenceRepositoryImplTest {
         return cityRepository.create(City(0L, cityName, 5.0 ,5.0,fixedInstant, fixedInstant))
     }
 
-    fun createUser(): User = runBlocking {
+    suspend fun createUser(): User {
         UserRepositoryImpl(clock).create(
             User(
                 userId = "user123",
@@ -150,7 +149,7 @@ class PreferenceRepositoryImplTest {
                 photoValidationStatus = ValidationStatus.VALIDATED
             )
         )
-        UserRepositoryImpl(clock).create(
+        return UserRepositoryImpl(clock).create(
             User(
                 userId = "user456",
                 firstName = "Pete",
@@ -247,40 +246,38 @@ class PreferenceRepositoryImplTest {
     }
 
     @Test
-    fun createUserPreferences() {
-        runBlocking {
-            // Setup
-            val city = dbQuery {
-                createUser()
-                createCity("TestCity")
-            }
-
-            val preference = UserPreference(
-                userId = "user123",
-                genderIdentities = listOf(Gender.FEMALE, Gender.NON_BINARY),
-                ageRangeMin = 25,
-                ageRangeMax = 55,
-                heightRangeMin = 160,
-                heightRangeMax = 200,
-                ethnicity = listOf(Ethnicity.MIDDLE_EASTERN, Ethnicity.PACIFIC_ISLANDER),
-                dateLanguages = listOf(Language.ENGLISH, Language.SPANISH),
-                dateActivities = listOf(Activity.ESCAPE_ROOMS, Activity.BEACH),
-                dateLimit = 5,
-                dateCities = listOf(city),
-                reachLevel = ReachLevel.OPEN_MINDED,
-                createdAt = fixedInstant,
-                updatedAt = fixedInstant
-            )
-
-            // Test - wrap repository calls in dbQuery
-            val createdUser = dbQuery {
-                preferenceRepository.create(preference)
-            }
-
-            // Assertions
-            assertNotNull(createdUser)
-            assertEquals(preference.userId, createdUser.userId)
+    fun createUserPreferences() = runTest {
+        // Setup
+        val city = dbQuery {
+            createUser()
+            createCity("TestCity")
         }
+
+        val preference = UserPreference(
+            userId = "user123",
+            genderIdentities = listOf(Gender.FEMALE, Gender.NON_BINARY),
+            ageRangeMin = 25,
+            ageRangeMax = 55,
+            heightRangeMin = 160,
+            heightRangeMax = 200,
+            ethnicity = listOf(Ethnicity.MIDDLE_EASTERN, Ethnicity.PACIFIC_ISLANDER),
+            dateLanguages = listOf(Language.ENGLISH, Language.SPANISH),
+            dateActivities = listOf(Activity.ESCAPE_ROOMS, Activity.BEACH),
+            dateLimit = 5,
+            dateCities = listOf(city),
+            reachLevel = ReachLevel.OPEN_MINDED,
+            createdAt = fixedInstant,
+            updatedAt = fixedInstant
+        )
+
+        // Test - wrap repository calls in dbQuery
+        val createdUser = dbQuery {
+            preferenceRepository.create(preference)
+        }
+
+        // Assertions
+        assertNotNull(createdUser)
+        assertEquals(preference.userId, createdUser.userId)
     }
 
 }
