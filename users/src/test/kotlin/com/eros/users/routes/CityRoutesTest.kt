@@ -117,15 +117,13 @@ class CityRoutesTest{
             setupTestApp("ADMIN")
             val client = configuredClient()
 
-            val exception = assertThrows<IllegalArgumentException> {
-                client.post("/city/admin") {
-                    setAuthenticatedUser("test-user-id")
-                    contentType(ContentType.Application.Json)
-                    setBody(CreateCityRequest("    ", -5.2, 45.2))
-                }
+            val response = client.post("/city/admin") {
+                setAuthenticatedUser("test-user-id")
+                contentType(ContentType.Application.Json)
+                setBody("""{"cityName":"    ","longitude":-5.2,"latitude":45.2}""")
             }
 
-            assertEquals("City name must not be empty.", exception.message)
+            assertEquals(HttpStatusCode.BadRequest, response.status)
         }
 
     }
