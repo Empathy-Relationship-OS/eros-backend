@@ -467,7 +467,7 @@ class QARoutesTest {
     }
 
     @Nested
-    inner class `UPDATE entire collection`(){
+    inner class `UPDATE entire collection` {
 
         @Test
         fun `successful create,update of entire collection`() = testApplication {
