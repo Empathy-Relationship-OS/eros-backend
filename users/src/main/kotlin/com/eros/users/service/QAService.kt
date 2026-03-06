@@ -107,7 +107,7 @@ class QAService(
 
         // Ensure the user can't add more than 3 Q&A.
         val currentCount = userQARepository.findAllByUserId(request.userId).size
-        if (currentCount == 3) {
+        if (currentCount >= 3) {
             throw BadRequestException("Maximum of 3 Q&A's allowed per user.")
         }
 
