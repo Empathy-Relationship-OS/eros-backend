@@ -102,7 +102,7 @@ fun Route.qaRoutes(qaService : QAService, profileAccessControl: ProfileAccessCon
         delete("/{id}"){
             val principal = call.requireFirebasePrincipal()
 
-            val targetUserId = call.parameters["uid"]
+            val targetUserId = call.parameters["id"]
                 ?: throw BadRequestException("User ID is required")
 
             if (principal.uid != targetUserId) throw UnauthorizedException("User does not have access to delete $targetUserId QA.")
