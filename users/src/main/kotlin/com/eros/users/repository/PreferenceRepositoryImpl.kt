@@ -109,7 +109,9 @@ class PreferenceRepositoryImpl(
     }
 
     override suspend fun update(id: String, entity: UserPreference): UserPreference {
-
+        if (entity.userId != id) {
+            throw BadRequestException("Path userId and payload userId must match.")
+        }
         //val rowsUpdated = super.update(id, entity)
         val rowsUpdated = UserPreferences.update({ UserPreferences.userId eq id }) { toStatement(it, entity) }
         if (rowsUpdated == 0) throw NotFoundException("User preferences not found.")
@@ -118,7 +120,7 @@ class PreferenceRepositoryImpl(
         // Get current city IDs
         val currentCityIds = UserCitiesPreference
             .select(UserCitiesPreference.cityId)
-            .where { UserCitiesPreference.userId eq entity.userId }
+            .where { UserCitiesPreference.userId eq id }
             .map { it[UserCitiesPreference.cityId] }
             .toSet()
 
@@ -136,12 +138,12 @@ class PreferenceRepositoryImpl(
         val toInsert = newCityIdSet - currentCityIds
         if (toInsert.isNotEmpty()) {
             UserCitiesPreference.batchInsert(toInsert) { cityId ->
-                this[UserCitiesPreference.userId] = entity.userId
+                this[UserCitiesPreference.userId] = id
                 this[UserCitiesPreference.cityId] = cityId
                 this[UserCitiesPreference.createdAt] = Instant.now(clock)
             }
         }
-        return getUserPreferenceWithCities(entity.userId)
+        return getUserPreferenceWithCities(id)
     }
 
     // -------------------------------------------------------------------------
