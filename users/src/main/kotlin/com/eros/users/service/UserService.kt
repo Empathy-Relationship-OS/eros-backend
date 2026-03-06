@@ -209,10 +209,10 @@ class UserService(
      */
     suspend fun getPublicProfile(requestingUserId: String, targetUserId: String): PublicProfile {
         val (targetUser, principalUser) = dbQuery {
-            val targetUser = findByUserId(targetUserId)
+            val targetUser = userRepository.findById(targetUserId)
                 ?: throw NotFoundException("Target User ($targetUserId) profile not found.")
 
-            val principalUser = findByUserId(requestingUserId)
+            val principalUser = userRepository.findById(requestingUserId)
                 ?: throw NotFoundException("Requesting User ($requestingUserId) profile not found.")
             targetUser to principalUser
         }
