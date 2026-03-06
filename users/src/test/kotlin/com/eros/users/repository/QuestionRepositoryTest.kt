@@ -31,7 +31,7 @@ class QuestionRepositoryTest {
 
         @Test
         fun `create single question`() = runTest {
-            val now = Instant.now()
+            val now = Instant.now(clock)
             val question = Question(0L, "Question here", now, now)
 
             val returnedQuestion = dbQuery { repository.create(question) }
@@ -43,7 +43,7 @@ class QuestionRepositoryTest {
 
         @Test
         fun `failure to create duplicate question`() = runTest {
-            val now = Instant.now()
+            val now = Instant.now(clock)
             val question1 = Question(0L, "Question here", now, now)
             val question2 = Question(0L, "Question here", now, now)
 
@@ -94,7 +94,7 @@ class QuestionRepositoryTest {
         @Test
         fun `successful update question`() = runTest {
 
-            val now = Instant.now()
+            val now = Instant.now(clock)
             val question = Question(0L, "BlahBlah", now, now)
 
             val (created, updated) = dbQuery {
@@ -114,7 +114,7 @@ class QuestionRepositoryTest {
         @Test
         fun `update to existing question fails`() = runTest {
 
-            val now = Instant.now()
+            val now = Instant.now(clock)
             val question = Question(0L, "BlahBlah", now, now)
             val question2 = Question(0L, "Already a question", now, now)
             assertThrows<ExposedSQLException> {
@@ -137,7 +137,7 @@ class QuestionRepositoryTest {
         @Test
         fun `successful deleted`() = runTest {
 
-            val now = Instant.now()
+            val now = Instant.now(clock)
             val question = Question(0L, "BlahBlah", now, now)
 
             val deleted = dbQuery {
@@ -164,7 +164,7 @@ class QuestionRepositoryTest {
      **************************************/
 
     suspend fun populateQuestions(size: Int) {
-        val now = Instant.now()
+        val now = Instant.now(clock)
         for (i in 1..size) {
             repository.create(Question(0L, "BlahBlahBlah$i", now, now))
         }
