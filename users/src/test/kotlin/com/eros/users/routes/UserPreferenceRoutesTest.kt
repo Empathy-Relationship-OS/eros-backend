@@ -125,9 +125,10 @@ class UserPreferenceRoutesTest {
                 bearer("firebase-auth") {
                     realm = "test-realm"
                     authenticate { credential ->
-                        // Return mock principal based on credential token
-                        // Token format: "user-{userId}"
-                        val userId = credential.token.removePrefix("user-")
+                        // Token format must be: "user-{userId}"
+                        val token = credential.token
+                        if (!token.startsWith("user-")) return@authenticate null
+                        val userId = token.removePrefix("user-")
                         val mockToken = mockk<com.google.firebase.auth.FirebaseToken>(relaxed = true) {
                             coEvery { uid } returns userId
                         }
