@@ -1,6 +1,8 @@
 package com.eros.wallet.models
 
+import com.eros.wallet.table.Wallets
 import kotlinx.serialization.Serializable
+import org.jetbrains.exposed.v1.core.ResultRow
 import java.time.Instant
 
 /**
@@ -47,6 +49,19 @@ data class WalletResponse(
         }
     }
 }
+
+fun ResultRow.toWalletDomain(): Wallet {
+    return Wallet(
+        userId = this[Wallets.userId],
+        tokenBalance = this[Wallets.tokenBalance].toDouble(),
+        lifetimeSpent = this[Wallets.lifetimeSpent].toDouble(),
+        lifetimePurchased = this[Wallets.lifetimePurchased].toDouble(),
+        currency = this[Wallets.currency],
+        createdAt = this[Wallets.createdAt],
+        updatedAt = this[Wallets.updatedAt]
+    )
+}
+
 
 /*
 
