@@ -1,19 +1,17 @@
 package com.eros.users.service
 
-import com.eros.users.ProfileCompleteness
+import com.eros.common.errors.ForbiddenException
+import com.eros.users.models.*
+import com.eros.common.errors.ConflictException
+import com.eros.common.errors.NotFoundException
+import com.eros.database.dbQuery
 import com.eros.users.models.AdminUpdateUserRequest
-import com.eros.users.models.Badge
-import com.eros.users.models.CreateUserRequest
-import com.eros.users.models.ProfileStatus
-import com.eros.users.models.Role
-import com.eros.users.models.UpdateUserRequest
-import com.eros.users.models.User
-import com.eros.users.models.ValidationStatus
 import com.eros.users.repository.UserRepository
 import com.eros.users.table.badgeHelper
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.jetbrains.exposed.v1.exceptions.ExposedSQLException
 import java.time.Clock
 import java.time.Instant
 
@@ -26,6 +24,7 @@ import java.time.Instant
  */
 class UserService(
     private val userRepository: UserRepository,
+    private val photoService: PhotoService,
     private val clock: Clock = Clock.systemUTC()
 ) {
 
@@ -37,8 +36,9 @@ class UserService(
      * @param request CreateUserRequest containing all required user profile data
      * @return The created User
      * @throws IllegalArgumentException if input validation fails
+     * @throws ConflictException if user with same ID or email already exists
      */
-    suspend fun createUser(request: CreateUserRequest): User {
+    suspend fun createUser(request: CreateUserRequest): User = dbQuery {
         val now = Instant.now(clock)
         val user = User(
             userId = request.userId,
@@ -83,7 +83,24 @@ class UserService(
             coordinatesLatitude = request.coordinatesLatitude,
             profileCompleteness = 50
         )
-        return userRepository.create(user)
+
+        try {
+            userRepository.create(user)
+        } catch (e: ExposedSQLException) {
+            // PostgreSQL unique constraint violation error code is 23505
+            if (e.sqlState == "23505") {
+                when {
+                    e.message?.contains("users_pkey") == true || e.message?.contains("user_id") == true -> {
+                        throw ConflictException("User with ID ${request.userId} already exists")
+                    }
+                    e.message?.contains("users_email_unique") == true || e.message?.contains("email") == true -> {
+                        throw ConflictException("User with email ${request.email} already exists")
+                    }
+                    else -> throw ConflictException("User already exists")
+                }
+            }
+            throw e
+        }
     }
 
     /**
@@ -100,8 +117,24 @@ class UserService(
      * @return The updated User, or null if user not found
      * @throws IllegalArgumentException if input validation fails
      */
-    suspend fun updateUser(userId: String, request: UpdateUserRequest): User? {
-        val existing = userRepository.findById(userId) ?: return null
+    suspend fun updateUser(userId: String, request: UpdateUserRequest): User? = dbQuery {
+        val existing = userRepository.findById(userId) ?: throw NotFoundException("User $userId not found.")
+
+        // Ensure banned accounts can't edit their profile.
+        if (existing.profileStatus == ProfileStatus.BANNED){
+            throw ForbiddenException("Can't update a profile that is banned.")
+        }
+
+        var newProfileStatus : ProfileStatus = existing.profileStatus
+        // Check if visibility is changed - if so, set to correct Enum value.
+        if (existing.profileStatus == ProfileStatus.ACTIVE || existing.profileStatus == ProfileStatus.SLEEP_MODE){
+            newProfileStatus = when(request.setVisible) {
+                true -> ProfileStatus.ACTIVE
+                false -> ProfileStatus.SLEEP_MODE
+                null -> existing.profileStatus
+            }
+        }
+
         val merged = existing.copy(
             firstName = request.firstName ?: existing.firstName,
             lastName = request.lastName ?: existing.lastName,
@@ -132,9 +165,33 @@ class UserService(
             bodyAttributes = request.bodyAttributes ?: existing.bodyAttributes,
             bodyDescription = request.bodyDescription ?: existing.bodyDescription,
             coordinatesLongitude = request.coordinatesLongitude ?: existing.coordinatesLongitude,
-            coordinatesLatitude = request.coordinatesLatitude ?: existing.coordinatesLatitude
+            coordinatesLatitude = request.coordinatesLatitude ?: existing.coordinatesLatitude,
+            profileStatus = newProfileStatus
         )
-        return userRepository.update(userId, merged)
+        userRepository.update(userId, merged)
+    }
+
+
+    /**
+     * Function to update the visibility of the user.
+     *
+     * @param userId id of the user to be updated
+     * @param request [ProfileStatusUpdateRequest] object containing the isVisible flag.
+     * @return [User] object containing the updated user.
+     * @throws NotFoundException if the user can't be retrieved from the database.
+     * @throws ForbiddenException if the user is banned or frozen.
+     */
+    suspend fun updateVisibility(userId:String, request: ProfileStatusUpdateRequest) : User? = dbQuery {
+        val existing = userRepository.findById(userId)
+            ?: throw NotFoundException("User $userId not found.")
+
+        val newProfileStatus = when {
+            existing.profileStatus in listOf(ProfileStatus.ACTIVE, ProfileStatus.SLEEP_MODE) -> {
+                if (request.isVisible) ProfileStatus.ACTIVE else ProfileStatus.SLEEP_MODE
+            }
+            else -> throw ForbiddenException("Can't update a profile that is banned or suspended.")
+        }
+        userRepository.update(userId, existing.copy(profileStatus = newProfileStatus))
     }
 
     /**
@@ -149,8 +206,8 @@ class UserService(
      * @return The updated User, or null if user not found
      * @throws IllegalArgumentException if input validation fails
      */
-    suspend fun adminUpdateUser(userId: String, request: AdminUpdateUserRequest): User? {
-        val existing = userRepository.findById(userId) ?: return null
+    suspend fun adminUpdateUser(userId: String, request: AdminUpdateUserRequest): User? = dbQuery {
+        val existing = userRepository.findById(userId) ?: throw NotFoundException("User $userId not found.")
         val merged = existing.copy(
             eloScore = request.eloScore ?: existing.eloScore,
             photoValidationStatus = request.photoValidationStatus ?: existing.photoValidationStatus,
@@ -163,6 +220,7 @@ class UserService(
                         (request.trustedBadge ?: false) to Badge.TRUSTED
                     )
                 }
+
                 else -> existing.badges
             },
             role = request.role ?: existing.role,
@@ -178,9 +236,32 @@ class UserService(
                 FirebaseAuth.getInstance().setCustomUserClaims(userId, claims)
             }
         }
-
-        return updated
+        updated
     }
+
+    /**
+     * Get and return a users full PUBLIC profile.
+     *
+     * @param requestingUserId Firebase user ID of the user.
+     * @param targetUserId Firebase user ID of the other user to get their profile.
+     * @return [PublicProfile] if user is found.
+     *
+     * @throws NotFoundException if either user profile is not found.
+     */
+    suspend fun getPublicProfile(requestingUserId: String, targetUserId: String): PublicProfile {
+        val (targetUser, principalUser) = dbQuery {
+            val targetUser = userRepository.findById(targetUserId)
+                ?: throw NotFoundException("Target User ($targetUserId) profile not found.")
+
+            val principalUser = userRepository.findById(requestingUserId)
+                ?: throw NotFoundException("Requesting User ($requestingUserId) profile not found.")
+            targetUser to principalUser
+        }
+        val media = photoService.getUserMedia(targetUserId)
+        val sharedInterests = getSharedInterests(principalUser.interests, targetUser.interests)
+        return PublicProfile.from(targetUser, media, sharedInterests)
+    }
+
 
     /**
      * Finds a user by Firebase UID.
@@ -188,8 +269,8 @@ class UserService(
      * @param userId Firebase user ID to search for
      * @return User if found, null otherwise
      */
-    suspend fun findByUserId(userId: String): User? {
-        return userRepository.findById(userId)
+    suspend fun findByUserId(userId: String): User? = dbQuery {
+        userRepository.findById(userId)
     }
 
     /**
@@ -198,8 +279,8 @@ class UserService(
      * @param email Email address to search for
      * @return User if found, null otherwise
      */
-    suspend fun findByEmail(email: String): User? {
-        return userRepository.findByEmail(email)
+    suspend fun findByEmail(email: String): User? = dbQuery {
+        userRepository.findByEmail(email)
     }
 
     /**
@@ -210,8 +291,8 @@ class UserService(
      * @param userId Firebase UID of the user to delete
      * @return Number of rows updated (1 if successful, 0 if user not found)
      */
-    suspend fun deleteUser(userId: String): Int {
-        return userRepository.delete(userId)
+    suspend fun deleteUser(userId: String): Int = dbQuery {
+        userRepository.delete(userId)
     }
 
     /**
@@ -220,16 +301,22 @@ class UserService(
      * @param userId Firebase UID to check
      * @return True if user exists, false otherwise
      */
-    suspend fun userExists(userId: String): Boolean {
-        return userRepository.doesExist(userId)
+    suspend fun userExists(userId: String): Boolean = dbQuery {
+        userRepository.doesExist(userId)
     }
 
     /**
      * Function to return the shared interests of two users.
+     *
+     * @param user1Interests [User] List of Strings of user 1's interests.
+     * @param user1Interests [User] List of Strings of user 2's interests.
+     *
+     * @return List of strings containing only interests that are in both user 1 and user 2's lists.
      */
-    fun getSharedInterests(user1: User, user2: User): List<String> {
-        if (user1 == user2){return user1.interests}
-        return (user1.interests intersect user2.interests.toSet()).toList()
+    fun getSharedInterests(user1Interests: List<String>, user2Interests: List<String>): List<String> {
+        return if (user1Interests == user2Interests) {
+            user1Interests
+        } else (user1Interests intersect user2Interests.toSet()).toList()
     }
 
 }

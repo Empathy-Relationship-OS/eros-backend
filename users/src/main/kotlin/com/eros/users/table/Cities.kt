@@ -20,22 +20,27 @@ import java.time.Instant
 object Cities : Table("cities") {
 
     // Primary key
-    val id = long("id").autoIncrement()
+    val cityId = long("city_id").autoIncrement()
 
     // Foreign key to Users table
     val cityName = varchar("city_name", 128).uniqueIndex()
+
+    val longitude = double("longitude")
+    val latitude = double("latitude")
 
     // Timestamps
     val createdAt = timestamp("created_at").clientDefault { Instant.now() }
     val updatedAt = timestamp("updated_at").clientDefault { Instant.now() }
 
-    override val primaryKey = PrimaryKey(id)
+    override val primaryKey = PrimaryKey(cityId)
 
 }
 
-fun ResultRow.toCityDTO() = City(
-    cityId = this[Cities.id],
+fun ResultRow.toCity() = City(
+    cityId = this[Cities.cityId],
     cityName = this[Cities.cityName],
+    longitude = this[Cities.longitude],
+    latitude = this[Cities.latitude],
     createdAt = this[Cities.createdAt],
     updatedAt = this[Cities.updatedAt]
 )

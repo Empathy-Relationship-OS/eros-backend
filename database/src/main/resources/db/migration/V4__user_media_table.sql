@@ -32,7 +32,6 @@ CREATE UNIQUE INDEX idx_user_media_unique_primary
     ON user_media (user_id)
     WHERE is_primary = TRUE;
 
-
 COMMENT ON TABLE user_media IS 'User photos (and future videos). Max 6 per user.';
 COMMENT ON COLUMN user_media.media_url IS 'Public URL for the original file (S3 or CDN)';
 COMMENT ON COLUMN user_media.thumbnail_url IS 'Public URL for the 300x300 thumbnail, written by Lambda after upload';

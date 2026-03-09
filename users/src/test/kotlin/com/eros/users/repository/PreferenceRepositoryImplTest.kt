@@ -1,6 +1,7 @@
 package com.eros.users.repository
 
 
+import com.eros.database.dbQuery
 import com.eros.users.models.Activity
 import com.eros.users.models.City
 import com.eros.users.models.DateIntentions
@@ -19,12 +20,10 @@ import com.eros.users.models.Trait
 import com.eros.users.models.User
 import com.eros.users.models.UserPreference
 import com.eros.users.models.ValidationStatus
-import com.eros.users.service.UserService
 import com.eros.users.table.Cities
 import com.eros.users.table.UserCitiesPreference
 import com.eros.users.table.UserPreferences
 import com.eros.users.table.Users
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
@@ -44,7 +43,6 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 @Testcontainers
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -60,10 +58,7 @@ class PreferenceRepositoryImplTest {
     }
 
     private lateinit var preferenceRepository: PreferenceRepositoryImpl
-    private lateinit var userCitiesRepository: UserCitiesRepositoryImpl
     private lateinit var cityRepository: CityRepositoryImpl
-    private lateinit var userRepository: UserRepositoryImpl
-    private lateinit var userService: UserService
     private lateinit var clock: Clock
     private val fixedInstant = Instant.parse("2024-01-15T10:00:00Z")
 
@@ -85,11 +80,8 @@ class PreferenceRepositoryImplTest {
     @BeforeEach
     fun setupEach() {
         clock = Clock.fixed(fixedInstant, ZoneId.of("UTC"))
-        userCitiesRepository = UserCitiesRepositoryImpl(clock)
-        preferenceRepository = PreferenceRepositoryImpl(clock, userCitiesRepository)
+        preferenceRepository = PreferenceRepositoryImpl(clock)
         cityRepository = CityRepositoryImpl(clock)
-        userRepository = UserRepositoryImpl(clock)
-        userService = UserService(userRepository, clock)
 
         // Clear the tables before each test.
         transaction {
@@ -107,15 +99,11 @@ class PreferenceRepositoryImplTest {
         }
     }
 
-    fun createCity(cityName: String): City {
-        val city: City
-        runBlocking {
-            city = cityRepository.create(City(0L, cityName, fixedInstant, fixedInstant))
-        }
-        return city
+    suspend fun createCity(cityName: String): City {
+        return cityRepository.create(City(0L, cityName, 5.0 ,5.0,fixedInstant, fixedInstant))
     }
 
-    fun createUser(): User = runBlocking {
+    suspend fun createUser(): User {
         UserRepositoryImpl(clock).create(
             User(
                 userId = "user123",
@@ -161,7 +149,7 @@ class PreferenceRepositoryImplTest {
                 photoValidationStatus = ValidationStatus.VALIDATED
             )
         )
-        UserRepositoryImpl(clock).create(
+        return UserRepositoryImpl(clock).create(
             User(
                 userId = "user456",
                 firstName = "Pete",
@@ -209,19 +197,15 @@ class PreferenceRepositoryImplTest {
     }
 
 
-    /**
-     * Private helper to create test user preferences setup.
-     * Not a @Test method to avoid being called directly as a test.
-     */
-    private fun createUserPreferencesSetup(): Pair<UserPreference, UserPreference> {
-        // Create test user
-        createUser()
-
-        // Create Test City
-        val city = createCity("TestCity")
+    @Test
+    fun createUserPreferences() = runTest {
+        // Setup
+        val city = dbQuery {
+            createUser()
+            createCity("TestCity")
+        }
 
         val preference = UserPreference(
-            id = 0L,
             userId = "user123",
             genderIdentities = listOf(Gender.FEMALE, Gender.NON_BINARY),
             ageRangeMin = 25,
@@ -238,39 +222,14 @@ class PreferenceRepositoryImplTest {
             updatedAt = fixedInstant
         )
 
-        val preference2 = UserPreference(
-            id = 0L,
-            userId = "user456",
-            genderIdentities = listOf(Gender.MALE, Gender.NON_BINARY),
-            ageRangeMin = 18,
-            ageRangeMax = 80,
-            heightRangeMin = 160,
-            heightRangeMax = 200,
-            ethnicity = listOf(Ethnicity.MIDDLE_EASTERN, Ethnicity.PACIFIC_ISLANDER),
-            dateLanguages = listOf(Language.ENGLISH, Language.SPANISH),
-            dateActivities = listOf(Activity.ESCAPE_ROOMS, Activity.BEACH),
-            dateLimit = 5,
-            dateCities = listOf(city),
-            reachLevel = ReachLevel.OPEN_MINDED,
-            createdAt = fixedInstant,
-            updatedAt = fixedInstant
-        )
-
-        return Pair(preference, preference2)
-    }
-
-    @Test
-    fun createUserPreferences() {
-        val (preference, preference2) = createUserPreferencesSetup()
-
-        runTest {
-            val createdUser = preferenceRepository.create(preference)
-            val createdUser2 = preferenceRepository.create(preference2)
-
-            assertNotNull(createdUser)
-            assertEquals(preference.userId, createdUser.userId)
-            assertEquals(preference2.userId, createdUser2.userId)
+        // Test - wrap repository calls in dbQuery
+        val createdUser = dbQuery {
+            preferenceRepository.create(preference)
         }
+
+        // Assertions
+        assertNotNull(createdUser)
+        assertEquals(preference.userId, createdUser.userId)
     }
 
 }

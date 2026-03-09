@@ -169,13 +169,13 @@ class UserMediaTest {
 
         @Test
         fun `getPrimaryMedia should return primary media item`() {
-            val primary = createMediaItemDto(id = 2L, displayOrder = 2, isPrimary = true)
+            val primary = createMediaItem(id = 2L, displayOrder = 2, isPrimary = true)
             val collection = UserMediaCollection(
                 userId = "user-123",
                 media = listOf(
-                    createMediaItemDto(id = 1L, displayOrder = 1, isPrimary = false),
+                    createMediaItem(id = 1L, displayOrder = 1, isPrimary = false),
                     primary,
-                    createMediaItemDto(id = 3L, displayOrder = 3, isPrimary = false)
+                    createMediaItem(id = 3L, displayOrder = 3, isPrimary = false)
                 ),
                 totalCount = 3
             )
@@ -187,8 +187,8 @@ class UserMediaTest {
             val collection = UserMediaCollection(
                 userId = "user-123",
                 media = listOf(
-                    createMediaItemDto(id = 1L, displayOrder = 1, isPrimary = false),
-                    createMediaItemDto(id = 2L, displayOrder = 2, isPrimary = false)
+                    createMediaItem(id = 1L, displayOrder = 1, isPrimary = false),
+                    createMediaItem(id = 2L, displayOrder = 2, isPrimary = false)
                 ),
                 totalCount = 2
             )
@@ -241,22 +241,6 @@ class UserMediaTest {
         updatedAt = Instant.now()
     )
 
-    private fun createMediaItemDto(
-        id: Long = 1L,
-        mediaUrl: String = "https://example.com/photo.jpg",
-        thumbnailUrl: String? = null,
-        mediaType: MediaType = MediaType.PHOTO,
-        displayOrder: Int = 1,
-        isPrimary: Boolean = false
-    ): UserMediaItemDTO = UserMediaItemDTO(
-        id           = id,
-        mediaUrl     = mediaUrl,
-        thumbnailUrl = thumbnailUrl,
-        mediaType    = mediaType,
-        displayOrder = displayOrder,
-        isPrimary    = isPrimary
-    )
-
-    private fun createMediaList(count: Int): List<UserMediaItemDTO> =
-        (1..count).map { index -> createMediaItemDto(id = index.toLong(), displayOrder = index) }
+    private fun createMediaList(count: Int): List<UserMediaItem> =
+        (1..count).map { index -> createMediaItem(id = index.toLong(), displayOrder = index) }
 }

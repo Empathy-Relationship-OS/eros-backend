@@ -40,13 +40,13 @@ object MediaConstants {
 // Domain model
 // ---------------------------------------------------------------------------
 
+
 /**
  * A single media item belonging to a user.
  *
  * [mediaUrl] — canonical public URL for the original file (S3 or CDN).
  * [thumbnailUrl] — 300x300 thumbnail URL; null until the Lambda has processed the upload.
  */
-@Serializable
 data class UserMediaItem(
     val id: Long,
     val userId: String,
@@ -55,9 +55,7 @@ data class UserMediaItem(
     val mediaType: MediaType,
     val displayOrder: Int,
     val isPrimary: Boolean,
-    @Serializable(with = InstantSerializer::class)
     val createdAt: Instant,
-    @Serializable(with = InstantSerializer::class)
     val updatedAt: Instant,
 ) {
     init {
@@ -69,6 +67,7 @@ data class UserMediaItem(
 // ---------------------------------------------------------------------------
 // Request / response DTOs
 // ---------------------------------------------------------------------------
+
 
 /**
  * Request body for step 1 of the upload flow: obtaining a presigned S3 URL.
@@ -98,6 +97,7 @@ data class PresignedUploadRequest(
     }
 }
 
+
 /**
  * Response for step 1: the presigned URL and the object key the client must
  * use when confirming the upload in step 2.
@@ -108,6 +108,7 @@ data class PresignedUploadResponse(
     val objectKey: String,   // S3 object key — send this back in ConfirmUploadRequest
     val expiresInMinutes: Long
 )
+
 
 /**
  * Request body for step 2: confirming a completed upload.
@@ -128,19 +129,40 @@ data class ConfirmUploadRequest(
 }
 
 /**
- * Response containing all media for a user, ordered by displayOrder.
+ * Domain object containing all media for a user, ordered by displayOrder.
  */
-@Serializable
-data class UserMediaCollection(
+data class UserMediaCollection (
     val userId: String,
-    val media: List<UserMediaItemDTO>,
+    val media: List<UserMediaItem>,
     val totalCount: Int
 ) {
     fun hasMinimumMedia(): Boolean = totalCount >= MediaConstants.MIN_PHOTOS_PER_USER
     fun hasReachedMaximum(): Boolean = totalCount >= MediaConstants.MAX_PHOTOS_PER_USER
-    fun getPrimaryMedia(): UserMediaItemDTO? = media.firstOrNull { it.isPrimary }
+    fun getPrimaryMedia(): UserMediaItem? = media.firstOrNull { it.isPrimary }
     fun isValidCollection(): Boolean = totalCount in MediaConstants.MIN_PHOTOS_PER_USER..MediaConstants.MAX_PHOTOS_PER_USER
 }
+
+
+/**
+ * Response containing all media for a user, ordered by displayOrder.
+ */
+@Serializable
+data class UserMediaCollectionDTO(
+    val userId: String,
+    val media: List<UserMediaItemDTO>,
+    val totalCount: Int
+)
+
+
+/**
+ * Function for converting user media collection domain object to a DTO.
+ */
+fun UserMediaCollection.toDTO() = UserMediaCollectionDTO(
+    userId = this.userId,
+    media = this.media.map {it.toDTO()},
+    totalCount = this.totalCount
+)
+
 
 /**
  * DTO used for mediaItem, extracts details not needed for response
@@ -153,4 +175,17 @@ data class UserMediaItemDTO(
     val mediaType: MediaType,
     val displayOrder: Int,
     val isPrimary: Boolean
+)
+
+
+/**
+ * Function for converting the UserMediaDomainItem to a DTO.
+ */
+fun UserMediaItem.toDTO() = UserMediaItemDTO(
+    id = this.id,
+    mediaUrl = this.mediaUrl,
+    thumbnailUrl = this.thumbnailUrl,
+    mediaType = this.mediaType,
+    displayOrder = this.displayOrder,
+    isPrimary = this.isPrimary
 )

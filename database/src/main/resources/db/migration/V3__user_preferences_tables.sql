@@ -1,11 +1,10 @@
--- V2: User Preferences Tables
--- Creates tables for user dating preferences with normalized many-to-many relationships
+-- V3: User Preferences Tables
+-- Creates tables for user dating preferences with a 1-1 relationship.
 -- Junction tables handle user city preference
 
 -- Main user preferences table
 CREATE TABLE IF NOT EXISTS user_preferences (
-    id BIGSERIAL PRIMARY KEY,
-    user_id VARCHAR(128) NOT NULL UNIQUE REFERENCES users(user_id) ON DELETE CASCADE,
+    user_id VARCHAR(128) PRIMARY KEY REFERENCES users(user_id) ON DELETE CASCADE,
 
     -- Who I like section
     gender_identities TEXT[] NOT NULL,
@@ -31,14 +30,11 @@ CREATE TABLE IF NOT EXISTS user_preferences (
     CONSTRAINT user_preferences_height_range_valid CHECK (height_range_max > height_range_min)
 );
 
--- Indexes for user_preferences
-CREATE INDEX IF NOT EXISTS idx_user_preferences_user_id ON user_preferences(user_id);
-CREATE INDEX IF NOT EXISTS idx_user_preferences_age_range ON user_preferences(age_range_min, age_range_max);
 
 -- Junction table: User city preferences
 CREATE TABLE IF NOT EXISTS user_cities_preference (
     user_id VARCHAR(128) NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
-    city_id BIGINT NOT NULL REFERENCES cities(id) ON DELETE CASCADE,
+    city_id BIGINT NOT NULL REFERENCES cities(city_id) ON DELETE CASCADE,
     -- Timestamps
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     PRIMARY KEY (user_id, city_id)

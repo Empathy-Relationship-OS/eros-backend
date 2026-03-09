@@ -27,9 +27,6 @@ import java.time.Instant
 object UserPreferences : Table("user_preferences") {
 
     // Primary key
-    val id = long("id").autoIncrement()
-
-    // Foreign key to Users table
     val userId = varchar("user_id", 128).references(Users.userId)
 
     // Who I like section
@@ -50,7 +47,7 @@ object UserPreferences : Table("user_preferences") {
     val createdAt = timestamp("created_at").clientDefault { Instant.now() }
     val updatedAt = timestamp("updated_at").clientDefault { Instant.now() }
 
-    override val primaryKey = PrimaryKey(Users.userId)
+    override val primaryKey = PrimaryKey(userId)
 
     init {
         check("date_limit_range") { dateLimit.isNull() or dateLimit.between(1, 6) }
