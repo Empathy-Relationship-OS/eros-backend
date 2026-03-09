@@ -9,37 +9,24 @@ import com.eros.users.models.CreateCityRequest
 import com.eros.users.models.UpdateCityRequest
 import com.eros.users.service.CityService
 import com.google.firebase.auth.FirebaseToken
-import io.ktor.client.call.body
-import io.ktor.client.request.HttpRequestBuilder
-import io.ktor.client.request.delete
-import io.ktor.client.request.get
-import io.ktor.client.request.header
-import io.ktor.client.request.patch
-import io.ktor.client.request.post
-import io.ktor.client.request.setBody
-import io.ktor.http.ContentType
-import io.ktor.http.HttpHeaders
-import io.ktor.http.HttpStatusCode
-import io.ktor.http.contentType
-import io.ktor.serialization.kotlinx.json.json
-import io.ktor.server.application.install
-import io.ktor.server.auth.Authentication
-import io.ktor.server.auth.authenticate
-import io.ktor.server.auth.bearer
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation as ClientContentNegotiation
-import io.ktor.server.plugins.contentnegotiation.ContentNegotiation as ServerContentNegotiation
-import io.ktor.server.routing.routing
-import io.ktor.server.testing.ApplicationTestBuilder
-import io.ktor.server.testing.testApplication
+import io.ktor.client.call.*
+import io.ktor.client.request.*
+import io.ktor.http.*
+import io.ktor.serialization.kotlinx.json.*
+import io.ktor.server.application.*
+import io.ktor.server.auth.*
+import io.ktor.server.routing.*
+import io.ktor.server.testing.*
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import java.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation as ClientContentNegotiation
+import io.ktor.server.plugins.contentnegotiation.ContentNegotiation as ServerContentNegotiation
 
 class CityRoutesTest{
 
@@ -117,15 +104,13 @@ class CityRoutesTest{
             setupTestApp("ADMIN")
             val client = configuredClient()
 
-            val exception = assertThrows<IllegalArgumentException> {
-                client.post("/city/admin") {
-                    setAuthenticatedUser("test-user-id")
-                    contentType(ContentType.Application.Json)
-                    setBody(CreateCityRequest("    ", -5.2, 45.2))
-                }
+            val response = client.post("/city/admin") {
+                setAuthenticatedUser("test-user-id")
+                contentType(ContentType.Application.Json)
+                setBody("""{"cityName":"    ","longitude":-5.2,"latitude":45.2}""")
             }
 
-            assertEquals("City name must not be empty.", exception.message)
+            assertEquals(HttpStatusCode.BadRequest, response.status)
         }
 
     }
@@ -268,7 +253,7 @@ class CityRoutesTest{
         @Test
         fun `should delete city EMPLOYEE`() = testApplication{
 
-            setupTestApp("ADMIN")
+            setupTestApp("EMPLOYEE")
             val client = configuredClient()
 
             coEvery { mockCityService.deleteCity(0L) } returns 1
@@ -326,7 +311,6 @@ class CityRoutesTest{
 
             setupTestApp("ADMIN")
             val client = configuredClient()
-            val city = createCity()
             val updatedCity = createCity(0L,"Liverpool",3.4,-4.5)
             val request = UpdateCityRequest(0L,"Liverpool",3.4,-4.5)
 
@@ -366,8 +350,7 @@ class CityRoutesTest{
             val client = configuredClient()
             val city = createCity()
             val updatedCity = createCity(0L,"Liverpool",-5.0,45.0)
-            val request = UpdateCityRequest(0L,"Liverpool",)
-
+            val request = UpdateCityRequest(0L,"Liverpool")
             coEvery { mockCityService.updateCity(0L,request) } returns updatedCity
 
             val response = client.patch("/city/admin/0") {

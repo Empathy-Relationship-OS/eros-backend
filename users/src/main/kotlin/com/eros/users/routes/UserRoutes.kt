@@ -3,7 +3,6 @@ package com.eros.users.routes
 import com.eros.auth.extensions.requireFirebasePrincipal
 import com.eros.auth.extensions.requireRoles
 import com.eros.common.errors.BadRequestException
-import com.eros.common.errors.ConflictException
 import com.eros.common.errors.ForbiddenException
 import com.eros.common.errors.NotFoundException
 import com.eros.users.ProfileAccessControl
@@ -11,9 +10,7 @@ import com.eros.users.models.AdminUpdateUserRequest
 import com.eros.users.models.CreateUserRequest
 import com.eros.users.models.ProfileStatus
 import com.eros.users.models.ProfileStatusUpdateRequest
-import com.eros.users.models.PublicProfile
 import com.eros.users.models.UpdateUserRequest
-import com.eros.users.models.UserMediaCollection
 import com.eros.users.models.toDTO
 import com.eros.users.models.toVisibilityDTO
 import com.eros.users.service.UserService
@@ -65,10 +62,7 @@ fun Route.userProfileRoutes(userService: UserService, profileAccessControl: Prof
             if (request.userId != principal.uid)
                 throw ForbiddenException("Cannot create profile for another user")
 
-            if (userService.userExists(request.userId))
-                throw ConflictException("User profile already exists")
-
-            // Create user in database
+            // Create user in database - ConflictException will be thrown if user already exists
             val user = userService.createUser(request)
 
             // Sync Firebase custom claims

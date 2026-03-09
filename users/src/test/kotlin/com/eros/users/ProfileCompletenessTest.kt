@@ -17,7 +17,7 @@ class ProfileCompletenessTest {
         val user = createTestUser()
         val userMedia = createMediaList(3)
         val userMediaCollection = UserMediaCollection(user.userId, userMedia, userMedia.size)
-        val userQA = createQAList(2)
+        val userQA = createQAList(2, user.userId)
         val userQACollection = UserQACollection(user.userId, userQA, userQA.size)
         val completeness = ProfileCompleteness().calculateCompleteness(user, userMediaCollection, userQACollection)
         assertEquals(completeness, 65)
@@ -155,26 +155,28 @@ class ProfileCompletenessTest {
     )
 
     private fun createQAItem(
-        userId: String = "user-123",
+        userId: String = "test-user-id",
         questionId: Long = testQuestions.keys.random(),
         answer: String = "Pizza and ice cream",
         displayOrder: Int = 1
     ): UserQAItem {
+        val now = Instant.now()
+        val questionText = requireNotNull(testQuestions[questionId]) { "Missing test question for id=$questionId" }
         return UserQAItem(
             userId = userId,
-            question = Question(questionId,testQuestions.get(questionId)?:"error",Instant.now(),Instant.now()),
+            question = Question(questionId, questionText, now, now),
             answer = answer,
             displayOrder = displayOrder,
-            createdAt = Instant.now(),
-            updatedAt = Instant.now()
+            createdAt = now,
+            updatedAt = now
         )
     }
 
-    private fun createQAList(count: Int): List<UserQAItem> {
+    private fun createQAList(count: Int, userId: String = "test-user-id"): List<UserQAItem> {
         val questionIds = testQuestions.keys.toList()
         return (1..count).map { index ->
             createQAItem(
-                userId = "user-123",
+                userId = userId,
                 questionId = questionIds[(index - 1) % questionIds.size],
                 answer = "Answer $index",
                 displayOrder = index.coerceAtMost(3),

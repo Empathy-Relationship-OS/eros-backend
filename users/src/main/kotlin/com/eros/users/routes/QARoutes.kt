@@ -86,9 +86,12 @@ fun Route.qaRoutes(qaService : QAService, profileAccessControl: ProfileAccessCon
             val targetQuestionId = call.parameters["qaId"]
                 ?: throw BadRequestException("Question ID is required")
 
+            val questionId = targetQuestionId.toLongOrNull()
+                ?: throw BadRequestException("Question ID must be a valid number")
+
             if (principal.uid != targetUserId) throw UnauthorizedException("User does not have access to delete $targetUserId QA.")
 
-            val deleted = qaService.deleteUserQA(targetUserId, targetQuestionId.toLong())
+            val deleted = qaService.deleteUserQA(targetUserId, questionId)
 
             if (deleted == 0) throw NotFoundException("User QA could not be found.")
             call.respond(HttpStatusCode.NoContent)
@@ -99,7 +102,7 @@ fun Route.qaRoutes(qaService : QAService, profileAccessControl: ProfileAccessCon
         delete("/{id}"){
             val principal = call.requireFirebasePrincipal()
 
-            val targetUserId = call.parameters["uid"]
+            val targetUserId = call.parameters["id"]
                 ?: throw BadRequestException("User ID is required")
 
             if (principal.uid != targetUserId) throw UnauthorizedException("User does not have access to delete $targetUserId QA.")
@@ -117,7 +120,7 @@ fun Route.qaRoutes(qaService : QAService, profileAccessControl: ProfileAccessCon
 
             if (principal.uid != request.userId) throw UnauthorizedException("User doesn't have access to update ${request.userId} QA collection.")
 
-            val updated = qaService.createUserQACollection(request) ?: throw NotFoundException("Could not find")
+            val updated = qaService.createUserQACollection(request)
             call.respond(HttpStatusCode.OK, updated.toDTO())
         }
 

@@ -3,6 +3,9 @@ package com.eros.users.repository
 import com.eros.database.dbQuery
 import com.eros.users.models.City
 import com.eros.users.table.Cities
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
@@ -102,13 +105,18 @@ class CityRepositoryImplTest {
             val customInstant = Instant.parse("2025-06-01T12:30:00Z")
             val customClock = Clock.fixed(customInstant, ZoneId.of("UTC"))
             val customRepository = CityRepositoryImpl(customClock)
+            val inputCreatedAt = Instant.parse("2000-01-01T00:00:00Z")
+            val inputUpdatedAt = Instant.parse("2000-01-02T00:00:00Z")
+
 
             val city = dbQuery {
-                customRepository.create(City(0L, "Tokyo", 5.0 ,5.0,customInstant, customInstant))
+                customRepository.create(City(0L, "Tokyo", 5.0, 5.0, inputCreatedAt, inputUpdatedAt))
             }
 
             assertEquals(customInstant, city.createdAt)
             assertEquals(customInstant, city.updatedAt)
+            assertNotEquals(inputCreatedAt, city.createdAt)
+            assertNotEquals(inputUpdatedAt, city.updatedAt)
         }
 
         @Test
@@ -149,8 +157,6 @@ class CityRepositoryImplTest {
             val updatedCity = dbQuery {
                 repository.update(city.cityId, city.copy(cityName = newName))
             }
-            println("XXXXX")
-            println(updatedCity)
             assertNotNull(updatedCity)
             assertEquals(newName, updatedCity.cityName)
             assertEquals(city.cityId, updatedCity.cityId)
@@ -328,13 +334,13 @@ class CityRepositoryImplTest {
 
         @Test
         fun `should return correct city among multiple cities`() = runBlocking {
-            val paris = dbQuery {
+            dbQuery {
                 repository.create(City(0L, "Paris", 5.0 ,5.0,fixedInstant, fixedInstant))
             }
             val london = dbQuery {
                 repository.create(City(0L, "London", 5.0 ,5.0,fixedInstant, fixedInstant))
             }
-            val berlin = dbQuery {
+            dbQuery {
                 repository.create(City(0L, "Berlin", 5.0 ,5.0,fixedInstant, fixedInstant))
             }
 
@@ -526,10 +532,14 @@ class CityRepositoryImplTest {
         fun `should handle concurrent city creation`() = runBlocking {
             val cityNames = listOf("London", "Paris", "Berlin", "Madrid", "Rome")
 
-            val cities = dbQuery  {
+            val cities = coroutineScope {
                 cityNames.map { name ->
-                    repository.create(City(0L, name, 5.0 ,5.0,fixedInstant, fixedInstant))
-                }
+                    async {
+                        dbQuery {
+                            repository.create(City(0L, name, 5.0 ,5.0,fixedInstant, fixedInstant))
+                        }
+                    }
+                }.awaitAll()
             }
 
             assertEquals(5, cities.size)

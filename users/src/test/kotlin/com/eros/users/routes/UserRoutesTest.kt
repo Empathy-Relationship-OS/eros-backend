@@ -2,6 +2,7 @@ package com.eros.users.routes
 
 import com.eros.auth.firebase.FirebaseUserPrincipal
 import com.eros.common.errors.ForbiddenException
+import com.eros.common.errors.ConflictException
 import com.eros.common.plugins.configureExceptionHandling
 import com.eros.users.ProfileAccessControl
 import com.eros.users.models.*
@@ -52,7 +53,6 @@ class UserRoutesTest {
             val request = createValidUserRequest()
             val createdUser = createTestUser()
 
-            coEvery { mockUserService.userExists(request.userId) } returns false
             coEvery { mockUserService.createUser(request) } returns createdUser
 
             val response = client.post("/users") {
@@ -64,7 +64,6 @@ class UserRoutesTest {
             assertEquals(HttpStatusCode.Created, response.status)
             val returnedUser = response.body<UserDTO>()
             assertEquals(createdUser.toDTO(), returnedUser)
-            coVerify { mockUserService.userExists(request.userId) }
             coVerify { mockUserService.createUser(request) }
         }
 
@@ -107,7 +106,7 @@ class UserRoutesTest {
 
             val request = createValidUserRequest()
 
-            coEvery { mockUserService.userExists(request.userId) } returns true
+            coEvery { mockUserService.createUser(request) } throws ConflictException("User with ID ${request.userId} already exists")
 
             val response = client.post("/users") {
                 setAuthenticatedUser(request.userId)
@@ -116,7 +115,7 @@ class UserRoutesTest {
             }
 
             assertEquals(HttpStatusCode.Conflict, response.status)
-            assertTrue(response.bodyAsText().contains("User profile already exists"))
+            assertTrue(response.bodyAsText().contains("already exists"))
         }
 
         @Test
@@ -126,7 +125,6 @@ class UserRoutesTest {
 
             val request = createValidUserRequest()
 
-            coEvery { mockUserService.userExists(request.userId) } returns false
             coEvery { mockUserService.createUser(request) } throws IllegalArgumentException("Invalid data")
 
             val response = client.post("/users") {
@@ -146,7 +144,6 @@ class UserRoutesTest {
 
             val request = createValidUserRequest()
 
-            coEvery { mockUserService.userExists(request.userId) } returns false
             coEvery { mockUserService.createUser(request) } throws RuntimeException("Database error")
 
             val response = client.post("/users") {
@@ -579,14 +576,13 @@ class UserRoutesTest {
             assertEquals(HttpStatusCode.OK , response.status)
 
             val profile = response.body<PublicProfileDTO>()
-            println(profile)
             assertEquals(listOf("trait1","trait2"), profile.profile.sharedInterests)
             assertEquals(targetUserId, profile.userId)
 
         }
 
         @Test
-        fun `return forbidden if user's don't have access`() = testApplication{
+        fun `return forbidden if users don't have access`() = testApplication{
             setupTestApp()
             val client = configuredClient()
 
