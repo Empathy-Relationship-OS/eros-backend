@@ -232,7 +232,7 @@ class CityRoutesTest{
             setupTestApp("ADMIN")
             val client = configuredClient()
             
-            coEvery { mockCityService.findByCityId(0L) } throws NotFoundException("city not found.")
+            coEvery { mockCityService.findByCityId(0L) } returns null
 
             val response = client.get("/city/0") {
                 setAuthenticatedUser("test-user-id")
