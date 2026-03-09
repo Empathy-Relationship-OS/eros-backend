@@ -16,7 +16,6 @@ import io.ktor.server.application.log
 import io.ktor.server.plugins.ContentTransformationException
 import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.response.respond
-import kotlinx.serialization.SerializationException
 import java.sql.SQLException
 
 /**
@@ -48,12 +47,6 @@ fun Application.configureExceptionHandling() {
         }
         exception<BadRequestException> { call, cause ->
             call.respond(HttpStatusCode.BadRequest, ApiError("bad_request", cause.message ?: "Bad request"))
-        }
-        exception<SerializationException> { call, cause ->
-            call.respond(
-                HttpStatusCode.BadRequest,
-                ApiError("invalid_request_body", cause.message ?: "Invalid request body")
-            )
         }
         exception<IllegalArgumentException> { call, cause ->
             call.respond(HttpStatusCode.BadRequest, ApiError("invalid_input", cause.message ?: "Invalid input"))
