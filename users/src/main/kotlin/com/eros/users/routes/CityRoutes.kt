@@ -6,6 +6,7 @@ import com.eros.common.errors.NotFoundException
 import com.eros.users.models.CreateCityRequest
 import com.eros.users.models.UpdateCityRequest
 import com.eros.users.models.toDTO
+import com.eros.users.models.toNearestCityResponse
 import com.eros.users.service.CityService
 import io.ktor.http.*
 import io.ktor.server.request.*
@@ -32,14 +33,20 @@ fun Route.cityRoutes(cityService: CityService) {
         }
 
         /**
-         * Path to retrieve the nearest SINGLE/MULTIPLE nearest city/s.
+         * Path to retrieve the nearest city to provided lat and long.
+         *
+         * Example usage: /city/nearest?lat=40.7&lon=-74.1
+         *
+         * Response: NearestCityResponse: Count of cities and List of CityDTO
          */
         get("/nearest"){
-            throw NotImplementedError("/city/nearest has not been implemented")
-            /*
-            Provide NearestCityRequest (lat, long)
-            Return Single or list of nearest cities
-             */
+            val latitude = call.request.queryParameters["lat"]?.toDouble() ?: throw BadRequestException("Latitude requires a double.")
+            val longitude = call.request.queryParameters["lon"]?.toDouble() ?: throw BadRequestException("Longitude requires a double.")
+            val limit = call.request.queryParameters["limit"]?.toInt()?.coerceIn(1, 100) ?: 1
+
+            val cities = cityService.findNearestCities(limit, latitude, longitude)
+            if (cities.isEmpty()) throw NotFoundException("No cities found.")
+            call.respond(HttpStatusCode.OK, toNearestCityResponse(cities))
         }
     }
 
