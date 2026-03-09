@@ -1,6 +1,7 @@
 package com.eros.users.service
 
 import com.eros.users.models.*
+import com.eros.common.errors.ConflictException
 import com.eros.common.errors.NotFoundException
 import com.eros.database.dbQuery
 import com.eros.users.models.AdminUpdateUserRequest
@@ -9,6 +10,7 @@ import com.eros.users.table.badgeHelper
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.jetbrains.exposed.v1.exceptions.ExposedSQLException
 import java.time.Clock
 import java.time.Instant
 
@@ -33,14 +35,9 @@ class UserService(
      * @param request CreateUserRequest containing all required user profile data
      * @return The created User
      * @throws IllegalArgumentException if input validation fails
-     * @throws IllegalStateException if user already exists
+     * @throws ConflictException if user with same ID or email already exists
      */
     suspend fun createUser(request: CreateUserRequest): User = dbQuery {
-        // Check if user already exists
-        if (userRepository.doesExist(request.userId)) {
-            throw IllegalStateException("User with ID ${request.userId} already exists")
-        }
-
         val now = Instant.now(clock)
         val user = User(
             userId = request.userId,
@@ -85,7 +82,24 @@ class UserService(
             coordinatesLatitude = request.coordinatesLatitude,
             profileCompleteness = 50
         )
-        userRepository.create(user)
+
+        try {
+            userRepository.create(user)
+        } catch (e: ExposedSQLException) {
+            // PostgreSQL unique constraint violation error code is 23505
+            if (e.sqlState == "23505") {
+                when {
+                    e.message?.contains("users_pkey") == true || e.message?.contains("user_id") == true -> {
+                        throw ConflictException("User with ID ${request.userId} already exists")
+                    }
+                    e.message?.contains("users_email_unique") == true || e.message?.contains("email") == true -> {
+                        throw ConflictException("User with email ${request.email} already exists")
+                    }
+                    else -> throw ConflictException("User already exists")
+                }
+            }
+            throw e
+        }
     }
 
     /**
@@ -195,10 +209,10 @@ class UserService(
      */
     suspend fun getPublicProfile(requestingUserId: String, targetUserId: String): PublicProfile {
         val (targetUser, principalUser) = dbQuery {
-            val targetUser = findByUserId(targetUserId)
+            val targetUser = userRepository.findById(targetUserId)
                 ?: throw NotFoundException("Target User ($targetUserId) profile not found.")
 
-            val principalUser = findByUserId(requestingUserId)
+            val principalUser = userRepository.findById(requestingUserId)
                 ?: throw NotFoundException("Requesting User ($requestingUserId) profile not found.")
             targetUser to principalUser
         }

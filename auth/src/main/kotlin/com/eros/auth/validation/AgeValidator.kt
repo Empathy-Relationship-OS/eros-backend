@@ -2,8 +2,6 @@ package com.eros.auth.validation
 
 import java.time.LocalDate
 import java.time.Period
-import java.time.format.DateTimeParseException
-import org.slf4j.LoggerFactory
 
 
 /**
@@ -19,7 +17,6 @@ import org.slf4j.LoggerFactory
  * `isValid` - Returns `true` if a valid age otherwise `false`.
  */
 object AgeValidator {
-    private val logger = LoggerFactory.getLogger(AgeValidator::class.javaObjectType)
 
     /**
      * Validates that the user is at least 18 years old.
@@ -28,15 +25,9 @@ object AgeValidator {
      * @returns [ValidationResult] success or failure with error if applicable.
      */
     fun validate(birthDate : LocalDate): ValidationResult {
-        try {
-            val age = Period.between(birthDate, LocalDate.now()).years
-            if (age < 18) {
-                return ValidationResult.failure(Errors.UNDERAGE)
-            }
-        } catch (e: DateTimeParseException) {
-            logger.info("Date Parsing Error: $e")
-            // TODO maybe we log e, for greater visibility, might not be needed
-            return ValidationResult.failure(Errors.DATE_FORMATTING)
+        val age = Period.between(birthDate, LocalDate.now()).years
+        if (age < 18) {
+            return ValidationResult.failure(Errors.UNDERAGE)
         }
         return ValidationResult.success()
     }

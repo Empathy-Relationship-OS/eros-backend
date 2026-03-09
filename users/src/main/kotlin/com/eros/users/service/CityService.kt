@@ -6,9 +6,6 @@ import com.eros.users.models.City
 import com.eros.users.models.CreateCityRequest
 import com.eros.users.models.UpdateCityRequest
 import com.eros.users.repository.CityRepository
-import com.eros.users.table.Cities
-import com.eros.users.table.toCityDTO
-import org.jetbrains.exposed.v1.jdbc.selectAll
 import java.time.Clock
 import java.time.Instant
 
@@ -47,7 +44,7 @@ class CityService(
      */
     suspend fun updateCity(cityId: Long, request: UpdateCityRequest): City? = dbQuery {
         val existing = cityRepository.findById(cityId) ?: throw NotFoundException("No city with the provided id: $cityId")
-        val updated = existing.copy(cityName = request.newCityName ?: existing.cityName,
+        val updated = existing.copy(cityName = request.newCityName?.trim() ?: existing.cityName,
             longitude = request.newCityLongitude ?: existing.longitude,
             latitude = request.newCityLatitude ?: existing.latitude)
         cityRepository.update(cityId, updated)
@@ -134,7 +131,7 @@ class CityService(
      * @return List of [City] objects for every city in the database.
      */
     suspend fun getAllCities() : List<City> = dbQuery {
-        Cities.selectAll().map { it.toCityDTO()}
+        cityRepository.findAll()
     }
 
 }

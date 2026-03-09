@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS cities (
 );
 
 -- Indexes for master tables (name lookups)
-CREATE INDEX idx_cities_name ON cities(city_name);
+CREATE INDEX idx_cities_city_name ON cities(city_name);
 
 -- Comments for columns or table
 COMMENT ON TABLE cities IS 'List of all cities available for dating preferences';

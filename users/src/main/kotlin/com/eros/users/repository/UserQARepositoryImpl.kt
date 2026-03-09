@@ -15,6 +15,7 @@ import org.jetbrains.exposed.v1.core.statements.UpdateBuilder
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.updateReturning
 import java.time.Clock
 import java.time.Instant
 
@@ -87,7 +88,7 @@ class UserQARepositoryImpl(
      * @param userId id of the user to search for
      * @return List of [UserQAItem] for the provided user, ordered by displayOrder.
      */
-    override fun findAllByUserId(userId: String): List<UserQAItem> {
+    override suspend fun findAllByUserId(userId: String): List<UserQAItem> {
         return (UserQA innerJoin Questions)
             .selectAll()
             .where { UserQA.userId eq userId }
@@ -101,7 +102,7 @@ class UserQARepositoryImpl(
      * @param userId id of the user to search for
      * @return Integer of the number of records deleted.
      */
-    override fun deleteAllByUserId(userId: String): Int {
+    override suspend fun deleteAllByUserId(userId: String): Int {
         return UserQA.deleteWhere { UserQA.userId eq userId }
     }
 
@@ -112,7 +113,7 @@ class UserQARepositoryImpl(
     /**
      * Override to add Questions join for complete Question object.
      */
-    override fun findById(id: UserQAId): UserQAItem? {
+    override suspend fun findById(id: UserQAId): UserQAItem? {
         return (UserQA innerJoin Questions)
             .selectAll()
             .where { buildKeyCondition(id) }
@@ -123,7 +124,7 @@ class UserQARepositoryImpl(
     /**
      * Override to add Questions join for complete Question objects.
      */
-    override fun findAll(): List<UserQAItem> {
+    override suspend fun findAll(): List<UserQAItem> {
         return (UserQA innerJoin Questions)
             .selectAll()
             .map { it.toDomain() }
@@ -132,9 +133,21 @@ class UserQARepositoryImpl(
     /**
      * Override to add Questions join after insert.
      */
-    override fun create(entity: UserQAItem): UserQAItem {
+    override suspend fun create(entity: UserQAItem): UserQAItem {
         UserQA.insert { toStatement(it, entity) }
         return findById(UserQAId(entity.userId, entity.question.questionId))
             ?: throw NotFoundException("Can't find the Q&A after creation")
+    }
+
+    /**
+     * Override to add Questions join after update.
+     */
+    override suspend fun update(id: UserQAId, entity: UserQAItem): UserQAItem? {
+        UserQA.updateReturning(
+            where = { buildKeyCondition(id) },
+            body = { toStatement(it, entity) }
+        ).singleOrNull() ?: return null
+
+        return findById(id)
     }
 }

@@ -1,7 +1,6 @@
 package com.eros.users.table
 
 import com.eros.users.models.City
-import com.eros.users.models.CityDTO
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.javatime.timestamp
@@ -37,7 +36,7 @@ object Cities : Table("cities") {
 
 }
 
-fun ResultRow.toCityDTO() = City(
+fun ResultRow.toCity() = City(
     cityId = this[Cities.cityId],
     cityName = this[Cities.cityName],
     longitude = this[Cities.longitude],

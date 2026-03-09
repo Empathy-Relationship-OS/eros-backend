@@ -197,7 +197,6 @@ data class UpdatePreferenceRequest(
 )
 
 
-// Add to UserPreference.kt after the data classes
 fun UserPreference.toDTO() = UserPreferenceDTO(
     userId = userId,
     genderIdentities = genderIdentities,

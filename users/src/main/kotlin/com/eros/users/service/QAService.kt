@@ -107,7 +107,7 @@ class QAService(
 
         // Ensure the user can't add more than 3 Q&A.
         val currentCount = userQARepository.findAllByUserId(request.userId).size
-        if (currentCount == 3) {
+        if (currentCount >= 3) {
             throw BadRequestException("Maximum of 3 Q&A's allowed per user.")
         }
 
@@ -166,26 +166,38 @@ class QAService(
      */
     suspend fun createUserQACollection(request: UserQACollectionDTO): UserQACollection = dbQuery {
         val now = Instant.now(clock)
+        val incomingQAs = request.qas
 
-        // Delete all existing - all in one transaction
-        for (i in 0 until request.totalCount) {
-            userQARepository.deleteAllByUserId(request.qas[i].userId)
+        if (request.totalCount != incomingQAs.size) {
+            throw BadRequestException("totalCount must match qas.size.")
         }
+        if (incomingQAs.size > 3) {
+             throw BadRequestException("Maximum of 3 Q&A's allowed per user.")
+        }
+        if (incomingQAs.any { it.userId != request.userId }) {
+            throw BadRequestException("All Q&A items must belong to the same user.")
+        }
+        if (incomingQAs.map { it.question.questionId }.distinct().size != incomingQAs.size) {
+            throw ConflictException("Duplicate questions are not allowed.")
+        }
+
+        // Replace collection atomically for this user.
+        userQARepository.deleteAllByUserId(request.userId)
 
         // Add new collection - all in one transaction
-        val qas = mutableListOf<UserQAItem>()
-        for (i in 0 until request.totalCount) {
-            val userQA = UserQAItem(
-                userId = request.userId,
-                question = Question(request.qas[i].question.questionId, request.qas[i].question.question, now, now),
-                answer = request.qas[i].answer,
-                displayOrder = request.qas[i].displayOrder,
-                createdAt = now,
-                updatedAt = now
+        val qas = incomingQAs.map { qa ->
+            userQARepository.create(
+                UserQAItem(
+                    userId = request.userId,
+                    question = Question(qa.question.questionId, qa.question.question, now, now),
+                    answer = qa.answer,
+                    displayOrder = qa.displayOrder,
+                    createdAt = now,
+                    updatedAt = now
+                )
             )
-            qas.add(userQARepository.create(userQA))
         }
-        UserQACollection(request.userId, qas, qas.count())
+        UserQACollection(request.userId, qas, qas.size)
     }
 
 

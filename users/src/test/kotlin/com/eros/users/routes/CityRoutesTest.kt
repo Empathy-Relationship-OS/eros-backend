@@ -38,7 +38,6 @@ import io.mockk.mockk
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import java.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
@@ -119,15 +118,13 @@ class CityRoutesTest{
             setupTestApp("ADMIN")
             val client = configuredClient()
 
-            val exception = assertThrows<IllegalArgumentException> {
-                client.post("/city/admin") {
-                    setAuthenticatedUser("test-user-id")
-                    contentType(ContentType.Application.Json)
-                    setBody(CreateCityRequest("    ", -5.2, 45.2))
-                }
+            val response = client.post("/city/admin") {
+                setAuthenticatedUser("test-user-id")
+                contentType(ContentType.Application.Json)
+                setBody("""{"cityName":"    ","longitude":-5.2,"latitude":45.2}""")
             }
 
-            assertEquals("City name must not be empty.", exception.message)
+            assertEquals(HttpStatusCode.BadRequest, response.status)
         }
 
     }
@@ -270,7 +267,7 @@ class CityRoutesTest{
         @Test
         fun `should delete city EMPLOYEE`() = testApplication{
 
-            setupTestApp("ADMIN")
+            setupTestApp("EMPLOYEE")
             val client = configuredClient()
 
             coEvery { mockCityService.deleteCity(0L) } returns 1
@@ -328,7 +325,6 @@ class CityRoutesTest{
 
             setupTestApp("ADMIN")
             val client = configuredClient()
-            val city = createCity()
             val updatedCity = createCity(0L,"Liverpool",3.4,-4.5)
             val request = UpdateCityRequest(0L,"Liverpool",3.4,-4.5)
 
@@ -368,8 +364,7 @@ class CityRoutesTest{
             val client = configuredClient()
             val city = createCity()
             val updatedCity = createCity(0L,"Liverpool",-5.0,45.0)
-            val request = UpdateCityRequest(0L,"Liverpool",)
-
+            val request = UpdateCityRequest(0L,"Liverpool")
             coEvery { mockCityService.updateCity(0L,request) } returns updatedCity
 
             val response = client.patch("/city/admin/0") {
