@@ -182,7 +182,7 @@ class PreferenceRepositoryImpl(
      */
     override suspend fun delete(id: String): Int {
         // Delete the UserCitiesPreference records.
-        UserCitiesPreference.deleteWhere { UserPreferences.userId eq id }
+        UserCitiesPreference.deleteWhere { UserCitiesPreference.userId eq id }
         // Delete the UserPreference record.
         return UserPreferences.deleteWhere { UserPreferences.userId eq id }
     }
