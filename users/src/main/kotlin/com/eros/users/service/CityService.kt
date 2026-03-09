@@ -60,8 +60,13 @@ class CityService(
      *
      * @throws NotFoundException if no nearest city can be found.
      */
-    suspend fun findNearestCity(latitude: Double, longitude: Double) : List<City> = dbQuery {
-        cityRepository.findNearest(1,latitude, longitude)
+    suspend fun findNearestCity(latitude: Double, longitude: Double) : City? = dbQuery {
+        val cities = cityRepository.findNearest(1,latitude, longitude)
+        if (cities.isNotEmpty()){
+            cities[0]
+        }else{
+            null
+        }
     }
 
 

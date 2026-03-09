@@ -14,6 +14,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.assertNotNull
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
@@ -36,7 +37,8 @@ class CityServiceTest {
             cityService.createCity(CreateCityRequest("Toilet", 19.034, -45.1))
             val nearestCity = cityService.findNearestCity(10.034, 10.034)
 
-            assertEquals("London", nearestCity[0].cityName)
+            assertNotNull(nearestCity)
+            assertEquals("London", nearestCity.cityName)
         }
 
         @Test
@@ -48,8 +50,8 @@ class CityServiceTest {
             cityService.createCity(CreateCityRequest("DERF", 7.034, 12.1))
             cityService.createCity(CreateCityRequest("HRH", 45.034, -4.1))
             val nearestCity = cityService.findNearestCity(-40.034, -88.034)
-
-            assertEquals("ABC", nearestCity[0].cityName)
+            assertNotNull(nearestCity)
+            assertEquals("ABC", nearestCity.cityName)
         }
 
         @Test
@@ -61,8 +63,8 @@ class CityServiceTest {
             cityService.createCity(CreateCityRequest("DEF", 7.034, 12.1))
             cityService.createCity(CreateCityRequest("HRH", 45.034, -4.1))
             val nearestCity = cityService.findNearestCity(85.1, -25.0)
-
-            assertEquals("Brazil", nearestCity[0].cityName)
+            assertNotNull(nearestCity)
+            assertEquals("Brazil", nearestCity.cityName)
         }
     }
 
