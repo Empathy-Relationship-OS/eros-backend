@@ -4,6 +4,7 @@ import com.eros.users.models.CreateCityRequest
 import com.eros.users.repository.CityRepositoryImpl
 import com.eros.users.table.Cities
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.deleteAll
@@ -25,48 +26,42 @@ import kotlin.test.assertEquals
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class CityServiceTest {
 
-    private val cityRepository = CityRepositoryImpl()
-    private val cityService = CityService(cityRepository)
-
     @Nested
-    inner class `Get nearest city`{
+    inner class `Get nearest city` {
 
         @Test
-        fun `successfully get nearestCity`(){
-            val nearestCity = runBlocking{
-                cityService.createCity(CreateCityRequest("London",5.0, 5.1))
-                cityService.createCity(CreateCityRequest("Brazil",-25.0, 85.1))
-                cityService.createCity(CreateCityRequest("Toilet",19.034, -45.1))
-                cityService.findNearestCity(10.034, 10.034)
-            }
+        fun `successfully get nearestCity`() = runTest {
+            cityService.createCity(CreateCityRequest("London", 5.0, 5.1))
+            cityService.createCity(CreateCityRequest("Brazil", -25.0, 85.1))
+            cityService.createCity(CreateCityRequest("Toilet", 19.034, -45.1))
+            val nearestCity = cityService.findNearestCity(10.034, 10.034)
+
             assertEquals("London", nearestCity[0].cityName)
         }
 
         @Test
-        fun `successfully get nearestCity 2`(){
-            val nearestCity = runBlocking{
-                cityService.createCity(CreateCityRequest("London",5.0, 5.1))
-                cityService.createCity(CreateCityRequest("Brazil",-25.0, 85.1))
-                cityService.createCity(CreateCityRequest("Toilet",19.034, -45.1))
-                cityService.createCity(CreateCityRequest("ABC",-49.034, -75.1))
-                cityService.createCity(CreateCityRequest("DERF",7.034, 12.1))
-                cityService.createCity(CreateCityRequest("HRH",45.034, -4.1))
-                cityService.findNearestCity(-40.034, -88.034)
-            }
+        fun `successfully get nearestCity with negative long+lat`() = runBlocking {
+            cityService.createCity(CreateCityRequest("London", 5.0, 5.1))
+            cityService.createCity(CreateCityRequest("Brazil", -25.0, 85.1))
+            cityService.createCity(CreateCityRequest("Toilet", 19.034, -45.1))
+            cityService.createCity(CreateCityRequest("ABC", -49.034, -75.1))
+            cityService.createCity(CreateCityRequest("DERF", 7.034, 12.1))
+            cityService.createCity(CreateCityRequest("HRH", 45.034, -4.1))
+            val nearestCity = cityService.findNearestCity(-40.034, -88.034)
+
             assertEquals("ABC", nearestCity[0].cityName)
         }
 
         @Test
-        fun `successfully get nearestCity matching`(){
-            val nearestCity = runBlocking{
-                cityService.createCity(CreateCityRequest("London",5.0, 5.1))
-                cityService.createCity(CreateCityRequest("Brazil",-25.0, 85.1))
-                cityService.createCity(CreateCityRequest("Toilet",19.034, -45.1))
-                cityService.createCity(CreateCityRequest("ABC",-49.034, -75.1))
-                cityService.createCity(CreateCityRequest("DEF",7.034, 12.1))
-                cityService.createCity(CreateCityRequest("HRH",45.034, -4.1))
-                cityService.findNearestCity(85.1, -25.0)
-            }
+        fun `successfully get nearestCity matching`() = runBlocking {
+            cityService.createCity(CreateCityRequest("London", 5.0, 5.1))
+            cityService.createCity(CreateCityRequest("Brazil", -25.0, 85.1))
+            cityService.createCity(CreateCityRequest("Toilet", 19.034, -45.1))
+            cityService.createCity(CreateCityRequest("ABC", -49.034, -75.1))
+            cityService.createCity(CreateCityRequest("DEF", 7.034, 12.1))
+            cityService.createCity(CreateCityRequest("HRH", 45.034, -4.1))
+            val nearestCity = cityService.findNearestCity(85.1, -25.0)
+
             assertEquals("Brazil", nearestCity[0].cityName)
         }
     }
@@ -84,6 +79,7 @@ class CityServiceTest {
     }
 
     private lateinit var repository: CityRepositoryImpl
+    private lateinit var cityService: CityService
     private lateinit var clock: Clock
     private val fixedInstant = Instant.parse("2024-01-15T10:00:00Z")
 
@@ -110,6 +106,7 @@ class CityServiceTest {
     fun setupEach() {
         clock = Clock.fixed(fixedInstant, ZoneId.of("UTC"))
         repository = CityRepositoryImpl(clock)
+        cityService = CityService(repository)
 
         transaction {
             Cities.deleteAll()
