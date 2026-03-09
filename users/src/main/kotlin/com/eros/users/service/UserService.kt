@@ -163,8 +163,9 @@ class UserService(
      *
      * @param userId Firebase UID of the user to update
      * @param request AdminUpdateUserRequest containing admin-level fields to update
-     * @return The updated User, or null if user not found
+     * @return The updated User, or [NotFoundException] if user not found
      * @throws IllegalArgumentException if input validation fails
+     * @throws NotFoundException if no user with id of [userId] is found
      */
     suspend fun adminUpdateUser(userId: String, request: AdminUpdateUserRequest): User? = dbQuery {
         val existing = userRepository.findById(userId) ?: throw NotFoundException("User $userId not found.")
@@ -269,7 +270,7 @@ class UserService(
      * Function to return the shared interests of two users.
      *
      * @param user1Interests [User] List of Strings of user 1's interests.
-     * @param user1Interests [User] List of Strings of user 2's interests.
+     * @param user2Interests [User] List of Strings of user 2's interests.
      *
      * @return List of strings containing only interests that are in both user 1 and user 2's lists.
      */
