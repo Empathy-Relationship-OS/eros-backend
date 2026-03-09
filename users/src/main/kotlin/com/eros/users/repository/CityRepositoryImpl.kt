@@ -86,6 +86,7 @@ class CityRepositoryImpl(
      *
      */
     override suspend fun findNearest(limit: Int, latitude: Double, longitude: Double): List<City> {
+        require(limit > 0) { "Limit must be positive" }
         val targetPoint = CustomFunction(
             "ll_to_earth",
             DoubleColumnType(),

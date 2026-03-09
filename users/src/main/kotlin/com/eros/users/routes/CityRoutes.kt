@@ -18,7 +18,7 @@ fun Route.cityRoutes(cityService: CityService) {
     // User routes
     route("/city") {
         requireRoles("USER", "ADMIN", "EMPLOYEE")
-        get("/all"){
+        get("/all") {
             val cities = cityService.getAllCities().map { it.toDTO() }
             call.respond(HttpStatusCode.OK, cities)
         }
@@ -39,10 +39,15 @@ fun Route.cityRoutes(cityService: CityService) {
          *
          * Response: NearestCityResponse: Count of cities and List of CityDTO
          */
-        get("/nearest"){
-            val latitude = call.request.queryParameters["lat"]?.toDouble() ?: throw BadRequestException("Latitude requires a double.")
-            val longitude = call.request.queryParameters["lon"]?.toDouble() ?: throw BadRequestException("Longitude requires a double.")
-            val limit = call.request.queryParameters["limit"]?.toInt()?.coerceIn(1, 100) ?: 1
+        get("/nearest") {
+            val latitude = call.request.queryParameters["lat"]?.toDoubleOrNull()
+                ?: throw BadRequestException("Latitude requires a valid decimal.")
+            val longitude = call.request.queryParameters["lon"]?.toDoubleOrNull()
+                ?: throw BadRequestException("Longitude requires a valid decimal.")
+            val limit = call.request.queryParameters["limit"]?.let { raw ->
+                raw.toIntOrNull()?.coerceIn(1, 100)
+                    ?: throw BadRequestException("Limit must be a valid integer.")
+            } ?: 1
 
             val cities = cityService.findNearestCities(limit, latitude, longitude)
             if (cities.isEmpty()) throw NotFoundException("No cities found.")
@@ -71,7 +76,7 @@ fun Route.cityRoutes(cityService: CityService) {
             call.respond(HttpStatusCode.Created, city.toDTO())
         }
 
-        delete("/{id}"){
+        delete("/{id}") {
             val id = call.parameters["id"]?.toLongOrNull()
                 ?: throw BadRequestException("Invalid city ID provided.")
 
