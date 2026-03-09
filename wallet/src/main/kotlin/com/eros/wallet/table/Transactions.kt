@@ -2,10 +2,14 @@ package com.eros.wallet.table
 
 import com.eros.dates.tables.DateCommitments
 import com.eros.users.table.Users
+import com.eros.wallet.models.Transaction
 import com.eros.wallet.models.TransactionStatus
 import com.eros.wallet.models.TransactionType
+import kotlinx.serialization.json.Json
+import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.javatime.timestamp
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.time.Instant
 
 // Database table
