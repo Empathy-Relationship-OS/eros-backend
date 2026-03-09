@@ -6,7 +6,6 @@ import com.eros.users.models.MediaType
 import com.eros.users.models.PresignedUploadRequest
 import com.eros.users.models.UserMediaItem
 import com.eros.users.models.UserMediaItemDTO
-import com.eros.users.models.toDTO
 import com.eros.users.repository.PhotoRepository
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -370,17 +369,14 @@ class PhotoServiceTest {
                 mediaItem(id = 1L, displayOrder = 1),
                 mediaItem(id = 2L, displayOrder = 2)
             )
-            val itemsDto = listOf(
-                mediaItemDTO(id = 1L, displayOrder = 1),
-                mediaItemDTO(id = 2L, displayOrder = 2)
-            )
+
             coEvery { mockRepository.findByUserId("uid-1") } returns items
 
             val collection = service.getUserMedia("uid-1")
 
             assertEquals("uid-1", collection.userId)
             assertEquals(2, collection.totalCount)
-            assertEquals(itemsDto, collection.media.map{it.toDTO()})
+            assertEquals(items, collection.media)
         }
 
         @Test
