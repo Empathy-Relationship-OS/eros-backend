@@ -111,6 +111,10 @@ class QAService(
             throw BadRequestException("Maximum of 3 Q&A's allowed per user.")
         }
 
+        // Ensure the question is in the database.
+        questionRepository.findById(request.question.questionId) ?:
+            throw NotFoundException("Question ${request.question.questionId} can't be found.")
+
         // Ensure the user hasn't already answered this question.
         val exists = userQARepository.doesExist(UserQAId(request.userId, request.question.questionId))
         if (exists) {
@@ -179,6 +183,9 @@ class QAService(
         }
         if (incomingQAs.map { it.question.questionId }.distinct().size != incomingQAs.size) {
             throw ConflictException("Duplicate questions are not allowed.")
+        }
+        if (incomingQAs.any { questionRepository.findById(it.question.questionId) == null}){
+            throw NotFoundException("One of the questions couldn't be found.")
         }
 
         // Replace collection atomically for this user.
