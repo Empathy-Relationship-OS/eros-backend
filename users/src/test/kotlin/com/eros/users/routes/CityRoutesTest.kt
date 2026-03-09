@@ -377,7 +377,7 @@ class CityRoutesTest{
 
             val returnedCity = response.body<CityDTO>()
             assertEquals(city.cityId,returnedCity.cityId)
-            assertNotEquals(city.cityName,returnedCity.cityName)
+            assertEquals(updatedCity.cityName, returnedCity.cityName)
             assertEquals(city.longitude,returnedCity.longitude)
             assertEquals(city.latitude,returnedCity.latitude)
 
