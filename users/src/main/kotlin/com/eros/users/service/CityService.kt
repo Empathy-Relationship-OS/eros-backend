@@ -73,6 +73,7 @@ class CityService(
      * @return List of nearest [limit] [City] to the provided coordinates.
      */
     suspend fun findNearestCities(limit: Int, latitude: Double, longitude: Double) : List<City> = dbQuery {
+        require(limit > 0) { "limit must be greater than 0" }
         cityRepository.findNearest(limit, latitude, longitude)
     }
 
