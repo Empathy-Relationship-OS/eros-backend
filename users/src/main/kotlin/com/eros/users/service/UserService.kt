@@ -1,5 +1,6 @@
 package com.eros.users.service
 
+import com.eros.common.errors.ForbiddenException
 import com.eros.users.models.*
 import com.eros.common.errors.ConflictException
 import com.eros.common.errors.NotFoundException
@@ -118,6 +119,22 @@ class UserService(
      */
     suspend fun updateUser(userId: String, request: UpdateUserRequest): User? = dbQuery {
         val existing = userRepository.findById(userId) ?: throw NotFoundException("User $userId not found.")
+
+        // Ensure banned accounts can't edit their profile.
+        if (existing.profileStatus == ProfileStatus.BANNED){
+            throw ForbiddenException("Can't update a profile that is banned.")
+        }
+
+        var newProfileStatus : ProfileStatus = existing.profileStatus
+        // Check if visibility is changed - if so, set to correct Enum value.
+        if (existing.profileStatus == ProfileStatus.ACTIVE || existing.profileStatus == ProfileStatus.SLEEP_MODE){
+            newProfileStatus = when(request.setVisible) {
+                true -> ProfileStatus.ACTIVE
+                false -> ProfileStatus.SLEEP_MODE
+                null -> existing.profileStatus
+            }
+        }
+
         val merged = existing.copy(
             firstName = request.firstName ?: existing.firstName,
             lastName = request.lastName ?: existing.lastName,
@@ -148,9 +165,33 @@ class UserService(
             bodyAttributes = request.bodyAttributes ?: existing.bodyAttributes,
             bodyDescription = request.bodyDescription ?: existing.bodyDescription,
             coordinatesLongitude = request.coordinatesLongitude ?: existing.coordinatesLongitude,
-            coordinatesLatitude = request.coordinatesLatitude ?: existing.coordinatesLatitude
+            coordinatesLatitude = request.coordinatesLatitude ?: existing.coordinatesLatitude,
+            profileStatus = newProfileStatus
         )
         userRepository.update(userId, merged)
+    }
+
+
+    /**
+     * Function to update the visibility of the user.
+     *
+     * @param userId id of the user to be updated
+     * @param request [ProfileStatusUpdateRequest] object containing the isVisible flag.
+     * @return [User] object containing the updated user.
+     * @throws NotFoundException if the user can't be retrieved from the database.
+     * @throws ForbiddenException if the user is banned or frozen.
+     */
+    suspend fun updateVisibility(userId:String, request: ProfileStatusUpdateRequest) : User? = dbQuery {
+        val existing = userRepository.findById(userId)
+            ?: throw NotFoundException("User $userId not found.")
+
+        val newProfileStatus = when {
+            existing.profileStatus in listOf(ProfileStatus.ACTIVE, ProfileStatus.SLEEP_MODE) -> {
+                if (request.isVisible) ProfileStatus.ACTIVE else ProfileStatus.SLEEP_MODE
+            }
+            else -> throw ForbiddenException("Can't update a profile that is banned or suspended.")
+        }
+        userRepository.update(userId, existing.copy(profileStatus = newProfileStatus))
     }
 
     /**

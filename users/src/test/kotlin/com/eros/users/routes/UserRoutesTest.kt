@@ -707,7 +707,8 @@ class UserRoutesTest {
 
     private fun createTestUser(
         userId: String = "test-user-id",
-        firstName: String = "John"
+        firstName: String = "John",
+        visibility: ProfileStatus = ProfileStatus.ACTIVE
     ): User {
         return User(
             userId = userId,
@@ -744,7 +745,7 @@ class UserRoutesTest {
             createdAt = Instant.now(),
             updatedAt = Instant.now(),
             deletedAt = null,
-            profileStatus = ProfileStatus.ACTIVE,
+            profileStatus = visibility,
             eloScore = 1000,
             badges = setOf(),
             profileCompleteness = 75,
