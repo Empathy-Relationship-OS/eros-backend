@@ -89,7 +89,7 @@ fun Route.qaRoutes(qaService : QAService, profileAccessControl: ProfileAccessCon
             val questionId = targetQuestionId.toLongOrNull()
                 ?: throw BadRequestException("Question ID must be a valid number")
 
-            if (principal.uid != targetUserId) throw ForbiddenException("User does not have access to delete $targetUserId QA.")
+            if (principal.uid != targetUserId) throw UnauthorizedException("User does not have access to delete $targetUserId QA.")
 
             val deleted = qaService.deleteUserQA(targetUserId, questionId)
 

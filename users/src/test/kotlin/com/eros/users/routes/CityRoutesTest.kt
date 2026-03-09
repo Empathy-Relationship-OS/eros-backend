@@ -6,17 +6,33 @@ import com.eros.common.plugins.configureExceptionHandling
 import com.eros.users.models.City
 import com.eros.users.models.CityDTO
 import com.eros.users.models.CreateCityRequest
+import com.eros.users.models.NearestCityResponse
 import com.eros.users.models.UpdateCityRequest
 import com.eros.users.service.CityService
 import com.google.firebase.auth.FirebaseToken
-import io.ktor.client.call.*
-import io.ktor.client.request.*
-import io.ktor.http.*
-import io.ktor.serialization.kotlinx.json.*
-import io.ktor.server.application.*
-import io.ktor.server.auth.*
-import io.ktor.server.routing.*
-import io.ktor.server.testing.*
+import io.ktor.client.call.body
+import io.ktor.client.request.HttpRequestBuilder
+import io.ktor.client.request.delete
+import io.ktor.client.request.get
+import io.ktor.client.request.header
+import io.ktor.client.request.parameter
+import io.ktor.client.request.patch
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
+import io.ktor.http.contentType
+import io.ktor.serialization.kotlinx.json.json
+import io.ktor.server.application.install
+import io.ktor.server.auth.Authentication
+import io.ktor.server.auth.authenticate
+import io.ktor.server.auth.bearer
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation as ClientContentNegotiation
+import io.ktor.server.plugins.contentnegotiation.ContentNegotiation as ServerContentNegotiation
+import io.ktor.server.routing.routing
+import io.ktor.server.testing.ApplicationTestBuilder
+import io.ktor.server.testing.testApplication
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.serialization.json.Json
@@ -25,8 +41,6 @@ import org.junit.jupiter.api.Test
 import java.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation as ClientContentNegotiation
-import io.ktor.server.plugins.contentnegotiation.ContentNegotiation as ServerContentNegotiation
 
 class CityRoutesTest{
 
@@ -370,6 +384,59 @@ class CityRoutesTest{
         }
     }
 
+
+    @Nested
+    inner class `GET nearest` {
+
+        @Test
+        fun `successfully get nearest`() = testApplication {
+            setupTestApp()
+            val client = configuredClient()
+            val lat = 2.45
+            val long = 50.3
+            val city = createCity()
+            coEvery { mockCityService.findNearestCities(1,lat, long) } returns listOf(city)
+
+            val response = client.get("/city/nearest") {
+                setAuthenticatedUser("test-user-id")
+                contentType(ContentType.Application.Json)
+                parameter("lat", lat)
+                parameter("lon", long)
+            }
+
+            assertEquals(HttpStatusCode.OK, response.status)
+            val returnedCities = response.body<NearestCityResponse>()
+            assertEquals(city.cityId, returnedCities.cities[0].cityId)
+            assertEquals(city.cityName, returnedCities.cities[0].cityName)
+        }
+
+        @Test
+        fun `successfully get nearest cities`() = testApplication {
+            setupTestApp()
+            val client = configuredClient()
+            val lat = 2.45
+            val long = 50.3
+            val city = createCity()
+            val city2 = createCity(cityName = "Liverpool")
+            coEvery { mockCityService.findNearestCities(2,lat, long) } returns listOf(city,city2)
+
+            val response = client.get("/city/nearest") {
+                setAuthenticatedUser("test-user-id")
+                contentType(ContentType.Application.Json)
+                parameter("lat", lat)
+                parameter("lon", long)
+                parameter("limit",2)
+            }
+
+            assertEquals(HttpStatusCode.OK, response.status)
+            val returnedCities = response.body<NearestCityResponse>()
+            assertEquals(2, returnedCities.count)
+            assertEquals(city.cityId, returnedCities.cities[0].cityId)
+            assertEquals(city.cityName, returnedCities.cities[0].cityName)
+            assertEquals(city2.cityName, returnedCities.cities[1].cityName)
+        }
+
+    }
 
 
     // Helper functions

@@ -52,6 +52,32 @@ class CityService(
 
 
     /**
+     * Function to find the nearest city to the provided lat and long.
+     *
+     * @param latitude Latitude of the location.
+     * @param longitude Longitude of the location.
+     * @return [City] of the nearest city to the provided coordinates.
+     *
+     * @throws NotFoundException if no nearest city can be found.
+     */
+    suspend fun findNearestCity(latitude: Double, longitude: Double) : List<City> = dbQuery {
+        cityRepository.findNearest(1,latitude, longitude)
+    }
+
+
+    /**
+     * Function to find the nearest cities to the provided lat and long up to [limit] cities.
+     *
+     * @param latitude Latitude of the location.
+     * @param longitude Longitude of the location.
+     * @return List of nearest [limit] [City] to the provided coordinates.
+     */
+    suspend fun findNearestCities(limit: Int, latitude: Double, longitude: Double) : List<City> = dbQuery {
+        cityRepository.findNearest(limit, latitude, longitude)
+    }
+
+
+    /**
      * Function to check if a city already exists with a given name.
      * Function is wrapped in a dbQuery to perform database queries within a coroutine-safe transaction context.
      *

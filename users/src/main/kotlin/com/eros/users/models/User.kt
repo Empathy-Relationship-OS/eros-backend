@@ -331,7 +331,10 @@ data class UpdateUserRequest(
     val brainAttributes: DisplayableField<List<BrainAttribute>?>? = null,
     val brainDescription: DisplayableField<String?>? = null,
     val bodyAttributes: DisplayableField<List<BodyAttribute>?>? = null,
-    val bodyDescription: DisplayableField<String?>? = null
+    val bodyDescription: DisplayableField<String?>? = null,
+
+    // Profile Visibility
+    val setVisible : Boolean? = null
 ) {
     init {
         if (interests != null) {
@@ -398,9 +401,17 @@ data class AdminUpdateUserRequest(
  */
 @Serializable
 data class ProfileStatusUpdateRequest(
-    val profileStatus: ProfileStatus
+    val isVisible: Boolean
 )
 
+@Serializable
+data class ProfileStatusDTO(
+    val isVisible: Boolean
+)
+
+fun User.toVisibilityDTO() = ProfileStatusDTO(
+    isVisible = this.profileStatus == ProfileStatus.ACTIVE
+)
 
 /**
  * This is an encapsulating class for DTOs to reflect if a field should be viewable
