@@ -420,12 +420,12 @@ class WalletRepositoryImplTest {
             }
 
             
-            val updated = dbQuery { walletRepository.updateBalance("user-1", 150.0) }
+            val updated = dbQuery { walletRepository.updateBalance("user-1", 150.0, wallet.lifetimeSpent) }
 
             
             assertNotNull(updated)
             assertEquals(150.0, updated.tokenBalance)
-            assertEquals(50.0, updated.lifetimeSpent) // Should not change
+            assertEquals(50.0, updated.lifetimeSpent)
         }
 
         @Test
@@ -439,7 +439,7 @@ class WalletRepositoryImplTest {
             }
 
             
-            val updated = dbQuery { walletRepository.updateBalance("user-1", 75.0) }
+            val updated = dbQuery { walletRepository.updateBalance("user-1", 75.0, 50.0) }
 
             
             assertNotNull(updated)
@@ -449,7 +449,7 @@ class WalletRepositoryImplTest {
         @Test
         fun `updateBalance should return null when wallet does not exist`() = runBlocking {
             
-            val result = dbQuery { walletRepository.updateBalance("nonexistent", 100.0) }
+            val result = dbQuery { walletRepository.updateBalance("nonexistent", 100.0, 200.0) }
 
             
             assertNull(result)
@@ -464,7 +464,7 @@ class WalletRepositoryImplTest {
                 walletRepository.create(wallet)
             }
             
-            val updated = dbQuery { walletRepository.updateBalance("user-1", 0.0) }
+            val updated = dbQuery { walletRepository.updateBalance("user-1", 0.0,50.0) }
 
             assertNotNull(updated)
             assertEquals(0.0, updated.tokenBalance)
@@ -481,7 +481,7 @@ class WalletRepositoryImplTest {
             }
 
             
-            val updated = dbQuery { walletRepository.updateBalance("user-1", 123.45) }
+            val updated = dbQuery { walletRepository.updateBalance("user-1", 123.45, 50.0) }
 
             
             assertNotNull(updated)
@@ -499,7 +499,7 @@ class WalletRepositoryImplTest {
             }
 
             
-            dbQuery { walletRepository.updateBalance("user-1", 200.0) }
+            dbQuery { walletRepository.updateBalance("user-1", 200.0, 150.0) }
             val found = dbQuery { walletRepository.findById("user-1") }
 
             
