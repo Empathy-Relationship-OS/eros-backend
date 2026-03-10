@@ -51,7 +51,7 @@ class TransactionRepositoryImpl(
     /**
      * Function for finding all transactions for a specific user.
      */
-    override suspend fun findByUserId(userId: String): List<Transaction?> {
+    override suspend fun findByUserId(userId: String): List<Transaction> {
         return table.selectAll()
             .where { Transactions.userId eq userId }
             .map { it.toDomain() }

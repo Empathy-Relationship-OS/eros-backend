@@ -6,6 +6,6 @@ import com.eros.wallet.models.Transaction
 interface TransactionRepository  : IBaseDAO<Long, Transaction> {
 
     suspend fun findByIdempotencyKey(idempotencyKey: String) : Transaction?
-    suspend fun findByUserId(userId: String) : List<Transaction?>
+    suspend fun findByUserId(userId: String) : List<Transaction>
 
 }
