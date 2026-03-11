@@ -1,17 +1,19 @@
 package com.eros.wallet.models
 
+import java.math.BigDecimal
+
 //todo: Change from the default to real values
 /**
  * Provides the cost of packages in GBP in pence.
  */
 enum class TokenPackage(
-    val tokens: Double,
-    val priceGBP: Int,
+    val tokens: BigDecimal,
+    val priceGBP: BigDecimal,
 ) {
-    STARTER(5.0, 2500),      // £25 - £5/$6 per token
-    POPULAR(10.0, 4500),     // £45 - £4.50/$5.40 per token
-    PREMIUM(20.0, 8000),     // £80 - £4/$4.80 per token
-    MEGA(50.0, 18000)       // £180 - £3.60/$4.20 per token
+    STARTER(5.0.toBigDecimal(), 2500.toBigDecimal()),      // £25 - £5/$6 per token
+    POPULAR(10.0.toBigDecimal(), 4500.toBigDecimal()),     // £45 - £4.50/$5.40 per token
+    PREMIUM(20.0.toBigDecimal(), 8000.toBigDecimal()),     // £80 - £4/$4.80 per token
+    MEGA(50.0.toBigDecimal(), 18000.toBigDecimal())       // £180 - £3.60/$4.20 per token
 }
 
 

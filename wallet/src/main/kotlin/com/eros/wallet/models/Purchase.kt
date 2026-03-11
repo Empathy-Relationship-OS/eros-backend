@@ -1,6 +1,7 @@
 package com.eros.wallet.models
 
 import kotlinx.serialization.Serializable
+import java.math.BigDecimal
 
 /**
  * Request DTO for purchasing tokens.
@@ -31,7 +32,7 @@ data class PurchaseRequest(
  * @property amount Amount in the smallest currency unit (pence for GBP, cents for USD)
  * @property currency Currency code (e.g., "gbp", "usd")
  * @property tokenAmount Number of tokens being purchased
- * @property status Payment intent status (e.g., "requires_confirmation", "succeeded")
+ * @property status Payment intent status (e.g., "PENDING", "COMPLETED")
  * @property newBalance Optional - wallet balance if payment succeeded immediately
  * @property transactionId Optional - transaction ID if payment succeeded immediately
  */
@@ -39,10 +40,13 @@ data class PurchaseRequest(
 data class PurchaseResponse(
     val clientSecret: String,
     val paymentIntentId: String,
-    val amount: Long,
+    @Serializable(with = BigDecimalSerializer::class)
+    val amount: BigDecimal,
     val currency: String,
-    val tokenAmount: Double,
-    val status: String,
-    val newBalance: Double? = null,
+    @Serializable(with = BigDecimalSerializer::class)
+    val tokenAmount: BigDecimal,
+    val status: TransactionStatus,
+    @Serializable(with = BigDecimalSerializer::class)
+    val newBalance: BigDecimal? = null,
     val transactionId: Long? = null
 )

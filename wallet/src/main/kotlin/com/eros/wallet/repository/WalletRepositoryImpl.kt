@@ -9,6 +9,7 @@ import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.statements.UpdateBuilder
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.updateReturning
+import java.math.BigDecimal
 import java.time.Clock
 import java.time.Instant
 
@@ -25,9 +26,9 @@ class WalletRepositoryImpl(
     ) {
         statement.apply {
             this[Wallets.userId] = entity.userId
-            this[Wallets.tokenBalance] = entity.tokenBalance.toBigDecimal()
-            this[Wallets.lifetimeSpent] = entity.lifetimeSpent.toBigDecimal()
-            this[Wallets.lifetimePurchased] = entity.lifetimePurchased.toBigDecimal()
+            this[Wallets.tokenBalance] = entity.tokenBalance
+            this[Wallets.lifetimeSpent] = entity.lifetimeSpent
+            this[Wallets.lifetimePurchased] = entity.lifetimePurchased
             this[Wallets.currency] = entity.currency
             this[Wallets.createdAt] = entity.createdAt
             this[Wallets.updatedAt] = entity.updatedAt
@@ -38,9 +39,9 @@ class WalletRepositoryImpl(
     /**
      * Function to update the balance of a user's wallet.
      */
-    override suspend fun creditBalance(userId: String, newBalance: Double) : Wallet? {
+    override suspend fun creditBalance(userId: String, newBalance: BigDecimal) : Wallet? {
         return Wallets.updateReturning(where = { Wallets.userId eq userId }) {
-            it[tokenBalance] = newBalance.toBigDecimal()
+            it[tokenBalance] = newBalance
             it[updatedAt] = Instant.now(clock)
         }.singleOrNull()?.toDomain()
     }
@@ -49,10 +50,10 @@ class WalletRepositoryImpl(
     /**
      * Function to update the balance of a user's wallet.
      */
-    override suspend fun updateBalance(userId: String, newBalance: Double, newLifetimeSpent: Double) : Wallet? {
+    override suspend fun updateBalance(userId: String, newBalance: BigDecimal, newLifetimeSpent: BigDecimal) : Wallet? {
         return Wallets.updateReturning(where = { Wallets.userId eq userId }) {
-            it[tokenBalance] = newBalance.toBigDecimal()
-            it[lifetimeSpent] = newLifetimeSpent.toBigDecimal()
+            it[tokenBalance] = newBalance
+            it[lifetimeSpent] = newLifetimeSpent
             it[updatedAt] = Instant.now(clock)
         }.singleOrNull()?.toDomain()
     }
