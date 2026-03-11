@@ -3,6 +3,7 @@ package com.eros.wallet.models
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Assertions.*
+import java.math.BigDecimal
 import java.time.Instant
 
 class TransactionTest {
@@ -12,14 +13,14 @@ class TransactionTest {
         transactionId: Long = 1L,
         userId: String = "user-123",
         type: TransactionType = TransactionType.PURCHASE,
-        amount: Double = 100.0,
-        balanceAfter: Double = 200.0,
+        amount: BigDecimal = 100.0.toBigDecimal(),
+        balanceAfter: BigDecimal = 200.0.toBigDecimal(),
         description: String = "Test transaction",
         status: TransactionStatus = TransactionStatus.COMPLETED,
         relatedDateId: Long? = null,
         relatedTransactionId: Long? = null,
         stripePaymentIntentId: String? = null,
-        amountPaidGBP: Double? = null,
+        amountPaidGBP: BigDecimal? = null,
         idempotencyKey: String? = null,
         metadata: Map<String, String> = emptyMap(),
         createdAt: Instant = Instant.now()
@@ -36,10 +37,10 @@ class TransactionTest {
         fun `purchase transaction has positive amount`() {
             val transaction = transaction(
                 type = TransactionType.PURCHASE,
-                amount = 100.0
+                amount = 100.0.toBigDecimal()
             )
 
-            assertTrue(transaction.amount > 0)
+            assertTrue(transaction.amount > 0.toBigDecimal())
         }
 
         @Test
@@ -57,12 +58,12 @@ class TransactionTest {
         fun `purchase transaction has amount paid in GBP`() {
             val transaction = transaction(
                 type = TransactionType.PURCHASE,
-                amount = 100.0,
-                amountPaidGBP = 25.00
+                amount = 100.0.toBigDecimal(),
+                amountPaidGBP = 25.00.toBigDecimal()
             )
 
             assertNotNull(transaction.amountPaidGBP)
-            assertEquals(25.00, transaction.amountPaidGBP)
+            assertEquals(25.00.toBigDecimal(), transaction.amountPaidGBP)
         }
 
         @Test
@@ -78,15 +79,15 @@ class TransactionTest {
 
         @Test
         fun `purchase increases balance after`() {
-            val previousBalance = 100.0
-            val purchaseAmount = 50.0
+            val previousBalance = 100.0.toBigDecimal()
+            val purchaseAmount = 50.0.toBigDecimal()
             val transaction = transaction(
                 type = TransactionType.PURCHASE,
                 amount = purchaseAmount,
                 balanceAfter = previousBalance + purchaseAmount
             )
 
-            assertEquals(150.0, transaction.balanceAfter)
+            assertEquals(150.0.toBigDecimal(), transaction.balanceAfter)
         }
     }
 
@@ -97,10 +98,10 @@ class TransactionTest {
         fun `spend transaction has negative amount`() {
             val transaction = transaction(
                 type = TransactionType.SPEND,
-                amount = -50.0
+                amount = -50.0.toBigDecimal()
             )
 
-            assertTrue(transaction.amount < 0)
+            assertTrue(transaction.amount < 0.toBigDecimal())
         }
 
         @Test
@@ -116,8 +117,8 @@ class TransactionTest {
 
         @Test
         fun `spend decreases balance after`() {
-            val previousBalance = 100.0
-            val spendAmount = -30.0
+            val previousBalance = 100.0.toBigDecimal()
+            val spendAmount = -30.0.toBigDecimal()
             val transaction = transaction(
                 type = TransactionType.SPEND,
                 amount = spendAmount,
@@ -145,10 +146,10 @@ class TransactionTest {
         fun `refund transaction has positive amount`() {
             val transaction = transaction(
                 type = TransactionType.REFUND,
-                amount = 50.0
+                amount = 50.0.toBigDecimal()
             )
 
-            assertTrue(transaction.amount > 0)
+            assertTrue(transaction.amount > 0.toBigDecimal())
         }
 
         @Test
@@ -175,8 +176,8 @@ class TransactionTest {
 
         @Test
         fun `refund increases balance after`() {
-            val previousBalance = 50.0
-            val refundAmount = 30.0
+            val previousBalance = 50.0.toBigDecimal()
+            val refundAmount = 30.0.toBigDecimal()
             val transaction = transaction(
                 type = TransactionType.REFUND,
                 amount = refundAmount,
@@ -194,20 +195,20 @@ class TransactionTest {
         fun `adjustment can be positive`() {
             val transaction = transaction(
                 type = TransactionType.ADJUSTMENT,
-                amount = 10.0
+                amount = 10.0.toBigDecimal()
             )
 
-            assertTrue(transaction.amount > 0)
+            assertTrue(transaction.amount > 0.toBigDecimal())
         }
 
         @Test
         fun `adjustment can be negative`() {
             val transaction = transaction(
                 type = TransactionType.ADJUSTMENT,
-                amount = -10.0
+                amount = -10.0.toBigDecimal()
             )
 
-            assertTrue(transaction.amount < 0)
+            assertTrue(transaction.amount < 0.toBigDecimal())
         }
 
         @Test
@@ -324,8 +325,8 @@ class TransactionTest {
 
         @Test
         fun `balance after reflects the state after transaction`() {
-            val previousBalance = 100.0
-            val transactionAmount = 50.0
+            val previousBalance = 100.0.toBigDecimal()
+            val transactionAmount = 50.0.toBigDecimal()
             val expectedBalance = previousBalance + transactionAmount
 
             val transaction = transaction(
@@ -339,10 +340,10 @@ class TransactionTest {
         @Test
         fun `balance after is non-negative for valid transactions`() {
             val transaction = transaction(
-                balanceAfter = 150.0
+                balanceAfter = 150.0.toBigDecimal()
             )
 
-            assertTrue(transaction.balanceAfter >= 0)
+            assertTrue(transaction.balanceAfter >= 0.toBigDecimal())
         }
     }
 }

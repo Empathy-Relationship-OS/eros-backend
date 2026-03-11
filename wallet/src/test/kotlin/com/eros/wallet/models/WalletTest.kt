@@ -2,6 +2,7 @@ package com.eros.wallet.models
 
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import java.math.BigDecimal
 import java.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -12,9 +13,9 @@ class WalletTest {
     // Test helper function
     private fun wallet(
         userId: String = "user-123",
-        tokenBalance: Double = 100.0,
-        lifetimeSpent: Double = 50.0,
-        lifetimePurchased: Double = 150.0,
+        tokenBalance: BigDecimal = 1000.toBigDecimal(),
+        lifetimeSpent: BigDecimal = 500.toBigDecimal(),
+        lifetimePurchased: BigDecimal = 1500.toBigDecimal(),
         currency: String = "GBP",
         createdAt: Instant = Instant.now(),
         updatedAt: Instant = Instant.now()
@@ -24,32 +25,32 @@ class WalletTest {
     inner class HasSufficientBalance {
         @Test
         fun `hasSufficientBalance returns true when balance is greater than amount`() {
-            val wallet = wallet(tokenBalance = 100.0)
-            assertTrue(wallet.hasSufficientBalance(50.0))
+            val wallet = wallet(tokenBalance = 1000.toBigDecimal())
+            assertTrue(wallet.hasSufficientBalance(500.toBigDecimal()))
         }
 
         @Test
         fun `hasSufficientBalance returns true when balance equals amount`() {
-            val wallet = wallet(tokenBalance = 50.0)
-            assertTrue(wallet.hasSufficientBalance(50.0))
+            val wallet = wallet(tokenBalance = 500.toBigDecimal())
+            assertTrue(wallet.hasSufficientBalance(500.toBigDecimal()))
         }
 
         @Test
         fun `hasSufficientBalance returns false when balance is less than amount`() {
-            val wallet = wallet(tokenBalance = 30.0)
-            assertFalse(wallet.hasSufficientBalance(50.0))
+            val wallet = wallet(tokenBalance = 300.toBigDecimal())
+            assertFalse(wallet.hasSufficientBalance(500.toBigDecimal()))
         }
 
         @Test
         fun `hasSufficientBalance returns true for zero amount`() {
-            val wallet = wallet(tokenBalance = 100.0)
-            assertTrue(wallet.hasSufficientBalance(0.0))
+            val wallet = wallet(tokenBalance = 1000.toBigDecimal())
+            assertTrue(wallet.hasSufficientBalance(0.toBigDecimal()))
         }
 
         @Test
         fun `hasSufficientBalance returns false when balance is zero`() {
-            val wallet = wallet(tokenBalance = 0.0)
-            assertFalse(wallet.hasSufficientBalance(10.0))
+            val wallet = wallet(tokenBalance = 0.toBigDecimal())
+            assertFalse(wallet.hasSufficientBalance(100.toBigDecimal()))
         }
     }
 
@@ -58,31 +59,31 @@ class WalletTest {
         @Test
         fun `pendingBalance calculates sum of pending commitments`() {
             val wallet = wallet()
-            val pending = listOf(10.0, 20.0, 15.0)
+            val pending = listOf(100.toBigDecimal(), 200.toBigDecimal(), 150.toBigDecimal())
 
-            assertEquals(45.0, wallet.pendingBalance(pending))
+            assertEquals(450.toBigDecimal(), wallet.pendingBalance(pending))
         }
 
         @Test
         fun `pendingBalance returns zero for empty list`() {
             val wallet = wallet()
-            assertEquals(0.0, wallet.pendingBalance(emptyList()))
+            assertEquals(0.toBigDecimal(), wallet.pendingBalance(emptyList()))
         }
 
         @Test
         fun `pendingBalance calculates sum with decimal values`() {
             val wallet = wallet()
-            val pending = listOf(1.5, 2.75, 3.25)
+            val pending = listOf(1.5.toBigDecimal(), 2.75.toBigDecimal(), 3.25.toBigDecimal())
 
-            assertEquals(7.5, wallet.pendingBalance(pending), 0.001)
+            assertEquals(7.5.toBigDecimal(), wallet.pendingBalance(pending))
         }
 
         @Test
         fun `pendingBalance handles single commitment`() {
             val wallet = wallet()
-            val pending = listOf(25.0)
+            val pending = listOf(250.toBigDecimal())
 
-            assertEquals(25.0, wallet.pendingBalance(pending))
+            assertEquals(250.toBigDecimal(), wallet.pendingBalance(pending))
         }
     }
 
@@ -92,9 +93,9 @@ class WalletTest {
         fun `default currency is GBP`() {
             val wallet = Wallet(
                 userId = "user-123",
-                tokenBalance = 100.0,
-                lifetimeSpent = 50.0,
-                lifetimePurchased = 150.0,
+                tokenBalance = 1000.toBigDecimal(),
+                lifetimeSpent = 500.toBigDecimal(),
+                lifetimePurchased = 1500.toBigDecimal(),
                 createdAt = Instant.now(),
                 updatedAt = Instant.now()
             )
@@ -114,8 +115,8 @@ class WalletTest {
         @Test
         fun `lifetime purchased is greater than or equal to lifetime spent for valid wallet`() {
             val wallet = wallet(
-                lifetimeSpent = 50.0,
-                lifetimePurchased = 150.0
+                lifetimeSpent = 500.toBigDecimal(),
+                lifetimePurchased = 1500.toBigDecimal()
             )
 
             assertTrue(wallet.lifetimePurchased >= wallet.lifetimeSpent)
@@ -124,9 +125,9 @@ class WalletTest {
         @Test
         fun `token balance should not exceed lifetime purchased minus lifetime spent`() {
             val wallet = wallet(
-                tokenBalance = 100.0,
-                lifetimeSpent = 50.0,
-                lifetimePurchased = 150.0
+                tokenBalance = 1000.toBigDecimal(),
+                lifetimeSpent = 500.toBigDecimal(),
+                lifetimePurchased = 1500.toBigDecimal()
             )
 
             val expectedMaxBalance = wallet.lifetimePurchased - wallet.lifetimeSpent

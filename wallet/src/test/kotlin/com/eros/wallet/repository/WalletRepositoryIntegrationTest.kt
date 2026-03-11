@@ -39,6 +39,7 @@ import org.junit.jupiter.api.Assertions.*
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
+import java.math.BigDecimal
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
@@ -108,9 +109,9 @@ class WalletRepositoryImplTest {
             
             assertNotNull(created)
             assertEquals("user-1", created.userId)
-            assertEquals(100.0, created.tokenBalance)
-            assertEquals(50.0, created.lifetimeSpent)
-            assertEquals(150.0, created.lifetimePurchased)
+            assertEquals(100.0.toBigDecimal(), created.tokenBalance)
+            assertEquals(50.0.toBigDecimal(), created.lifetimeSpent)
+            assertEquals(150.0.toBigDecimal(), created.lifetimePurchased)
             assertEquals("GBP", created.currency)
         }
 
@@ -174,7 +175,7 @@ class WalletRepositoryImplTest {
         @Test
         fun `create with zero balance should work`() = runBlocking {
             
-            val wallet = testWallet(tokenBalance = 0.0, lifetimeSpent = 0.0, lifetimePurchased = 0.0)
+            val wallet = testWallet(tokenBalance = 0.0.toBigDecimal(), lifetimeSpent = 0.0.toBigDecimal(), lifetimePurchased = 0.0.toBigDecimal())
             val user = testUser(wallet.userId)
 
             
@@ -184,18 +185,18 @@ class WalletRepositoryImplTest {
             }
 
             
-            assertEquals(0.0, created.tokenBalance)
-            assertEquals(0.0, created.lifetimeSpent)
-            assertEquals(0.0, created.lifetimePurchased)
+            assertEquals(0.0.toBigDecimal(), created.tokenBalance)
+            assertEquals(0.0.toBigDecimal(), created.lifetimeSpent)
+            assertEquals(0.0.toBigDecimal(), created.lifetimePurchased)
         }
 
         @Test
         fun `create with decimal values should preserve precision`() = runBlocking {
             
             val wallet = testWallet(
-                tokenBalance = 123.45,
-                lifetimeSpent = 67.89,
-                lifetimePurchased = 191.34
+                tokenBalance = 123.45.toBigDecimal(),
+                lifetimeSpent = 67.89.toBigDecimal(),
+                lifetimePurchased = 191.34.toBigDecimal()
             )
             val user = testUser(wallet.userId)
 
@@ -206,9 +207,9 @@ class WalletRepositoryImplTest {
             }
 
             
-            assertEquals(123.45, created.tokenBalance, 0.001)
-            assertEquals(67.89, created.lifetimeSpent, 0.001)
-            assertEquals(191.34, created.lifetimePurchased, 0.001)
+            assertEquals(123.45.toBigDecimal(), created.tokenBalance)
+            assertEquals(67.89.toBigDecimal(), created.lifetimeSpent)
+            assertEquals(191.34.toBigDecimal(), created.lifetimePurchased)
         }
     }
 
@@ -231,7 +232,7 @@ class WalletRepositoryImplTest {
             
             assertNotNull(found)
             assertEquals("user-1", found.userId)
-            assertEquals(100.0, found.tokenBalance)
+            assertEquals(100.0.toBigDecimal(), found.tokenBalance)
         }
 
         @Test
@@ -246,9 +247,9 @@ class WalletRepositoryImplTest {
         @Test
         fun `findById should return correct wallet when multiple exist`() = runBlocking {
             
-            val wallet1 = testWallet(userId = "user-1", tokenBalance = 100.0)
-            val wallet2 = testWallet(userId = "user-2", tokenBalance = 200.0)
-            val wallet3 = testWallet(userId = "user-3", tokenBalance = 300.0)
+            val wallet1 = testWallet(userId = "user-1", tokenBalance = 100.0.toBigDecimal())
+            val wallet2 = testWallet(userId = "user-2", tokenBalance = 200.0.toBigDecimal())
+            val wallet3 = testWallet(userId = "user-3", tokenBalance = 300.0.toBigDecimal())
             val user1 = testUser("user-1")
             val user2 = testUser("user-2", email = "test@test1.com")
             val user3 = testUser("user-3", email = "test@test2.com")
@@ -268,7 +269,7 @@ class WalletRepositoryImplTest {
             
             assertNotNull(found)
             assertEquals("user-2", found.userId)
-            assertEquals(200.0, found.tokenBalance)
+            assertEquals(200.0.toBigDecimal(), found.tokenBalance)
         }
     }
 
@@ -320,7 +321,7 @@ class WalletRepositoryImplTest {
         @Test
         fun `update should modify wallet and return updated version`() = runBlocking {
             
-            val original = testWallet(userId = "user-1", tokenBalance = 100.0)
+            val original = testWallet(userId = "user-1", tokenBalance = 100.0.toBigDecimal())
             val user = testUser(original.userId)
             dbQuery {
                 userRepository.create(user)
@@ -328,8 +329,8 @@ class WalletRepositoryImplTest {
             }
 
             val updated = original.copy(
-                tokenBalance = 150.0,
-                lifetimeSpent = 75.0
+                tokenBalance = 150.0.toBigDecimal(),
+                lifetimeSpent = 75.0.toBigDecimal()
             )
 
             
@@ -337,8 +338,8 @@ class WalletRepositoryImplTest {
 
             
             assertNotNull(result)
-            assertEquals(150.0, result.tokenBalance)
-            assertEquals(75.0, result.lifetimeSpent)
+            assertEquals(150.0.toBigDecimal(), result.tokenBalance)
+            assertEquals(75.0.toBigDecimal(), result.lifetimeSpent)
         }
 
         @Test
@@ -356,21 +357,21 @@ class WalletRepositoryImplTest {
         @Test
         fun `update should persist changes to database`() = runBlocking {
             
-            val original = testWallet(userId = "user-1", tokenBalance = 100.0)
+            val original = testWallet(userId = "user-1", tokenBalance = 100.0.toBigDecimal())
             val user = testUser(original.userId)
             dbQuery {
                 userRepository.create(user)
                 walletRepository.create(original)
             }
 
-            val updated = original.copy(tokenBalance = 200.0)
+            val updated = original.copy(tokenBalance = 200.0.toBigDecimal())
 
             
             dbQuery { walletRepository.update("user-1", updated) }
             val found = dbQuery { walletRepository.findById("user-1") }
 
             
-            assertEquals(200.0, found?.tokenBalance)
+            assertEquals(200.0.toBigDecimal(), found?.tokenBalance)
         }
 
         @Test
@@ -384,9 +385,9 @@ class WalletRepositoryImplTest {
             }
 
             val updated = original.copy(
-                tokenBalance = 250.0,
-                lifetimeSpent = 125.0,
-                lifetimePurchased = 375.0,
+                tokenBalance = 250.0.toBigDecimal(),
+                lifetimeSpent = 125.0.toBigDecimal(),
+                lifetimePurchased = 375.0.toBigDecimal(),
                 currency = "USD"
             )
 
@@ -395,9 +396,9 @@ class WalletRepositoryImplTest {
 
             
             assertNotNull(result)
-            assertEquals(250.0, result.tokenBalance)
-            assertEquals(125.0, result.lifetimeSpent)
-            assertEquals(375.0, result.lifetimePurchased)
+            assertEquals(250.0.toBigDecimal(), result.tokenBalance)
+            assertEquals(125.0.toBigDecimal(), result.lifetimeSpent)
+            assertEquals(375.0.toBigDecimal(), result.lifetimePurchased)
             assertEquals("USD", result.currency)
         }
     }
@@ -410,8 +411,8 @@ class WalletRepositoryImplTest {
             
             val wallet = testWallet(
                 userId = "user-1",
-                tokenBalance = 100.0,
-                lifetimeSpent = 50.0
+                tokenBalance = 100.0.toBigDecimal(),
+                lifetimeSpent = 50.0.toBigDecimal()
             )
             val user = testUser(wallet.userId)
             dbQuery {
@@ -420,12 +421,12 @@ class WalletRepositoryImplTest {
             }
 
             
-            val updated = dbQuery { walletRepository.updateBalance("user-1", 150.0, wallet.lifetimeSpent) }
+            val updated = dbQuery { walletRepository.updateBalance("user-1", 150.0.toBigDecimal(), wallet.lifetimeSpent) }
 
             
             assertNotNull(updated)
-            assertEquals(150.0, updated.tokenBalance)
-            assertEquals(50.0, updated.lifetimeSpent)
+            assertEquals(150.0.toBigDecimal(), updated.tokenBalance)
+            assertEquals(50.0.toBigDecimal(), updated.lifetimeSpent)
         }
 
         @Test
@@ -439,7 +440,7 @@ class WalletRepositoryImplTest {
             }
 
             
-            val updated = dbQuery { walletRepository.updateBalance("user-1", 75.0, 50.0) }
+            val updated = dbQuery { walletRepository.updateBalance("user-1", 75.0.toBigDecimal(), 50.0.toBigDecimal()) }
 
             
             assertNotNull(updated)
@@ -449,7 +450,7 @@ class WalletRepositoryImplTest {
         @Test
         fun `updateBalance should return null when wallet does not exist`() = runBlocking {
             
-            val result = dbQuery { walletRepository.updateBalance("nonexistent", 100.0, 200.0) }
+            val result = dbQuery { walletRepository.updateBalance("nonexistent", 100.0.toBigDecimal(), 200.0.toBigDecimal()) }
 
             
             assertNull(result)
@@ -457,17 +458,17 @@ class WalletRepositoryImplTest {
 
         @Test
         fun `updateBalance should handle zero balance`() = runBlocking {
-            val wallet = testWallet(userId = "user-1", tokenBalance = 100.0)
+            val wallet = testWallet(userId = "user-1", tokenBalance = 100.0.toBigDecimal())
             val user = testUser(wallet.userId)
             dbQuery {
                 userRepository.create(user)
                 walletRepository.create(wallet)
             }
             
-            val updated = dbQuery { walletRepository.updateBalance("user-1", 0.0,50.0) }
+            val updated = dbQuery { walletRepository.updateBalance("user-1", 0.0.toBigDecimal(),50.0.toBigDecimal()) }
 
             assertNotNull(updated)
-            assertEquals(0.0, updated.tokenBalance)
+            assertEquals(0.0.toBigDecimal(), updated.tokenBalance)
         }
 
         @Test
@@ -481,17 +482,17 @@ class WalletRepositoryImplTest {
             }
 
             
-            val updated = dbQuery { walletRepository.updateBalance("user-1", 123.45, 50.0) }
+            val updated = dbQuery { walletRepository.updateBalance("user-1", 123.45.toBigDecimal(), 50.0.toBigDecimal()) }
 
             
             assertNotNull(updated)
-            assertEquals(123.45, updated.tokenBalance, 0.001)
+            assertEquals(123.45.toBigDecimal(), updated.tokenBalance)
         }
 
         @Test
         fun `updateBalance should persist changes to database`() = runBlocking {
             
-            val wallet = testWallet(userId = "user-1", tokenBalance = 100.0)
+            val wallet = testWallet(userId = "user-1", tokenBalance = 100.0.toBigDecimal())
             val user = testUser(wallet.userId)
             dbQuery {
                 userRepository.create(user)
@@ -499,11 +500,11 @@ class WalletRepositoryImplTest {
             }
 
             
-            dbQuery { walletRepository.updateBalance("user-1", 200.0, 150.0) }
+            dbQuery { walletRepository.updateBalance("user-1", 200.0.toBigDecimal(), 150.0.toBigDecimal()) }
             val found = dbQuery { walletRepository.findById("user-1") }
 
             
-            assertEquals(200.0, found?.tokenBalance)
+            assertEquals(200.0.toBigDecimal(), found?.tokenBalance)
         }
     }
 
@@ -609,9 +610,9 @@ class WalletRepositoryImplTest {
     // Helper function to create test wallet
     private fun testWallet(
         userId: String = "user-123",
-        tokenBalance: Double = 100.0,
-        lifetimeSpent: Double = 50.0,
-        lifetimePurchased: Double = 150.0,
+        tokenBalance: BigDecimal = 100.0.toBigDecimal(),
+        lifetimeSpent: BigDecimal = 50.0.toBigDecimal(),
+        lifetimePurchased: BigDecimal = 150.0.toBigDecimal(),
         currency: String = "GBP"
     ) = Wallet(
         userId = userId,

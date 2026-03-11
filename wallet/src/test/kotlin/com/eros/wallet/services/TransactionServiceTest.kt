@@ -30,8 +30,8 @@ class TransactionServiceTest {
                 transactionId = 1L,
                 userId = "user-1",
                 type = TransactionType.SPEND,
-                amount = -50.0,
-                balanceAfter = 50.0,
+                amount = (-50.0).toBigDecimal(),
+                balanceAfter = 50.0.toBigDecimal(),
                 description = "Date commitment",
                 status = TransactionStatus.COMPLETED,
                 relatedDateId = 123L,
@@ -43,15 +43,15 @@ class TransactionServiceTest {
 
             val result = service.createSpendTransaction(
                 userId = "user-1",
-                amount = 50.0,
-                newBalance = 50.0,
+                amount = 50.0.toBigDecimal(),
+                newBalance = 50.0.toBigDecimal(),
                 description = "Date commitment",
                 relatedDateId = 123L,
                 idempotencyKey = "key-123",
                 metadata = emptyMap()
             )
 
-            assertEquals(-50.0, result.amount)  // Negative for spend
+            assertEquals((-50.0).toBigDecimal(), result.amount)  // Negative for spend
             assertEquals(TransactionType.SPEND, result.type)
             assertEquals(TransactionStatus.COMPLETED, result.status)
             assertNull(result.stripePaymentIntentId)
@@ -59,7 +59,7 @@ class TransactionServiceTest {
 
             coVerify {
                 mockTransactionRepo.create(match {
-                    it.amount == -50.0 &&
+                    it.amount == (-50.0).toBigDecimal() &&
                             it.type == TransactionType.SPEND &&
                             it.relatedDateId == 123L
                 })
@@ -76,12 +76,12 @@ class TransactionServiceTest {
                 transactionId = 1L,
                 userId = "user-1",
                 type = TransactionType.PURCHASE,
-                amount = 100.0,
-                balanceAfter = 100.0,
+                amount = 100.0.toBigDecimal(),
+                balanceAfter = 100.0.toBigDecimal(),
                 description = "Purchased 100.0 tokens",
                 status = TransactionStatus.PENDING,
                 stripePaymentIntentId = "pi_123",
-                amountPaidGBP = 45.00,
+                amountPaidGBP = 45.00.toBigDecimal(),
                 idempotencyKey = "key-123",
                 createdAt = Instant.parse("2024-01-15T10:00:00Z")
             )
@@ -90,18 +90,18 @@ class TransactionServiceTest {
 
             val result = service.createPurchaseTransaction(
                 userId = "user-1",
-                tokenAmount = 100.0,
-                newBalance = 100.0,
-                amountPaidGBP = 45.00,
+                tokenAmount = 100.0.toBigDecimal(),
+                newBalance = 100.0.toBigDecimal(),
+                amountPaidGBP = 45.00.toBigDecimal(),
                 stripePaymentIntentId = "pi_123",
                 idempotencyKey = "key-123",
                 metadata = emptyMap()
             )
 
-            assertEquals(100.0, result.amount)  // Positive for purchase
+            assertEquals(100.0.toBigDecimal(), result.amount)  // Positive for purchase
             assertEquals(TransactionType.PURCHASE, result.type)
             assertEquals("pi_123", result.stripePaymentIntentId)
-            assertEquals(45.00, result.amountPaidGBP)
+            assertEquals(45.00.toBigDecimal(), result.amountPaidGBP)
             assertNull(result.relatedDateId)
         }
     }
@@ -115,8 +115,8 @@ class TransactionServiceTest {
                 transactionId = 2L,
                 userId = "user-1",
                 type = TransactionType.REFUND,
-                amount = 50.0,
-                balanceAfter = 100.0,
+                amount = 50.0.toBigDecimal(),
+                balanceAfter = 100.0.toBigDecimal(),
                 description = "Refund for cancelled date",
                 status = TransactionStatus.COMPLETED,
                 relatedDateId = 123L,
@@ -128,15 +128,15 @@ class TransactionServiceTest {
 
             val result = service.createRefundTransaction(
                 userId = "user-1",
-                amount = 50.0,
-                newBalance = 100.0,
+                amount = 50.0.toBigDecimal(),
+                newBalance = 100.0.toBigDecimal(),
                 description = "Refund for cancelled date",
                 relatedDateId = 123L,
                 relatedTransactionId = 1L,
                 metadata = emptyMap()
             )
 
-            assertEquals(50.0, result.amount)  // Positive for refund
+            assertEquals(50.0.toBigDecimal(), result.amount)  // Positive for refund
             assertEquals(TransactionType.REFUND, result.type)
             assertEquals(123L, result.relatedDateId)
             assertEquals(1L, result.relatedTransactionId)

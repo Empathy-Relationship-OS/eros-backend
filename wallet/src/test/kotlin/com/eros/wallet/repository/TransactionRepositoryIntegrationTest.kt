@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Assertions.*
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
+import java.math.BigDecimal
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
@@ -98,8 +99,8 @@ class TransactionRepositoryImplTest {
             assertTrue(created.transactionId > 0)
             assertEquals("user-1", created.userId)
             assertEquals(TransactionType.PURCHASE, created.type)
-            assertEquals(100.0, created.amount)
-            assertEquals(200.0, created.balanceAfter)
+            assertEquals(100.0.toBigDecimal(), created.amount)
+            assertEquals(200.0.toBigDecimal(), created.balanceAfter)
         }
 
         @Test
@@ -232,7 +233,7 @@ class TransactionRepositoryImplTest {
             val transaction = testTransaction(
                 userId = "user-1",
                 stripePaymentIntentId = "pi_test123",
-                amountPaidGBP = 25.00
+                amountPaidGBP = 25.00.toBigDecimal()
             )
 
             
@@ -244,7 +245,7 @@ class TransactionRepositoryImplTest {
 
             
             assertEquals("pi_test123", created.stripePaymentIntentId)
-            assertEquals(25.00, created.amountPaidGBP)
+            assertEquals(25.00.toBigDecimal(), created.amountPaidGBP)
         }
 
         @Test
@@ -308,9 +309,9 @@ class TransactionRepositoryImplTest {
             
             val user = testUser("user-1")
             val wallet = testWallet("user-1")
-            val tx1 = testTransaction(userId = "user-1", amount = 100.0)
-            val tx2 = testTransaction(userId = "user-1", amount = 200.0)
-            val tx3 = testTransaction(userId = "user-1", amount = 300.0)
+            val tx1 = testTransaction(userId = "user-1", amount = 100.0.toBigDecimal())
+            val tx2 = testTransaction(userId = "user-1", amount = 200.0.toBigDecimal())
+            val tx3 = testTransaction(userId = "user-1", amount = 300.0.toBigDecimal())
 
             val created = dbQuery {
                 userRepository.create(user)
@@ -327,7 +328,7 @@ class TransactionRepositoryImplTest {
 
             
             assertNotNull(found)
-            assertEquals(200.0, found.amount)
+            assertEquals(200.0.toBigDecimal(), found.amount)
         }
     }
 
@@ -394,7 +395,7 @@ class TransactionRepositoryImplTest {
 
             
             assertEquals(2, user1Transactions.size)
-            assertTrue(user1Transactions.all { it?.userId == "user-1" })
+            assertTrue(user1Transactions.all { it.userId == "user-1" })
         }
 
         @Test
@@ -415,9 +416,9 @@ class TransactionRepositoryImplTest {
             dbQuery {
                 userRepository.create(user)
                 walletRepository.create(wallet)
-                transactionRepository.create(testTransaction(userId = "user-1", amount = 100.0))
-                transactionRepository.create(testTransaction(userId = "user-1", amount = 200.0))
-                transactionRepository.create(testTransaction(userId = "user-1", amount = 300.0))
+                transactionRepository.create(testTransaction(userId = "user-1", amount = 100.0.toBigDecimal()))
+                transactionRepository.create(testTransaction(userId = "user-1", amount = 200.0.toBigDecimal()))
+                transactionRepository.create(testTransaction(userId = "user-1", amount = 300.0.toBigDecimal()))
             }
 
             
@@ -551,7 +552,7 @@ class TransactionRepositoryImplTest {
             
             val user = testUser("user-1")
             val wallet = testWallet("user-1")
-            val original = testTransaction(userId = "user-1", amount = 100.0)
+            val original = testTransaction(userId = "user-1", amount = 100.0.toBigDecimal())
 
             val created = dbQuery {
                 userRepository.create(user)
@@ -559,14 +560,14 @@ class TransactionRepositoryImplTest {
                 transactionRepository.create(original)
             }
 
-            val updated = created.copy(amount = 200.0)
+            val updated = created.copy(amount = 200.0.toBigDecimal())
 
             
             dbQuery { transactionRepository.update(created.transactionId, updated) }
             val found = dbQuery { transactionRepository.findById(created.transactionId) }
 
             
-            assertEquals(200.0, found?.amount)
+            assertEquals(200.0.toBigDecimal(), found?.amount)
         }
     }
 
@@ -692,14 +693,14 @@ class TransactionRepositoryImplTest {
         transactionId: Long = 0L,
         userId: String = "user-123",
         type: TransactionType = TransactionType.PURCHASE,
-        amount: Double = 100.0,
-        balanceAfter: Double = 200.0,
+        amount: BigDecimal = 100.0.toBigDecimal(),
+        balanceAfter: BigDecimal = 200.0.toBigDecimal(),
         description: String = "Test transaction",
         status: TransactionStatus = TransactionStatus.COMPLETED,
         relatedDateId: Long? = null,
         relatedTransactionId: Long? = null,
         stripePaymentIntentId: String? = null,
-        amountPaidGBP: Double? = null,
+        amountPaidGBP: BigDecimal? = null,
         idempotencyKey: String? = null,
         metadata: Map<String, String> = emptyMap()
     ) = Transaction(
@@ -721,9 +722,9 @@ class TransactionRepositoryImplTest {
 
     private fun testWallet(
         userId: String = "user-123",
-        tokenBalance: Double = 100.0,
-        lifetimeSpent: Double = 50.0,
-        lifetimePurchased: Double = 150.0,
+        tokenBalance: BigDecimal = 100.0.toBigDecimal(),
+        lifetimeSpent: BigDecimal = 50.0.toBigDecimal(),
+        lifetimePurchased: BigDecimal = 150.0.toBigDecimal(),
         currency: String = "GBP"
     ) = Wallet(
         userId = userId,

@@ -3,10 +3,14 @@ package com.eros.wallet.services
 import com.eros.common.errors.NotFoundException
 import com.eros.database.dbQuery
 import com.eros.wallet.models.Transaction
+import com.eros.wallet.models.TransactionHistory
+import com.eros.wallet.models.TransactionHistoryResponse
 import com.eros.wallet.models.TransactionStatus
 import com.eros.wallet.models.TransactionType
+import com.eros.wallet.models.toDTO
 import com.eros.wallet.repository.TransactionRepository
 import com.eros.wallet.repository.WalletRepository
+import java.math.BigDecimal
 import java.time.Clock
 import java.time.Instant
 
@@ -20,8 +24,23 @@ class TransactionService(
      *
      * @return [Transaction] if found, otherwise `null`.
      */
-    suspend fun findByIdempotencyKey(idempotencyKey: String): Transaction? = dbQuery {
-        transactionRepository.findByIdempotencyKey(idempotencyKey)
+    suspend fun findByIdempotencyKey(idempotencyKey: String): Transaction?{
+        return transactionRepository.findByIdempotencyKey(idempotencyKey)
+    }
+
+    /**
+     * Service to find all the pending transactions for a user.
+     */
+    suspend fun findUserPendingTransactions(userId: String) : List<Transaction>{
+        return transactionRepository.findPendingByUserId(userId)
+    }
+
+
+    /**
+     * Service to find all the pending transactions for a user.
+     */
+    suspend fun findUserTransactionsForDate(userId: String, relatedDateId: Long) : List<Transaction>{
+        return transactionRepository.findByUserIdAndDateId(userId, relatedDateId)
     }
 
 
@@ -35,9 +54,9 @@ class TransactionService(
      */
     suspend fun createPurchaseTransaction(
         userId: String,
-        tokenAmount: Double,
-        newBalance: Double,
-        amountPaidGBP: Double,
+        tokenAmount: BigDecimal,
+        newBalance: BigDecimal,
+        amountPaidGBP: BigDecimal,
         stripePaymentIntentId: String,
         idempotencyKey: String,
         status: TransactionStatus = TransactionStatus.PENDING,
@@ -71,11 +90,11 @@ class TransactionService(
      */
     suspend fun createSpendTransaction(
         userId: String,
-        amount: Double,
+        amount: BigDecimal,
         description: String,
         relatedDateId: Long?,
         idempotencyKey: String,
-        newBalance: Double,
+        newBalance: BigDecimal,
         metadata: Map<String, String>
     ): Transaction {
         val transaction = Transaction(
@@ -104,11 +123,11 @@ class TransactionService(
      */
     suspend fun createRefundTransaction(
         userId: String,
-        amount: Double,
+        amount: BigDecimal,
         description: String,
         relatedDateId: Long?,
         relatedTransactionId: Long,
-        newBalance: Double,
+        newBalance: BigDecimal,
         metadata: Map<String, String>
     ): Transaction {
         val transaction = Transaction(
@@ -136,10 +155,16 @@ class TransactionService(
     suspend fun getTransactionHistory(
         userId: String,
         limit: Int = 20,
-        offset: Int = 0
-    ): List<Transaction> {
-        return transactionRepository.findByUserId(userId)
-            .drop(offset)
-            .take(limit)
+        offset: Int = 0,
+        type: String? = null
+    ): TransactionHistory {
+       val history = if (type == null) {
+            transactionRepository.findByUserId(userId)
+        }else{
+            transactionRepository.findByUserIdAndType(userId, TransactionType.valueOf(type))
+        }
+        val hasMore = history.size > limit+offset
+        history.drop(offset).take(limit)
+        return TransactionHistory(history, history.size, hasMore)
     }
 }
