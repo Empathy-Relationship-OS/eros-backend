@@ -5,6 +5,7 @@ import com.eros.common.errors.ForbiddenException
 import com.eros.common.errors.InsufficientBalanceException
 import com.eros.common.errors.NotFoundException
 import com.eros.database.dbQuery
+import com.eros.wallet.models.Purchase
 import com.eros.wallet.models.PurchaseRequest
 import com.eros.wallet.models.PurchaseResponse
 import com.eros.wallet.models.RefundPolicy
@@ -63,15 +64,39 @@ class WalletService(
     }
 
 
+    suspend fun markTransactionSuccessful(
+        transactionId: Long,
+        idempotencyKey: String
+    ): Transaction? = dbQuery {
+        transactionService.updateTransactionStatus(
+            idempotencyKey = idempotencyKey,
+            status = TransactionStatus.COMPLETED,
+            stripePaymentIntentId = "stripePaymentIntentId",
+            reason = ""
+        )
+    }
+
+    suspend fun markTransactionFailed(
+        idempotencyKey: String,
+        reason: String
+    ): Transaction? = dbQuery {
+        transactionService.updateTransactionStatus(
+            idempotencyKey = idempotencyKey,
+            status = TransactionStatus.FAILED,
+            stripePaymentIntentId = "awd",
+            reason = reason
+        )
+    }
+
     /**
      * Creates a purchase intent for token purchase.
      * Does NOT credit balance - that happens when Stripe webhook confirms payment.
      */
-    suspend fun createPurchase(userId: String, request: PurchaseRequest): PurchaseResponse = dbQuery {
+    suspend fun createPurchase(userId: String, request: PurchaseRequest): Purchase = dbQuery {
         // 1. Check idempotency
         transactionService.findByIdempotencyKey(request.idempotencyKey)?.let { existing ->
             // Already processed - return existing response
-            return@dbQuery PurchaseResponse(
+            return@dbQuery Purchase(
                 clientSecret = existing.stripePaymentIntentId ?: "",
                 paymentIntentId = existing.stripePaymentIntentId ?: "",
                 amount = existing.amountPaidGBP ?: 0.toBigDecimal(),
@@ -85,7 +110,7 @@ class WalletService(
             )
         }
 
-        // 2. Get wallet (with lock to ensure consistency)
+        // 2. Get wallet - with lock.
         val wallet = walletRepository.findByIdForUpdate(userId)
             ?: throw NotFoundException("Can't find user $userId's wallet.")
 
@@ -96,7 +121,7 @@ class WalletService(
             throw IllegalArgumentException("Invalid package type: ${request.packageType}")
         }
 
-        // 4. Create pending transaction (balance not yet updated)
+        // 4. Create pending transaction
         val transaction = transactionService.createPurchaseTransaction(
             userId = userId,
             tokenAmount = pack.tokens,
@@ -108,8 +133,8 @@ class WalletService(
             metadata = emptyMap()
         )
 
-        // 5. Return purchase response
-        PurchaseResponse(
+        // 5. Return purchase
+        Purchase(
             clientSecret = transaction.stripePaymentIntentId ?: "",
             paymentIntentId = transaction.stripePaymentIntentId ?: "",
             amount = pack.priceGBP,
@@ -341,12 +366,12 @@ class WalletService(
 
         // Calculate pending balance from pending transactions
         val pendingSpends = transactionService.findUserPendingTransactions(userId)
-        val pendingBalance = pendingSpends.sumOf { it.amount.abs() }
+        val pendingBalance = pendingSpends.sumOf { it.amount }
 
         // Return WalletResponse with pending balance.
         WalletWithPending(
             tokenBalance = wallet.tokenBalance,
-            pendingTokenBalance = pendingBalance,
+            pendingTokenBalance = wallet.tokenBalance + pendingBalance,
             lifetimeSpent = wallet.lifetimeSpent,
             lifetimePurchased = wallet.lifetimePurchased,
             currency = wallet.currency

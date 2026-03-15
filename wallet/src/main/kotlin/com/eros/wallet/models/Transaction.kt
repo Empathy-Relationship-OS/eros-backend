@@ -29,7 +29,7 @@ data class Transaction(
 )
 
 /**
- * Transaction history domain object..
+ * Transaction history domain object.
  */
 data class TransactionHistory(
     val transactions: List<Transaction>,

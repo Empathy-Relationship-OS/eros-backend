@@ -5,6 +5,8 @@ import com.eros.common.serializers.LocalDateSerializer
 import kotlinx.serialization.Serializable
 import java.time.Instant
 import java.time.LocalDate
+import java.time.Clock
+import java.time.ZoneId
 
 /**
  * User domain model representing a complete user profile
@@ -419,3 +421,104 @@ fun User.toVisibilityDTO() = ProfileStatusDTO(
  */
 @Serializable
 data class DisplayableField<T>(val field: T, val display: Boolean)
+
+
+/**
+ * Function to create a test user, with every field being able to altered.
+ */
+/**
+ * The following function is used in test classes to get a centralized User object, available to alter as required.
+ * Avoids each test class having their own version that will need to be updated in the event of changes to User.
+ */
+val testClock: Clock = Clock.fixed(Instant.parse("2024-01-15T10:00:00Z"), ZoneId.of("UTC"))
+
+fun createTestUser(
+    userId: String = "test-user-id",
+    firstName: String = "John",
+    lastName: String = "Doe",
+    email: String = "john.doe@example.com",
+    heightCm: Int = 180,
+    dateOfBirth: LocalDate = LocalDate.of(1990, 1, 1),
+    city: String = "London",
+    educationLevel: EducationLevel = EducationLevel.UNIVERSITY,
+    gender: Gender = Gender.MALE,
+    occupation: String = "Engineer",
+    bio: String = "Test bio",
+    interests: List<String> = List(5) { "Interest$it" },
+    traits: List<Trait> = List(3) { Trait.entries[it] },
+    preferredLanguage: Language = Language.ENGLISH,
+    spokenLanguages: DisplayableField<List<Language>> = DisplayableField(listOf(Language.ENGLISH), true),
+    religion: DisplayableField<Religion?> = DisplayableField(Religion.CHRISTIANITY, true),
+    politicalView: DisplayableField<PoliticalView?> = DisplayableField(PoliticalView.MODERATE, true),
+    alcoholConsumption: DisplayableField<AlcoholConsumption?> = DisplayableField(AlcoholConsumption.SOMETIMES, true),
+    smokingStatus: DisplayableField<SmokingStatus?> = DisplayableField(SmokingStatus.NEVER, true),
+    diet: DisplayableField<Diet?> = DisplayableField(Diet.HALAL, true),
+    dateIntentions: DisplayableField<DateIntentions> = DisplayableField(DateIntentions.SERIOUS_DATING, true),
+    relationshipType: DisplayableField<RelationshipType> = DisplayableField(RelationshipType.MONOGAMOUS, true),
+    kidsPreference: DisplayableField<KidsPreference> = DisplayableField(KidsPreference.OPEN_TO_KIDS, true),
+    sexualOrientation: DisplayableField<SexualOrientation> = DisplayableField(SexualOrientation.STRAIGHT, true),
+    pronouns: DisplayableField<Pronouns?> = DisplayableField(Pronouns.HE_HIM, true),
+    starSign: DisplayableField<StarSign?> = DisplayableField(StarSign.GEMINI, true),
+    ethnicity: DisplayableField<List<Ethnicity>> = DisplayableField(listOf(Ethnicity.BLACK_AFRICAN_DESCENT), true),
+    brainAttributes: DisplayableField<List<BrainAttribute>?> = DisplayableField(
+        listOf(BrainAttribute.LEARNING_DISABILITY, BrainAttribute.NEURODIVERGENT),
+        true
+    ),
+    brainDescription: DisplayableField<String?> = DisplayableField("Maybe this is string?", true),
+    bodyAttributes: DisplayableField<List<BodyAttribute>?> = DisplayableField(listOf(BodyAttribute.WHEELCHAIR), true),
+    bodyDescription: DisplayableField<String?> = DisplayableField("Is this a string?", true),
+    createdAt: Instant = Instant.now(testClock),
+    updatedAt: Instant = Instant.now(testClock),
+    deletedAt: Instant? = null,
+    profileStatus: ProfileStatus = ProfileStatus.ACTIVE,
+    eloScore: Int = 1000,
+    badges: Set<Badge> = setOf(Badge.VERIFIED, Badge.TRUSTED, Badge.GOOD_XP),
+    profileCompleteness: Int = 75,
+    coordinatesLongitude: Double = 45.3246,
+    coordinatesLatitude: Double = -90.0,
+    role: Role = Role.USER,
+    photoValidationStatus: ValidationStatus = ValidationStatus.VALIDATED
+) = User(
+    userId                  = userId,
+    firstName               = firstName,
+    lastName                = lastName,
+    email                   = email,
+    heightCm                = heightCm,
+    dateOfBirth             = dateOfBirth,
+    city                    = city,
+    educationLevel          = educationLevel,
+    gender                  = gender,
+    occupation              = occupation,
+    bio                     = bio,
+    interests               = interests,
+    traits                  = traits,
+    preferredLanguage       = preferredLanguage,
+    spokenLanguages         = spokenLanguages,
+    religion                = religion,
+    politicalView           = politicalView,
+    alcoholConsumption      = alcoholConsumption,
+    smokingStatus           = smokingStatus,
+    diet                    = diet,
+    dateIntentions          = dateIntentions,
+    relationshipType        = relationshipType,
+    kidsPreference          = kidsPreference,
+    sexualOrientation       = sexualOrientation,
+    pronouns                = pronouns,
+    starSign                = starSign,
+    ethnicity               = ethnicity,
+    brainAttributes         = brainAttributes,
+    brainDescription        = brainDescription,
+    bodyAttributes          = bodyAttributes,
+    bodyDescription         = bodyDescription,
+    createdAt               = createdAt,
+    updatedAt               = updatedAt,
+    deletedAt               = deletedAt,
+    profileStatus           = profileStatus,
+    eloScore                = eloScore,
+    badges                  = badges,
+    profileCompleteness     = profileCompleteness,
+    coordinatesLongitude    = coordinatesLongitude,
+    coordinatesLatitude     = coordinatesLatitude,
+    role                    = role,
+    photoValidationStatus   = photoValidationStatus
+)

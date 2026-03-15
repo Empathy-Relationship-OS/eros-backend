@@ -2,6 +2,7 @@ package com.eros.wallet.models
 
 import kotlinx.serialization.Serializable
 import java.math.BigDecimal
+import kotlin.String
 
 /**
  * Request DTO for purchasing tokens.
@@ -22,6 +23,21 @@ data class PurchaseRequest(
         require(idempotencyKey.isNotBlank()) { "Idempotency key cannot be blank" }
     }
 }
+
+
+/**
+ * Domain object for a purchase.
+ */
+data class Purchase(
+    val clientSecret: String,
+    val paymentIntentId: String,
+    val amount: BigDecimal,
+    val currency: String,
+    val tokenAmount: BigDecimal,
+    val status: TransactionStatus,
+    val newBalance: BigDecimal? = null,
+    val transactionId: Long? = null
+)
 
 
 /**
@@ -49,4 +65,23 @@ data class PurchaseResponse(
     @Serializable(with = BigDecimalSerializer::class)
     val newBalance: BigDecimal? = null,
     val transactionId: Long? = null
+)
+
+fun Purchase.toDTO() = PurchaseResponse(
+    clientSecret = clientSecret,
+    paymentIntentId = paymentIntentId,
+    amount = amount,
+    currency = currency,
+    tokenAmount = tokenAmount,
+    status = status,
+    newBalance = newBalance,
+    transactionId = transactionId
+)
+
+
+@Serializable
+data class SpendTokenRequest(
+    val relatedDateId : Long,
+    val activity: String,
+    val idempotencyKey : String
 )

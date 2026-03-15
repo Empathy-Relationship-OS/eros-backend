@@ -1,5 +1,6 @@
 package com.eros.wallet.repository
 
+import com.eros.common.errors.NotFoundException
 import com.eros.database.repository.BaseDAOImpl
 import com.eros.wallet.models.Transaction
 import com.eros.wallet.models.TransactionStatus
@@ -11,7 +12,10 @@ import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.statements.UpdateBuilder
+import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.update
+import org.jetbrains.exposed.v1.jdbc.updateReturning
 import java.time.Clock
 import java.time.Instant
 
@@ -75,7 +79,8 @@ class TransactionRepositoryImpl(
     override suspend fun findPendingByUserId(userId: String): List<Transaction> {
         return table
             .selectAll().where {
-                (Transactions.userId eq userId) and (Transactions.status eq TransactionStatus.PENDING) }
+                (Transactions.userId eq userId) and (Transactions.status eq TransactionStatus.PENDING)
+            }
             .map { it.toTransactionDomain() }
     }
 
@@ -86,8 +91,46 @@ class TransactionRepositoryImpl(
     override suspend fun findByUserIdAndDateId(userId: String, relatedDateId: Long): List<Transaction> {
         return table
             .selectAll().where {
-                (Transactions.userId eq userId) and (Transactions.relatedDateId eq relatedDateId) }
+                (Transactions.userId eq userId) and (Transactions.relatedDateId eq relatedDateId)
+            }
             .map { it.toTransactionDomain() }
+    }
+
+
+    /**
+     * Function for finding a transaction based on stripe payment intent id.
+     */
+    override suspend fun findByStripePaymentIntentId(stripePaymentIntentId: String): Transaction? {
+        return table.selectAll().where {
+            Transactions.stripePaymentIntentId eq stripePaymentIntentId
+        }
+            .singleOrNull()?.toTransactionDomain()
+    }
+
+
+    override suspend fun updateTransactionStatus(
+        idempotencyKey: String,
+        status: TransactionStatus,
+        stripePaymentIntentId: String?,
+        failureReason: String?
+    ): Transaction? {
+        val updated = Transactions.updateReturning(
+            where = { Transactions.idempotencyKey eq idempotencyKey }
+        ) {
+            it[Transactions.status] = status
+            it[Transactions.createdAt] = Instant.now(clock)
+
+            stripePaymentIntentId?.let { intentId ->
+                it[Transactions.stripePaymentIntentId] = intentId
+            }
+
+            failureReason?.let { reason ->
+                it[Transactions.metadata] = Json.encodeToString(
+                    mapOf("failure_reason" to reason)
+                )
+            }
+        }
+        return updated.singleOrNull()?.toDomain()
     }
 
 

@@ -45,6 +45,19 @@ class TransactionService(
 
 
     /**
+     * Function to update the transaction status of a transaction.
+     */
+    suspend fun updateTransactionStatus(
+        idempotencyKey: String,
+        status: TransactionStatus,
+        stripePaymentIntentId : String,
+        reason : String?
+    ) : Transaction? {
+        return transactionRepository.updateTransactionStatus(idempotencyKey, status, stripePaymentIntentId, reason)
+    }
+
+
+    /**
      * Service to create a purchase Transaction.
      *
      * @return [Transaction] once created.
@@ -81,6 +94,26 @@ class TransactionService(
 
         return transactionRepository.create(transaction)
     }
+
+    /**
+     * Function for converting a pending transaction to COMPLETE.
+     */
+    suspend fun completePurchaseTransaction(
+        stripePaymentIntentId: String,
+        newBalance: BigDecimal
+    ): Transaction? {
+        // Find transaction.
+        val transaction = transactionRepository.findByStripePaymentIntentId(stripePaymentIntentId)
+            ?: throw NotFoundException("Transaction not found")
+
+        // Update record and update in database.
+        val updated = transaction.copy(
+            status = TransactionStatus.COMPLETED,
+            balanceAfter = newBalance
+        )
+        return transactionRepository.update(transaction.transactionId, updated)
+    }
+
 
 
     /**
@@ -164,7 +197,7 @@ class TransactionService(
             transactionRepository.findByUserIdAndType(userId, TransactionType.valueOf(type))
         }
         val hasMore = history.size > limit+offset
-        history.drop(offset).take(limit)
-        return TransactionHistory(history, history.size, hasMore)
+        val paginated = history.drop(offset).take(limit)
+        return TransactionHistory(paginated, paginated.size, hasMore)
     }
 }
