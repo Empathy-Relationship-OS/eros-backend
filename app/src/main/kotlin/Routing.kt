@@ -5,6 +5,8 @@ import com.eros.matching.repository.DailyBatchRepositoryImpl
 import com.eros.matching.repository.MatchRepositoryImpl
 import com.eros.matching.routes.matchRoutes
 import com.eros.matching.service.MatchService
+import com.eros.matching.transaction.DatabaseTransactionManager
+import com.eros.matching.transaction.TransactionManager
 import com.eros.users.repository.CityRepositoryImpl
 import com.eros.users.ProfileAccessControl
 import com.eros.users.repository.PhotoRepositoryImpl
@@ -38,6 +40,8 @@ fun Application.configureRouting() {
         }
     }
 
+    val transactionManager = DatabaseTransactionManager()
+
     // Initialize repositories
     val userRepository = UserRepositoryImpl()
     val photoRepository = PhotoRepositoryImpl()
@@ -60,7 +64,7 @@ fun Application.configureRouting() {
     val cityService = CityService(cityRepositoryImpl)
     val preferenceService = PreferenceService(preferenceRepositoryImpl, userService)
     val qaService = QAService(questionRepository, qaRepository)
-    val matchService = MatchService(matchRepository, dailyBatchRepository, userService)
+    val matchService = MatchService(matchRepository, dailyBatchRepository, userService, transactionManager)
 
     val profileAccessControl = ProfileAccessControl()
     routing {

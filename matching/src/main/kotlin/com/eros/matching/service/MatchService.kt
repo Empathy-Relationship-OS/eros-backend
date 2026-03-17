@@ -1,11 +1,12 @@
 package com.eros.matching.service
 
-import com.eros.database.dbQuery
 import com.eros.matching.models.Match
 import com.eros.matching.models.MutualMatchInfo
 import com.eros.matching.models.UserMatchProfile
 import com.eros.matching.repository.DailyBatchRepository
 import com.eros.matching.repository.MatchRepository
+import com.eros.matching.transaction.DatabaseTransactionManager
+import com.eros.matching.transaction.TransactionManager
 import com.eros.users.service.UserService
 import java.time.Instant
 import java.time.LocalDate
@@ -19,7 +20,8 @@ import java.time.ZoneId
 class MatchService(
     private val matchRepository: MatchRepository,
     private val dailyBatchRepository: DailyBatchRepository,
-    private val userService: UserService
+    private val userService: UserService,
+    private val transactionManager: TransactionManager
 ) {
 
     companion object {
@@ -27,16 +29,16 @@ class MatchService(
         const val MAX_DAILY_BATCHES = 3
     }
 
-    suspend fun matchAction(matchId: Long, like: Boolean): Match = dbQuery {
+    suspend fun matchAction(matchId: Long, like: Boolean): Match = transactionManager.execute {
         // todo should we pass in the user commiting the action and detect that they are the same or should we only care about that in route layer?
         val existingMatch = matchRepository.findById(matchId) ?: throw IllegalArgumentException("The match does not exist.")
 
         matchRepository.update(matchId, existingMatch.copy(liked = like))!!
     }
 
-    suspend fun isMutualMatch(fromUserId: String, toUserId: String): Boolean = dbQuery {
-        val originalMatch = matchRepository.getLikeMatch(fromUserId, toUserId)?.isLiked() ?: return@dbQuery false
-        val secondaryMatch = matchRepository.getLikeMatch(toUserId, fromUserId)?.isLiked() ?: return@dbQuery false
+    suspend fun isMutualMatch(fromUserId: String, toUserId: String): Boolean = transactionManager.execute {
+        val originalMatch = matchRepository.getLikeMatch(fromUserId, toUserId)?.isLiked() ?: return@execute false
+        val secondaryMatch = matchRepository.getLikeMatch(toUserId, fromUserId)?.isLiked() ?: return@execute false
 
         originalMatch && secondaryMatch
     }
@@ -74,7 +76,7 @@ class MatchService(
      * @throws DailyBatchLimitExceededException if user has reached 3 batches today
      * @throws NoMatchesAvailableException if no unserved matches exist
      */
-    suspend fun fetchDailyBatch(userId: String): List<UserMatchProfile> = dbQuery {
+    suspend fun fetchDailyBatch(userId: String): List<UserMatchProfile> = transactionManager.execute {
         val today = LocalDate.now(ZoneId.of("UTC"))
 
         // Check daily batch limit
