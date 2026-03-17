@@ -6,8 +6,7 @@ import com.eros.matching.models.MutualMatchInfo
 import com.eros.matching.models.UserMatchProfile
 import com.eros.matching.repository.DailyBatchRepository
 import com.eros.matching.repository.MatchRepository
-import com.eros.users.repository.PhotoRepository
-import com.eros.users.repository.UserRepository
+import com.eros.users.service.UserService
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -20,8 +19,7 @@ import java.time.ZoneId
 class MatchService(
     private val matchRepository: MatchRepository,
     private val dailyBatchRepository: DailyBatchRepository,
-    private val userRepository: UserRepository,
-    private val photoRepository: PhotoRepository
+    private val userService: UserService
 ) {
 
     companion object {
@@ -113,17 +111,15 @@ class MatchService(
      * @return UserMatchProfile or null if user not found
      */
     private suspend fun buildUserMatchProfile(match: Match, servedAt: Instant): UserMatchProfile? {
-        val user = userRepository.findById(match.user2Id) ?: return null
-        val photos = photoRepository.findByUserId(match.user2Id)
-        val primaryPhoto = photos.firstOrNull { it.isPrimary }
+        val userData = userService.getUserMatchProfileData(match.user2Id) ?: return null
 
         return UserMatchProfile(
             matchId = match.matchId,
-            userId = user.userId,
-            name = user.firstName,
-            age = user.getAge(),
-            thumbnailUrl = primaryPhoto?.thumbnailUrl ?: primaryPhoto?.mediaUrl,
-            badges = user.badges?.map { it.name }?.toSet(),
+            userId = userData.userId,
+            name = userData.name,
+            age = userData.age,
+            thumbnailUrl = userData.thumbnailUrl,
+            badges = userData.badges,
             servedAt = servedAt
         )
     }

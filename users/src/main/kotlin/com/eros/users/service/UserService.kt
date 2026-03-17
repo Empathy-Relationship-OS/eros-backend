@@ -21,6 +21,7 @@ import java.time.Instant
  */
 class UserService(
     private val userRepository: UserRepository,
+    private val photoService: PhotoService? = null,
     private val clock: Clock = Clock.systemUTC()
 ) {
 
@@ -237,4 +238,45 @@ class UserService(
         else(user1Interests intersect user2Interests.toSet()).toList()
     }
 
+    /**
+     * Gets lightweight user profile data for matching purposes.
+     *
+     * This method is designed for cross-module communication, allowing the matching
+     * module to retrieve minimal user profile data without directly accessing user repositories.
+     *
+     * @param userId Firebase UID of the user
+     * @return UserMatchProfileData containing basic profile info, or null if user not found
+     */
+    suspend fun getUserMatchProfileData(userId: String): UserMatchProfileData? = dbQuery {
+        val user = userRepository.findById(userId) ?: return@dbQuery null
+
+        val thumbnailUrl = photoService?.let { service ->
+            val photos = service.getUserMedia(userId).media
+            photos.firstOrNull { it.isPrimary }?.thumbnailUrl
+                ?: photos.firstOrNull()?.thumbnailUrl
+        }
+
+        UserMatchProfileData(
+            userId = user.userId,
+            name = user.firstName,
+            age = user.getAge(),
+            thumbnailUrl = thumbnailUrl,
+            badges = user.badges?.map { it.name }?.toSet()
+        )
+    }
+
 }
+
+/**
+ * Lightweight DTO for user profile data used in matching.
+ *
+ * This DTO provides minimal user information needed for match presentation,
+ * avoiding exposure of sensitive profile data across module boundaries.
+ */
+data class UserMatchProfileData(
+    val userId: String,
+    val name: String,
+    val age: Int,
+    val thumbnailUrl: String?,
+    val badges: Set<String>?
+)

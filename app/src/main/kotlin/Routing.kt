@@ -55,12 +55,12 @@ fun Application.configureRouting() {
     val s3Config = S3Config.fromApplicationConfig(environment.config)
 
     // Initialize services
-    val userService = UserService(userRepository)
     val photoService = PhotoService(photoRepository, s3Config)
+    val userService = UserService(userRepository, photoService)
     val cityService = CityService(cityRepositoryImpl)
     val preferenceService = PreferenceService(preferenceRepositoryImpl, userService)
     val qaService = QAService(questionRepository, qaRepository)
-    val matchService = MatchService(matchRepository, dailyBatchRepository, userRepository, photoRepository)
+    val matchService = MatchService(matchRepository, dailyBatchRepository, userService)
 
     val profileAccessControl = ProfileAccessControl()
     routing {
