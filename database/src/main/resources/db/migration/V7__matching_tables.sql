@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS matches (
     user2_id VARCHAR(128) NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
 
     -- Match data
-    liked BOOLEAN NOT NULL DEFAULT FALSE,
+    liked BOOLEAN,
 
     -- Timestamps
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
