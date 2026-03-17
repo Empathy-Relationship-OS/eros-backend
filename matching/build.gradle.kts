@@ -30,6 +30,9 @@ dependencies {
     testImplementation(libs.ktor.server.auth)
     testImplementation(libs.firebase.admin)
     testImplementation(libs.mockk)
+    testImplementation(libs.testcontainers.postgresql)
+    testImplementation(libs.testcontainers.junit)
+    testImplementation(libs.postgresql)
 }
 
 tasks.test {
