@@ -135,8 +135,8 @@ class MatchService(
      * @param targetUserId The potential match user
      * @return True if a served match exists, false otherwise
      */
-    suspend fun hasServedMatch(userId: String, targetUserId: String): Boolean {
-        return matchRepository.hasServedMatch(userId, targetUserId)
+    suspend fun hasServedMatch(userId: String, targetUserId: String): Boolean = transactionManager.execute {
+        matchRepository.hasServedMatch(userId, targetUserId)
     }
 
     /**
