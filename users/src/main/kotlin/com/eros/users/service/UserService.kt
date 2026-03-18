@@ -352,17 +352,3 @@ class UserService(
     }
 
 }
-
-/**
- * Lightweight DTO for user profile data used in matching.
- *
- * This DTO provides minimal user information needed for match presentation,
- * avoiding exposure of sensitive profile data across module boundaries.
- */
-data class UserMatchProfileData(
-    val userId: String,
-    val name: String,
-    val age: Int,
-    val thumbnailUrl: String?,
-    val badges: Set<String>?
-)
