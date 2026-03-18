@@ -5,15 +5,13 @@ import com.eros.common.errors.NotFoundException
 import com.eros.common.plugins.configureExceptionHandling
 import com.eros.users.models.*
 import com.eros.users.service.PreferenceService
-import io.ktor.client.call.body
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation as ClientContentNegotiation
+import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
-import io.ktor.server.plugins.contentnegotiation.ContentNegotiation as ServerContentNegotiation
 import io.ktor.server.routing.*
 import io.ktor.server.testing.*
 import io.mockk.coEvery
@@ -22,16 +20,14 @@ import io.mockk.mockk
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
-import software.amazon.awssdk.profiles.Profile
 import java.time.Instant
-import java.time.LocalDate
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation as ClientContentNegotiation
+import io.ktor.server.plugins.contentnegotiation.ContentNegotiation as ServerContentNegotiation
 
 class UserPreferenceRoutesTest {
 
-    //todo: Implement tests
     private val mockUserPreferenceService = mockk<PreferenceService>()
 
 
@@ -59,7 +55,6 @@ class UserPreferenceRoutesTest {
             assertEquals(testPreference.genderIdentities, responseBody.genderIdentities)
             assertEquals(testPreference.ageRangeMin, responseBody.ageRangeMin)
             assertEquals(testPreference.ageRangeMax, responseBody.ageRangeMax)
-            println(responseBody)
             coVerify(exactly = 1) { mockUserPreferenceService.findByUserId(testUserId) }
         }
 
@@ -127,9 +122,10 @@ class UserPreferenceRoutesTest {
                 bearer("firebase-auth") {
                     realm = "test-realm"
                     authenticate { credential ->
-                        // Return mock principal based on credential token
-                        // Token format: "user-{userId}"
-                        val userId = credential.token.removePrefix("user-")
+                        // Token format must be: "user-{userId}"
+                        val token = credential.token
+                        if (!token.startsWith("user-")) return@authenticate null
+                        val userId = token.removePrefix("user-")
                         val mockToken = mockk<com.google.firebase.auth.FirebaseToken>(relaxed = true) {
                             coEvery { uid } returns userId
                         }
@@ -179,7 +175,9 @@ class UserPreferenceRoutesTest {
                     cityId = 1L,
                     cityName = "London",
                     createdAt = Instant.now(),
-                    updatedAt = Instant.now()
+                    updatedAt = Instant.now(),
+                    longitude = 5.0,
+                    latitude = 5.0
                 )
             ),
             reachLevel = ReachLevel.OPEN_MINDED,
@@ -189,149 +187,4 @@ class UserPreferenceRoutesTest {
     }
 
 
-    private fun createValidUserRequest(userId: String = "test-user-id"): CreateUserRequest {
-        return CreateUserRequest(
-            userId = userId,
-            firstName = "John",
-            lastName = "Doe",
-            email = "john.doe@example.com",
-            heightCm = 180,
-            dateOfBirth = LocalDate.of(1990, 1, 1),
-            city = "London",
-            educationLevel = EducationLevel.UNIVERSITY,
-            gender = Gender.MALE,
-            preferredLanguage = Language.ENGLISH,
-            occupation = "Engineer",
-            bio = "Test bio",
-            interests = List(5) { "Interest$it" },
-            traits = List(3) { Trait.entries[it] },
-            spokenLanguages = DisplayableField(listOf(Language.ENGLISH), false),
-            religion = DisplayableField(null, false),
-            politicalView = DisplayableField(null, false),
-            alcoholConsumption = DisplayableField(null, false),
-            smokingStatus = DisplayableField(SmokingStatus.NEVER, true),
-            diet = DisplayableField(null, false),
-            dateIntentions = DisplayableField(DateIntentions.SERIOUS_DATING, false),
-            relationshipType = DisplayableField(RelationshipType.MONOGAMOUS, false),
-            kidsPreference = DisplayableField(KidsPreference.OPEN_TO_KIDS, false),
-            sexualOrientation = DisplayableField(SexualOrientation.STRAIGHT, false),
-            pronouns = DisplayableField(null, false),
-            starSign = DisplayableField(null, false),
-            ethnicity = DisplayableField(listOf(Ethnicity.BLACK_AFRICAN_DESCENT), false),
-            brainAttributes = DisplayableField(null, false),
-            brainDescription = DisplayableField(null, false),
-            bodyAttributes = DisplayableField(null, false),
-            bodyDescription = DisplayableField(null, false),
-            coordinatesLongitude = 45.3246,
-            coordinatesLatitude = -314.6,
-        )
-    }
-
-    private fun createTestUser(
-        userId: String = "test-user-id",
-        firstName: String = "John"
-    ): User {
-        val now = Instant.now()
-        return User(
-            userId = userId,
-            firstName = firstName,
-            lastName = "Doe",
-            email = "john.doe@example.com",
-            heightCm = 180,
-            dateOfBirth = LocalDate.of(1990, 1, 1),
-            city = "London",
-            educationLevel = EducationLevel.UNIVERSITY,
-            gender = Gender.MALE,
-            occupation = "Engineer",
-            bio = "Test bio",
-            interests = List(5) { "Interest$it" },
-            traits = List(3) { Trait.entries[it] },
-            preferredLanguage = Language.ENGLISH,
-            spokenLanguages = DisplayableField(listOf(Language.ENGLISH), false),
-            religion = DisplayableField(null, false),
-            politicalView = DisplayableField(null, false),
-            alcoholConsumption = DisplayableField(null, false),
-            smokingStatus = DisplayableField(SmokingStatus.NEVER, true),
-            diet = DisplayableField(null, false),
-            dateIntentions = DisplayableField(DateIntentions.SERIOUS_DATING, false),
-            relationshipType = DisplayableField(RelationshipType.MONOGAMOUS, false),
-            kidsPreference = DisplayableField(KidsPreference.OPEN_TO_KIDS, false),
-            sexualOrientation = DisplayableField(SexualOrientation.STRAIGHT, false),
-            pronouns = DisplayableField(null, false),
-            starSign = DisplayableField(null, false),
-            ethnicity = DisplayableField(listOf(Ethnicity.BLACK_AFRICAN_DESCENT), false),
-            brainAttributes = DisplayableField(null, false),
-            brainDescription = DisplayableField(null, false),
-            bodyAttributes = DisplayableField(null, false),
-            bodyDescription = DisplayableField(null, false),
-            createdAt = now,
-            updatedAt = now,
-            deletedAt = null,
-            profileStatus = ProfileStatus.ACTIVE,
-            eloScore = 1000,
-            badges = setOf(),
-            profileCompleteness = 75,
-            coordinatesLongitude = 45.3246,
-            coordinatesLatitude = -314.6,
-            role = Role.USER,
-            photoValidationStatus = ValidationStatus.VALIDATED
-        )
-    }
-
-    private fun createCompleteTestUser(
-        userId: String = "test-user-id",
-        firstName: String = "John",
-        profileStatus: ProfileStatus = ProfileStatus.ACTIVE
-    ): User {
-        val now = Instant.now()
-        return User(
-            userId = userId,
-            firstName = firstName,
-            lastName = "Doe",
-            email = "john.doe@example.com",
-            heightCm = 180,
-            dateOfBirth = LocalDate.of(1990, 1, 1),
-            city = "London",
-            educationLevel = EducationLevel.UNIVERSITY,
-            gender = Gender.MALE,
-            occupation = "Engineer",
-            bio = "Test bio",
-            interests = List(5) { "Interest$it" },
-            traits = List(3) { Trait.entries[it] },
-            preferredLanguage = Language.ENGLISH,
-            spokenLanguages = DisplayableField(listOf(Language.ENGLISH), true),
-            religion = DisplayableField(Religion.CHRISTIANITY, true),
-            politicalView = DisplayableField(PoliticalView.MODERATE, true),
-            alcoholConsumption = DisplayableField(AlcoholConsumption.SOMETIMES, true),
-            smokingStatus = DisplayableField(SmokingStatus.NEVER, true),
-            diet = DisplayableField(Diet.HALAL, true),
-            dateIntentions = DisplayableField(DateIntentions.SERIOUS_DATING, true),
-            relationshipType = DisplayableField(RelationshipType.MONOGAMOUS, true),
-            kidsPreference = DisplayableField(KidsPreference.OPEN_TO_KIDS, true),
-            sexualOrientation = DisplayableField(SexualOrientation.STRAIGHT, true),
-            pronouns = DisplayableField(Pronouns.HE_HIM, true),
-            starSign = DisplayableField(StarSign.GEMINI, true),
-            ethnicity = DisplayableField(listOf(Ethnicity.BLACK_AFRICAN_DESCENT), true),
-            brainAttributes = DisplayableField(
-                listOf(
-                    BrainAttribute.LEARNING_DISABILITY,
-                    BrainAttribute.NEURODIVERGENT
-                ), true
-            ),
-            brainDescription = DisplayableField("Maybe this is string?", true),
-            bodyAttributes = DisplayableField(listOf(BodyAttribute.WHEELCHAIR), true),
-            bodyDescription = DisplayableField("Is this a string?", true),
-            createdAt = now,
-            updatedAt = now,
-            deletedAt = null,
-            profileStatus = profileStatus,
-            eloScore = 1000,
-            badges = setOf(Badge.VERIFIED, Badge.TRUSTED, Badge.GOOD_XP),
-            profileCompleteness = 75,
-            coordinatesLongitude = 45.3246,
-            coordinatesLatitude = -314.6,
-            role = Role.USER,
-            photoValidationStatus = ValidationStatus.VALIDATED
-        )
-    }
 }

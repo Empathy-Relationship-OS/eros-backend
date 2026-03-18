@@ -6,9 +6,6 @@ import com.eros.users.models.City
 import com.eros.users.models.CreateCityRequest
 import com.eros.users.models.UpdateCityRequest
 import com.eros.users.repository.CityRepository
-import com.eros.users.table.Cities
-import com.eros.users.table.toCityDTO
-import org.jetbrains.exposed.v1.jdbc.selectAll
 import java.time.Clock
 import java.time.Instant
 
@@ -28,7 +25,9 @@ class CityService(
         val now = Instant.now(clock)
         val city = City(
             cityId = 0L, // DB auto-generates the id on insert
-            cityName = request.cityName,
+            cityName = request.cityName.trim(),
+            longitude = request.longitude,
+            latitude = request.latitude,
             createdAt = now,
             updatedAt = now
         )
@@ -45,8 +44,36 @@ class CityService(
      */
     suspend fun updateCity(cityId: Long, request: UpdateCityRequest): City? = dbQuery {
         val existing = cityRepository.findById(cityId) ?: throw NotFoundException("No city with the provided id: $cityId")
-        val updated = existing.copy(cityName = request.newCityName)
+        val updated = existing.copy(cityName = request.newCityName?.trim() ?: existing.cityName,
+            longitude = request.newCityLongitude ?: existing.longitude,
+            latitude = request.newCityLatitude ?: existing.latitude)
         cityRepository.update(cityId, updated)
+    }
+
+
+    /**
+     * Function to find the nearest city to the provided lat and long.
+     *
+     * @param latitude Latitude of the location.
+     * @param longitude Longitude of the location.
+     * @return [City] of the nearest city to the provided coordinates.
+     *
+     * @throws NotFoundException if no nearest city can be found.
+     */
+    suspend fun findNearestCity(latitude: Double, longitude: Double) : List<City> = dbQuery {
+        cityRepository.findNearest(1,latitude, longitude)
+    }
+
+
+    /**
+     * Function to find the nearest cities to the provided lat and long up to [limit] cities.
+     *
+     * @param latitude Latitude of the location.
+     * @param longitude Longitude of the location.
+     * @return List of nearest [limit] [City] to the provided coordinates.
+     */
+    suspend fun findNearestCities(limit: Int, latitude: Double, longitude: Double) : List<City> = dbQuery {
+        cityRepository.findNearest(limit, latitude, longitude)
     }
 
 
@@ -104,7 +131,7 @@ class CityService(
      * @return List of [City] objects for every city in the database.
      */
     suspend fun getAllCities() : List<City> = dbQuery {
-        Cities.selectAll().map { it.toCityDTO()}
+        cityRepository.findAll()
     }
 
 }

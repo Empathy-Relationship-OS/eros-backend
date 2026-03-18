@@ -31,9 +31,14 @@ class PreferenceService(
             dateLimit = request.dateLimit,
             // Stub City objects carrying just the IDs the repo needs for its batch insert.
             // The full City data is populated by the repo via getUserPreferenceWithCities.
-            dateCities = request.dateCities.map { city ->
-                City(cityId = city.cityId, cityName = city.cityName,now,now)
-            },
+            dateCities = request.dateCities.map { city -> City(
+                cityId = city.cityId,
+                cityName = city.cityName,
+                longitude = city.longitude,
+                latitude = city.latitude,
+                createdAt = now,
+                updatedAt = now
+            )},
             reachLevel = request.reachLevel,
             createdAt = now,
             updatedAt = now
@@ -42,9 +47,10 @@ class PreferenceService(
     }
 
     suspend fun updatePreferences(userId: String, request: UpdatePreferenceRequest): UserPreference? = dbQuery {
+        require(request.userId == userId) { "Request userId must match path userId." }
         val now = Instant.now(clock)
         val preference = UserPreference(
-            userId = request.userId,
+            userId = userId,
             genderIdentities = request.genderIdentities,
             ageRangeMin = request.ageRangeMin,
             ageRangeMax = request.ageRangeMax,
@@ -56,9 +62,14 @@ class PreferenceService(
             dateLimit = request.dateLimit,
             // Stub City objects carrying just the IDs the repo needs for its batch insert.
             // The full City data is populated by the repo via getUserPreferenceWithCities.
-            dateCities = request.dateCities.map { city ->
-                City(cityId = city.cityId, cityName = city.cityName,now,now)
-            },
+            dateCities = request.dateCities.map { city -> City(
+                cityId = city.cityId,
+                cityName = city.cityName,
+                longitude = city.longitude,
+                latitude = city.latitude,
+                createdAt = now,
+                updatedAt = now
+            )},
             reachLevel = request.reachLevel,
             createdAt = now,
             updatedAt = now

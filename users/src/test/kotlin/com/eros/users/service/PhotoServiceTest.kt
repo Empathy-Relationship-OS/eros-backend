@@ -6,6 +6,7 @@ import com.eros.users.models.MediaType
 import com.eros.users.models.PresignedUploadRequest
 import com.eros.users.models.UserMediaItem
 import com.eros.users.models.UserMediaItemDTO
+import com.eros.users.models.toDTO
 import com.eros.users.repository.PhotoRepository
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -379,7 +380,7 @@ class PhotoServiceTest {
 
             assertEquals("uid-1", collection.userId)
             assertEquals(2, collection.totalCount)
-            assertEquals(itemsDto, collection.media)
+            assertEquals(itemsDto, collection.media.map{it.toDTO()})
         }
 
         @Test

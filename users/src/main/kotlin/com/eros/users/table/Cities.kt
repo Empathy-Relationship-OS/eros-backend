@@ -1,7 +1,6 @@
 package com.eros.users.table
 
 import com.eros.users.models.City
-import com.eros.users.models.CityDTO
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.javatime.timestamp
@@ -26,6 +25,9 @@ object Cities : Table("cities") {
     // Foreign key to Users table
     val cityName = varchar("city_name", 128).uniqueIndex()
 
+    val longitude = double("longitude")
+    val latitude = double("latitude")
+
     // Timestamps
     val createdAt = timestamp("created_at").clientDefault { Instant.now() }
     val updatedAt = timestamp("updated_at").clientDefault { Instant.now() }
@@ -34,9 +36,11 @@ object Cities : Table("cities") {
 
 }
 
-fun ResultRow.toCityDTO() = City(
+fun ResultRow.toCity() = City(
     cityId = this[Cities.cityId],
     cityName = this[Cities.cityName],
+    longitude = this[Cities.longitude],
+    latitude = this[Cities.latitude],
     createdAt = this[Cities.createdAt],
     updatedAt = this[Cities.updatedAt]
 )

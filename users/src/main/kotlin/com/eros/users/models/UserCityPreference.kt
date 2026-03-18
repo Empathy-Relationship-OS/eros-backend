@@ -5,17 +5,35 @@ import kotlinx.serialization.Serializable
 import java.time.Instant
 
 /**
- * Data class for UserCityPreference. This is an entry for a user selecting which cities they prefer to have a date in.
+ *
+ * These classes have been abandoned until a use case has been found. There is currently 2 usages of UserCityPreference
+ * in table/UserCityPreference which simply imports and converts ResultRow to domain object.
+ *
+ *
+ */
+
+
+
+/**
+ * Domain object for UserCityPreference. This is an entry for a user selecting which cities they prefer to have a date in.
  *
  * @param userId - id of the user.
  * @param cityId - id of the city.
  * @param createdAt - Date/Time the preference was created.
  */
-@Serializable
 data class UserCityPreference(
     val userId : String,
     val cityId : Long,
+    val createdAt: Instant,
+)
 
+/**
+ * DTO for the User City Preference.
+ */
+@Serializable
+data class UserCityPreferenceDTO(
+    val userId : String,
+    val cityId : Long,
     // Timestamps
     @Serializable(with = InstantSerializer::class)
     val createdAt: Instant,

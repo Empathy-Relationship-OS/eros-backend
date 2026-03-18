@@ -1,6 +1,7 @@
 package com.eros.users.repository
 
 import com.eros.common.errors.BadRequestException
+import com.eros.common.errors.ConflictException
 import com.eros.database.repository.BaseDAOImpl
 import com.eros.users.models.*
 import com.eros.users.table.Cities
@@ -12,6 +13,7 @@ import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.core.statements.UpdateBuilder
+import org.jetbrains.exposed.v1.exceptions.ExposedSQLException
 import org.jetbrains.exposed.v1.jdbc.batchInsert
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
@@ -82,23 +84,34 @@ class PreferenceRepositoryImpl(
     // -------------------------------------------------------------------------
 
     override suspend fun create(entity: UserPreference): UserPreference {
-        // Insert preference
-        UserPreferences.insert { toStatement(it, entity) }
+        try {
+            // Insert preference
+            UserPreferences.insert { toStatement(it, entity) }
 
-        // Insert cities
-        val now = Instant.now(clock)
-        UserCitiesPreference.batchInsert(entity.dateCities) { cityId ->
-            this[UserCitiesPreference.userId] = entity.userId
-            this[UserCitiesPreference.cityId] = cityId.cityId
-            this[UserCitiesPreference.createdAt] = now
+            // Insert cities
+            val now = Instant.now(clock)
+            UserCitiesPreference.batchInsert(entity.dateCities) { cityId ->
+                this[UserCitiesPreference.userId] = entity.userId
+                this[UserCitiesPreference.cityId] = cityId.cityId
+                this[UserCitiesPreference.createdAt] = now
+            }
+
+            // Return the result (still inside transaction)
+            return getUserPreferenceWithCities(entity.userId)
+        } catch (e: ExposedSQLException) {
+            // PostgreSQL unique constraint violation error code is 23505
+            // Primary key constraint on user_id prevents duplicate preferences
+            if (e.sqlState == "23505" && e.message?.contains("user_preferences_pkey") == true) {
+                throw ConflictException("User preferences already exist")
+            }
+            throw e
         }
-
-        // Return the result (still inside transaction)
-        return getUserPreferenceWithCities(entity.userId)
     }
 
-    override suspend fun update(id: String, entity: UserPreference): UserPreference? {
-
+    override suspend fun update(id: String, entity: UserPreference): UserPreference {
+        if (entity.userId != id) {
+            throw BadRequestException("Path userId and payload userId must match.")
+        }
         //val rowsUpdated = super.update(id, entity)
         val rowsUpdated = UserPreferences.update({ UserPreferences.userId eq id }) { toStatement(it, entity) }
         if (rowsUpdated == 0) throw NotFoundException("User preferences not found.")
@@ -107,7 +120,7 @@ class PreferenceRepositoryImpl(
         // Get current city IDs
         val currentCityIds = UserCitiesPreference
             .select(UserCitiesPreference.cityId)
-            .where { UserCitiesPreference.userId eq entity.userId }
+            .where { UserCitiesPreference.userId eq id }
             .map { it[UserCitiesPreference.cityId] }
             .toSet()
 
@@ -125,12 +138,12 @@ class PreferenceRepositoryImpl(
         val toInsert = newCityIdSet - currentCityIds
         if (toInsert.isNotEmpty()) {
             UserCitiesPreference.batchInsert(toInsert) { cityId ->
-                this[UserCitiesPreference.userId] = entity.userId
+                this[UserCitiesPreference.userId] = id
                 this[UserCitiesPreference.cityId] = cityId
                 this[UserCitiesPreference.createdAt] = Instant.now(clock)
             }
         }
-        return getUserPreferenceWithCities(entity.userId)
+        return getUserPreferenceWithCities(id)
     }
 
     // -------------------------------------------------------------------------
@@ -149,6 +162,8 @@ class PreferenceRepositoryImpl(
                 City(
                     cityId = row[Cities.cityId],
                     cityName = row[Cities.cityName],
+                    longitude = row[Cities.longitude],
+                    latitude = row[Cities.latitude],
                     createdAt = row[Cities.createdAt],
                     updatedAt = row[Cities.updatedAt]
                 )

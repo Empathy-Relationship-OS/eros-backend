@@ -1,6 +1,7 @@
 package com.eros.users.service
 
 import com.eros.common.config.S3Config
+import com.eros.database.dbQuery
 import com.eros.users.models.*
 import com.eros.users.repository.PhotoRepository
 import org.slf4j.LoggerFactory
@@ -187,7 +188,7 @@ class PhotoService(
             if (photoRepository.deleteById(it.id) == 0) {
                 throw IllegalStateException("Photo with id ${it.id} wasn't deleted")
             } else {
-                logger.info("Successfully deleted media: $mediaUrl")
+                logger.info("Successfully deleted media: ${it.mediaUrl}")
             }
         }
 
@@ -214,18 +215,9 @@ class PhotoService(
     /**
      * Returns all media for [userId] as a [UserMediaCollection], ordered by displayOrder.
      */
-    suspend fun getUserMedia(userId: String): UserMediaCollection {
-        val items = photoRepository.findByUserId(userId).map {
-            UserMediaItemDTO(
-                it.id,
-                it.mediaUrl,
-                it.thumbnailUrl,
-                it.mediaType,
-                it.displayOrder,
-                it.isPrimary
-            )
-        }
-        return UserMediaCollection(
+    suspend fun getUserMedia(userId: String): UserMediaCollection = dbQuery {
+        val items = photoRepository.findByUserId(userId)
+        UserMediaCollection(
             userId     = userId,
             media      = items,
             totalCount = items.size

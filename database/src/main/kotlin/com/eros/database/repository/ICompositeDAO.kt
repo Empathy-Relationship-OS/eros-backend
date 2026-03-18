@@ -21,7 +21,7 @@ interface ICompositeKeyDAO<ID, T> {
      * @param entity The domain entity to persist.
      * @return The created domain entity (hydrated from the database).
      */
-    fun create(entity: T): T
+    suspend fun create(entity: T): T
 
     /**
      * Finds an entity by its composite primary key.
@@ -29,14 +29,14 @@ interface ICompositeKeyDAO<ID, T> {
      * @param id The composite key to search for.
      * @return The domain entity if found, null otherwise.
      */
-    fun findById(id: ID): T?
+    suspend fun findById(id: ID): T?
 
     /**
      * Retrieves all entities from the table.
      *
      * @return A list of all domain entities.
      */
-    fun findAll(): List<T>
+    suspend fun findAll(): List<T>
 
     /**
      * Updates an existing entity identified by [id].
@@ -45,7 +45,7 @@ interface ICompositeKeyDAO<ID, T> {
      * @param entity The domain entity carrying the values to persist.
      * @return The updated domain entity, or null if not found.
      */
-    fun update(id: ID, entity: T): T?
+    suspend fun update(id: ID, entity: T): T?
 
     /**
      * Deletes an entity by its composite primary key.
@@ -53,7 +53,7 @@ interface ICompositeKeyDAO<ID, T> {
      * @param id The composite primary key of the entity to delete.
      * @return The number of rows affected.
      */
-    fun delete(id: ID): Int
+    suspend fun delete(id: ID): Int
 
     /**
      * Checks whether an entity with the given composite primary key exists.
@@ -61,5 +61,5 @@ interface ICompositeKeyDAO<ID, T> {
      * @param id The composite primary key to check.
      * @return True if the entity exists, false otherwise.
      */
-    fun doesExist(id: ID): Boolean
+    suspend fun doesExist(id: ID): Boolean
 }
