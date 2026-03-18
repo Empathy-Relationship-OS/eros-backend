@@ -66,9 +66,9 @@ object FirebaseAuthService {
     fun verifyTokenOrNull(idToken: String): FirebaseUserPrincipal? {
         return try {
             verifyToken(idToken)
-        } catch (e: FirebaseAuthException) {
+        } catch (_: FirebaseAuthException) {
             null
-        } catch (e: IllegalArgumentException) {
+        } catch (_: IllegalArgumentException) {
             null
         }
     }

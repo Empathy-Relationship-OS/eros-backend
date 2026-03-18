@@ -68,14 +68,6 @@ enum class SmokingStatus {
     REGULARLY,
     QUITTING,
     PREFER_NOT_TO_SAY;
-    fun getDisplayText(): String = when (this) {
-        NEVER -> "NEVER"
-        SOMETIMES -> "SOMETIMES"
-        REGULARLY -> "REGULARLY"
-        QUITTING -> "QUITTING"
-        PREFER_NOT_TO_SAY -> "PREFER_NOT_TO_SAY"
-    }
-
 }
 
 /**
@@ -733,5 +725,6 @@ enum class Role{
 enum class ProfileStatus {
     SLEEP_MODE,
     ACTIVE,
-    FROZEN
+    FROZEN,
+    BANNED
 }

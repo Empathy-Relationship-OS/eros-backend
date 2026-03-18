@@ -1,10 +1,12 @@
 package com.eros.users.routes
 
 import com.eros.auth.extensions.requireFirebasePrincipal
+import com.eros.auth.extensions.requireRoles
 import com.eros.common.errors.BadRequestException
 import com.eros.common.errors.NotFoundException
 import com.eros.users.models.ConfirmUploadRequest
 import com.eros.users.models.PresignedUploadRequest
+import com.eros.users.models.toDTO
 import com.eros.users.service.PhotoService
 import io.ktor.http.*
 import io.ktor.server.request.*
@@ -28,6 +30,7 @@ import io.ktor.server.routing.*
  */
 fun Route.userPhotoRoutes(photoService: PhotoService) {
     route("/users/me/photos") {
+        requireRoles("ADMIN", "USER", "EMPLOYEE")
             /**
              * POST /users/me/photos/presigned-url
              *
@@ -63,7 +66,7 @@ fun Route.userPhotoRoutes(photoService: PhotoService) {
                 val principal = call.requireFirebasePrincipal()
                 val request = call.receive<ConfirmUploadRequest>()
                 val item = photoService.confirmUpload(principal.uid, request)
-                call.respond(HttpStatusCode.Created, item)
+                call.respond(HttpStatusCode.Created, item.toDTO())
             }
 
             /**

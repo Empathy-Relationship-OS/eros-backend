@@ -1,9 +1,11 @@
 package com.eros.users.routes
 
 import com.eros.auth.firebase.FirebaseUserPrincipal
+import com.eros.common.errors.ConflictException
 import com.eros.common.plugins.configureExceptionHandling
 import com.eros.users.ProfileAccessControl
 import com.eros.users.models.*
+import com.eros.users.service.PhotoService
 import com.eros.users.service.UserService
 import io.ktor.client.call.body
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation as ClientContentNegotiation
@@ -18,13 +20,13 @@ import io.ktor.server.routing.*
 import io.ktor.server.testing.*
 import io.mockk.coEvery
 import io.mockk.coVerify
-import io.mockk.every
 import io.mockk.mockk
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import java.time.Instant
 import java.time.LocalDate
+import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -33,6 +35,7 @@ class UserRoutesTest {
 
     private val mockUserService = mockk<UserService>()
     private val mockProfileAccessControl = mockk<ProfileAccessControl>()
+    private val mockPhotoService = mockk<PhotoService>()
 
 
     @Nested
@@ -46,7 +49,6 @@ class UserRoutesTest {
             val request = createValidUserRequest()
             val createdUser = createTestUser()
 
-            coEvery { mockUserService.userExists(request.userId) } returns false
             coEvery { mockUserService.createUser(request) } returns createdUser
 
             val response = client.post("/users") {
@@ -56,9 +58,8 @@ class UserRoutesTest {
             }
 
             assertEquals(HttpStatusCode.Created, response.status)
-            val returnedUser = response.body<User>()
-            assertEquals(createdUser, returnedUser)
-            coVerify { mockUserService.userExists(request.userId) }
+            val returnedUser = response.body<UserDTO>()
+            assertEquals(createdUser.toDTO(), returnedUser)
             coVerify { mockUserService.createUser(request) }
         }
 
@@ -101,7 +102,7 @@ class UserRoutesTest {
 
             val request = createValidUserRequest()
 
-            coEvery { mockUserService.userExists(request.userId) } returns true
+            coEvery { mockUserService.createUser(request) } throws ConflictException("User with ID ${request.userId} already exists")
 
             val response = client.post("/users") {
                 setAuthenticatedUser(request.userId)
@@ -110,7 +111,7 @@ class UserRoutesTest {
             }
 
             assertEquals(HttpStatusCode.Conflict, response.status)
-            assertTrue(response.bodyAsText().contains("User profile already exists"))
+            assertTrue(response.bodyAsText().contains("already exists"))
         }
 
         @Test
@@ -120,7 +121,6 @@ class UserRoutesTest {
 
             val request = createValidUserRequest()
 
-            coEvery { mockUserService.userExists(request.userId) } returns false
             coEvery { mockUserService.createUser(request) } throws IllegalArgumentException("Invalid data")
 
             val response = client.post("/users") {
@@ -140,7 +140,6 @@ class UserRoutesTest {
 
             val request = createValidUserRequest()
 
-            coEvery { mockUserService.userExists(request.userId) } returns false
             coEvery { mockUserService.createUser(request) } throws RuntimeException("Database error")
 
             val response = client.post("/users") {
@@ -191,8 +190,8 @@ class UserRoutesTest {
             }
 
             assertEquals(HttpStatusCode.OK, response.status)
-            val returnedUser = response.body<User>()
-            assertEquals(user, returnedUser)
+            val returnedUser = response.body<UserDTO>()
+            assertEquals(user.toDTO(), returnedUser)
             coVerify { mockUserService.findByUserId(userId) }
         }
 
@@ -398,9 +397,9 @@ class UserRoutesTest {
             }
 
             assertEquals(HttpStatusCode.OK, response.status)
-            val returnedUser = response.body<User>()
+            val returnedUser = response.body<UserDTO>()
             assertEquals("UpdatedName", returnedUser.firstName)
-            assertEquals(updatedUser, returnedUser)
+            assertEquals(updatedUser.toDTO(), returnedUser)
             coVerify { mockUserService.updateUser(userId, updateRequest) }
         }
 
@@ -432,7 +431,12 @@ class UserRoutesTest {
             val userId = "test-user-id"
             val updateRequest = UpdateUserRequest(bio = "Updated bio")
 
-            coEvery { mockUserService.updateUser(userId, updateRequest) } throws IllegalArgumentException("Invalid input")
+            coEvery {
+                mockUserService.updateUser(
+                    userId,
+                    updateRequest
+                )
+            } throws IllegalArgumentException("Invalid input")
 
             val response = client.patch("/users/me") {
                 setAuthenticatedUser(userId)
@@ -544,31 +548,53 @@ class UserRoutesTest {
     }
 
     @Nested
-    inner class `GET users PUBLIC` {
+    inner class `GET Public profile`{
 
         @Test
-        fun `should return public profile when user exists`() = testApplication{
+        fun `should successfully return users public profile`() = testApplication {
+
             setupTestApp()
             val client = configuredClient()
 
-            val user = createCompleteTestUser()
-            val userId = user.userId
+            val requestingUserId = "test-user-id"
+            val targetUserId = "target-user-id"
+            val targetUser = createCompleteTestUser(targetUserId)
+            val publicProfile = createValidPublicProfile(targetUser)
 
-            val user2 = createTestUser("test-user-456")
+            coEvery { mockUserService.getPublicProfile(requestingUserId,targetUserId) } returns publicProfile
+            coEvery { mockProfileAccessControl.hasPublicProfileAccess(requestingUserId,targetUserId) } returns true
+            coEvery { mockPhotoService.getUserMedia(targetUserId)} returns UserMediaCollection(targetUserId,createMediaList(3),3)
 
-            // Mock ProfileAccessControl to return true (allow access)
-            every { mockProfileAccessControl.hasPublicProfileAccess(any(), any()) } returns true
-
-            coEvery { mockUserService.findByUserId(userId) } returns user
-            coEvery { mockUserService.findByUserId(user2.userId) } returns user2
-            coEvery { mockUserService.getSharedInterests(user2, user) } returns List(5) { "Interest$it" }
-
-            val response = client.get("/users/id/${userId}/public") {
-                setAuthenticatedUser(user2.userId)
+            val response = client.get("/users/id/$targetUserId/public") {
+                setAuthenticatedUser(requestingUserId)
             }
 
-            assertEquals(HttpStatusCode.OK, response.status)
+            assertEquals(HttpStatusCode.OK , response.status)
+
+            val profile = response.body<PublicProfileDTO>()
+            assertEquals(listOf("trait1","trait2"), profile.profile.sharedInterests)
+            assertEquals(targetUserId, profile.userId)
+
         }
+
+        @Test
+        fun `return forbidden if users don't have access`() = testApplication{
+            setupTestApp()
+            val client = configuredClient()
+
+            val requestingUserId = "test-user-id"
+            val targetUserId = "target-user-id"
+
+            coEvery { mockProfileAccessControl.hasPublicProfileAccess(requestingUserId,targetUserId) } returns false
+
+            val response = client.get("/users/id/$targetUserId/public") {
+                setAuthenticatedUser(requestingUserId)
+            }
+
+            assertEquals(HttpStatusCode.Forbidden , response.status)
+            coVerify (exactly = 0){ mockUserService.getPublicProfile(requestingUserId,targetUserId) }
+        }
+
     }
 
 
@@ -633,6 +659,14 @@ class UserRoutesTest {
         header(HttpHeaders.Authorization, "Bearer user-$userId")
     }
 
+
+    private fun createValidPublicProfile(user: User = createCompleteTestUser("target-user-id")) : PublicProfile {
+        return PublicProfile.from(user, UserMediaCollection(
+            user.userId,
+            createMediaList(3),
+            3), listOf("trait1","trait2"))
+    }
+
     private fun createValidUserRequest(userId: String = "test-user-id"): CreateUserRequest {
         return CreateUserRequest(
             userId = userId,
@@ -673,7 +707,8 @@ class UserRoutesTest {
 
     private fun createTestUser(
         userId: String = "test-user-id",
-        firstName: String = "John"
+        firstName: String = "John",
+        visibility: ProfileStatus = ProfileStatus.ACTIVE
     ): User {
         return User(
             userId = userId,
@@ -710,7 +745,7 @@ class UserRoutesTest {
             createdAt = Instant.now(),
             updatedAt = Instant.now(),
             deletedAt = null,
-            profileStatus = ProfileStatus.ACTIVE,
+            profileStatus = visibility,
             eloScore = 1000,
             badges = setOf(),
             profileCompleteness = 75,
@@ -770,4 +805,27 @@ class UserRoutesTest {
             photoValidationStatus = ValidationStatus.VALIDATED
         )
     }
+
+    private fun createMediaItem(
+        id: Long = 1L,
+        mediaUrl: String = "https://example.com/photo.jpg",
+        thumbnailUrl: String? = null,
+        mediaType: MediaType = MediaType.PHOTO,
+        displayOrder: Int = 1,
+        isPrimary: Boolean = false
+    ): UserMediaItem = UserMediaItem(
+        id           = id,
+        userId  = UUID.randomUUID().toString(),
+        mediaUrl     = mediaUrl,
+        thumbnailUrl = thumbnailUrl,
+        mediaType    = mediaType,
+        displayOrder = displayOrder,
+        isPrimary    = isPrimary,
+        createdAt = Instant.now(),
+        updatedAt = Instant.now()
+    )
+
+    private fun createMediaList(count: Int): List<UserMediaItem> =
+        (1..count).map { index -> createMediaItem(id = index.toLong(), displayOrder = index) }
+
 }

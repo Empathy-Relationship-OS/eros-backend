@@ -6,7 +6,6 @@ import org.junit.jupiter.api.*
 import org.testcontainers.junit.jupiter.Testcontainers
 import java.time.Instant
 import java.time.LocalDate
-import java.time.LocalDateTime
 import kotlin.test.assertEquals
 
 @Testcontainers
@@ -18,7 +17,7 @@ class ProfileCompletenessTest {
         val user = createTestUser()
         val userMedia = createMediaList(3)
         val userMediaCollection = UserMediaCollection(user.userId, userMedia, userMedia.size)
-        val userQA = createQAList(2)
+        val userQA = createQAList(2, user.userId)
         val userQACollection = UserQACollection(user.userId, userQA, userQA.size)
         val completeness = ProfileCompleteness().calculateCompleteness(user, userMediaCollection, userQACollection)
         assertEquals(completeness, 65)
@@ -115,61 +114,72 @@ class ProfileCompletenessTest {
 
     // Helper functions
     private fun createMediaItem(
+        userId : String = "test-user-id",
         id: Long = 1L,
         mediaUrl: String = "https://example.com/photo.jpg",
         mediaType: MediaType = MediaType.PHOTO,
         displayOrder: Int = 1,
         isPrimary: Boolean = false
-    ): UserMediaItemDTO {
-        return UserMediaItemDTO(
+    ): UserMediaItem {
+        val now = Instant.now()
+        return UserMediaItem(
+            userId = userId,
             id = id,
             mediaUrl = mediaUrl,
             thumbnailUrl = null,
             mediaType = mediaType,
             displayOrder = displayOrder,
-            isPrimary = isPrimary
+            isPrimary = isPrimary,
+            createdAt = now,
+            updatedAt = now,
         )
     }
 
-    private fun createMediaList(count: Int): List<UserMediaItemDTO> {
+    private fun createMediaList(count: Int): List<UserMediaItem> {
         return (1..count).map { index ->
             createMediaItem(id = index.toLong(), displayOrder = index)
         }
     }
 
     // Helper functions
+    // Test questions map
+    private val testQuestions = hashMapOf(
+        1L to "What's your favorite food?",
+        2L to "What's your dream vacation destination?",
+        3L to "What's your favorite hobby?",
+        4L to "What's your biggest fear?",
+        5L to "What's your favorite movie?",
+        6L to "What makes you happy?",
+        7L to "What's your hidden talent?",
+        8L to "What's your favorite season?"
+    )
+
     private fun createQAItem(
-        id: Long = 1L,
-        userId: String = "user-123",
-        question: PredefinedQuestion = PredefinedQuestion.LAST_MEAL_EVER,
+        userId: String = "test-user-id",
+        questionId: Long = testQuestions.keys.random(),
         answer: String = "Pizza and ice cream",
         displayOrder: Int = 1
     ): UserQAItem {
+        val now = Instant.now()
+        val questionText = requireNotNull(testQuestions[questionId]) { "Missing test question for id=$questionId" }
         return UserQAItem(
-            id = id,
             userId = userId,
-            question = question,
+            question = Question(questionId, questionText, now, now),
             answer = answer,
             displayOrder = displayOrder,
-            createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now()
+            createdAt = now,
+            updatedAt = now
         )
     }
 
-    private fun createQAList(count: Int): List<UserQAItem> {
-        val questions = listOf(
-            PredefinedQuestion.LAST_MEAL_EVER,
-            PredefinedQuestion.FAVOURITE_BOOK_MOVIE_TV,
-            PredefinedQuestion.DREAM_JOB_NO_MONEY,
-            PredefinedQuestion.LIFE_GOAL
-        )
-
+    private fun createQAList(count: Int, userId: String = "test-user-id"): List<UserQAItem> {
+        val questionIds = testQuestions.keys.toList()
         return (1..count).map { index ->
             createQAItem(
-                id = index.toLong(),
-                question = questions[(index - 1) % questions.size],
+                userId = userId,
+                questionId = questionIds[(index - 1) % questionIds.size],
                 answer = "Answer $index",
-                displayOrder = index.coerceAtMost(3)
+                displayOrder = index.coerceAtMost(3),
             )
         }
     }
