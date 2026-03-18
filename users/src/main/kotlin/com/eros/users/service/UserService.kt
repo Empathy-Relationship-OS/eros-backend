@@ -1,5 +1,7 @@
 package com.eros.users.service
 
+import com.eros.common.errors.ConflictException
+import com.eros.common.errors.ForbiddenException
 import com.eros.users.models.*
 import com.eros.common.errors.NotFoundException
 import com.eros.database.dbQuery
@@ -9,6 +11,7 @@ import com.eros.users.table.badgeHelper
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.jetbrains.exposed.v1.exceptions.ExposedSQLException
 import java.time.Clock
 import java.time.Instant
 
@@ -21,7 +24,7 @@ import java.time.Instant
  */
 class UserService(
     private val userRepository: UserRepository,
-    private val photoService: PhotoService? = null,
+    private val photoService: PhotoService,
     private val clock: Clock = Clock.systemUTC()
 ) {
 
@@ -85,7 +88,24 @@ class UserService(
             coordinatesLatitude = request.coordinatesLatitude,
             profileCompleteness = 50
         )
-        userRepository.create(user)
+
+        try {
+            userRepository.create(user)
+        } catch (e: ExposedSQLException) {
+            // PostgreSQL unique constraint violation error code is 23505
+            if (e.sqlState == "23505") {
+                when {
+                    e.message?.contains("users_pkey") == true || e.message?.contains("user_id") == true -> {
+                        throw ConflictException("User with ID ${request.userId} already exists")
+                    }
+                    e.message?.contains("users_email_unique") == true || e.message?.contains("email") == true -> {
+                        throw ConflictException("User with email ${request.email} already exists")
+                    }
+                    else -> throw ConflictException("User already exists")
+                }
+            }
+            throw e
+        }
     }
 
     /**
@@ -104,6 +124,23 @@ class UserService(
      */
     suspend fun updateUser(userId: String, request: UpdateUserRequest): User? = dbQuery {
         val existing = userRepository.findById(userId) ?: throw NotFoundException("User $userId not found.")
+
+
+        // Ensure banned accounts can't edit their profile.
+        if (existing.profileStatus == ProfileStatus.BANNED){
+            throw ForbiddenException("Can't update a profile that is banned.")
+        }
+
+        var newProfileStatus : ProfileStatus = existing.profileStatus
+        // Check if visibility is changed - if so, set to correct Enum value.
+        if (existing.profileStatus == ProfileStatus.ACTIVE || existing.profileStatus == ProfileStatus.SLEEP_MODE){
+            newProfileStatus = when(request.setVisible) {
+                true -> ProfileStatus.ACTIVE
+                false -> ProfileStatus.SLEEP_MODE
+                null -> existing.profileStatus
+            }
+        }
+
         val merged = existing.copy(
             firstName = request.firstName ?: existing.firstName,
             lastName = request.lastName ?: existing.lastName,
@@ -134,10 +171,35 @@ class UserService(
             bodyAttributes = request.bodyAttributes ?: existing.bodyAttributes,
             bodyDescription = request.bodyDescription ?: existing.bodyDescription,
             coordinatesLongitude = request.coordinatesLongitude ?: existing.coordinatesLongitude,
-            coordinatesLatitude = request.coordinatesLatitude ?: existing.coordinatesLatitude
+            coordinatesLatitude = request.coordinatesLatitude ?: existing.coordinatesLatitude,
+            profileStatus = newProfileStatus
         )
         userRepository.update(userId, merged)
     }
+
+
+    /**
+     * Function to update the visibility of the user.
+     *
+     * @param userId id of the user to be updated
+     * @param request [ProfileStatusUpdateRequest] object containing the isVisible flag.
+     * @return [User] object containing the updated user.
+     * @throws NotFoundException if the user can't be retrieved from the database.
+     * @throws ForbiddenException if the user is banned or frozen.
+     */
+    suspend fun updateVisibility(userId:String, request: ProfileStatusUpdateRequest) : User? = dbQuery {
+        val existing = userRepository.findById(userId)
+            ?: throw NotFoundException("User $userId not found.")
+
+        val newProfileStatus = when {
+            existing.profileStatus in listOf(ProfileStatus.ACTIVE, ProfileStatus.SLEEP_MODE) -> {
+                if (request.isVisible) ProfileStatus.ACTIVE else ProfileStatus.SLEEP_MODE
+            }
+            else -> throw ForbiddenException("Can't update a profile that is banned or suspended.")
+        }
+        userRepository.update(userId, existing.copy(profileStatus = newProfileStatus))
+    }
+
 
     /**
      * Updates server-managed fields for a user (admin-only operation).
@@ -182,6 +244,30 @@ class UserService(
         }
         updated
     }
+
+    /**
+     * Get and return a users full PUBLIC profile.
+     *
+     * @param requestingUserId Firebase user ID of the user.
+     * @param targetUserId Firebase user ID of the other user to get their profile.
+     * @return [PublicProfile] if user is found.
+     *
+     * @throws NotFoundException if either user profile is not found.
+     */
+    suspend fun getPublicProfile(requestingUserId: String, targetUserId: String): PublicProfile {
+        val (targetUser, principalUser) = dbQuery {
+            val targetUser = userRepository.findById(targetUserId)
+                ?: throw NotFoundException("Target User ($targetUserId) profile not found.")
+
+            val principalUser = userRepository.findById(requestingUserId)
+                ?: throw NotFoundException("Requesting User ($requestingUserId) profile not found.")
+            targetUser to principalUser
+        }
+        val media = photoService.getUserMedia(targetUserId)
+        val sharedInterests = getSharedInterests(principalUser.interests, targetUser.interests)
+        return PublicProfile.from(targetUser, media, sharedInterests)
+    }
+
 
     /**
      * Finds a user by Firebase UID.
@@ -250,7 +336,7 @@ class UserService(
     suspend fun getUserMatchProfileData(userId: String): UserMatchProfileData? = dbQuery {
         val user = userRepository.findById(userId) ?: return@dbQuery null
 
-        val thumbnailUrl = photoService?.let { service ->
+        val thumbnailUrl = photoService.let { service ->
             val photos = service.getUserMedia(userId).media
             photos.firstOrNull { it.isPrimary }?.thumbnailUrl
                 ?: photos.firstOrNull()?.thumbnailUrl
