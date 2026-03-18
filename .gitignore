@@ -47,3 +47,4 @@ local.properties
 firebase-service-account.json
 # But keep test credentials tracked
 !app/src/test/resources/test.json
+/node_modules/**
