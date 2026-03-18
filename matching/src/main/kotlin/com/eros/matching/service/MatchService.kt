@@ -5,7 +5,6 @@ import com.eros.matching.models.MutualMatchInfo
 import com.eros.matching.models.UserMatchProfile
 import com.eros.matching.repository.DailyBatchRepository
 import com.eros.matching.repository.MatchRepository
-import com.eros.matching.transaction.DatabaseTransactionManager
 import com.eros.matching.transaction.TransactionManager
 import com.eros.users.service.UserService
 import java.time.Instant
@@ -124,6 +123,40 @@ class MatchService(
             badges = userData.badges,
             servedAt = servedAt
         )
+    }
+
+    /**
+     * Checks if a user has been served a match with the target user.
+     *
+     * This method determines if user1 has been served user2 as a potential match,
+     * meaning user2 appeared in one of user1's daily batches.
+     *
+     * @param userId The user who may have been served the match
+     * @param targetUserId The potential match user
+     * @return True if a served match exists, false otherwise
+     */
+    suspend fun hasServedMatch(userId: String, targetUserId: String): Boolean = transactionManager.execute {
+        matchRepository.hasServedMatch(userId, targetUserId)
+    }
+
+    /**
+     * Checks if the target user is in the requesting user's current batch.
+     *
+     * A "current batch" is defined as a match served today (within the current UTC day).
+     *
+     * @param userId The user whose batch to check
+     * @param targetUserId The user to look for in the batch
+     * @return True if target user is in today's served matches, false otherwise
+     */
+    suspend fun isInCurrentBatch(userId: String, targetUserId: String): Boolean = transactionManager.execute {
+        val match = matchRepository.findByUserPair(userId, targetUserId) ?: return@execute false
+
+        // Check if match was served today
+        val servedAt = match.servedAt ?: return@execute false
+        val today = LocalDate.now(ZoneId.of("UTC"))
+        val servedDate = LocalDate.ofInstant(servedAt, ZoneId.of("UTC"))
+
+        servedDate.isAfter(today.minusDays(1))  && servedDate.isBefore(today.plusDays(1))
     }
 }
 

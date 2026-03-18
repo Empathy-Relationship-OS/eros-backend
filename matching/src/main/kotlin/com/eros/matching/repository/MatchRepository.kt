@@ -55,4 +55,13 @@ interface MatchRepository : IBaseDAO<Long, Match> {
      * @return The match if found, null otherwise
      */
     suspend fun findByUserPair(user1Id: String, user2Id: String): Match?
+
+    /**
+     * Checks if a served match exists where user1 has been served user2.
+     *
+     * @param user1Id The user who would have been served the match
+     * @param user2Id The user in the match (potential target profile)
+     * @return True if a served match exists (servedAt is not null), false otherwise
+     */
+    suspend fun hasServedMatch(user1Id: String, user2Id: String): Boolean
 }

@@ -5,7 +5,7 @@ import com.eros.matching.models.Match
 import com.eros.matching.repository.DailyBatchRepository
 import com.eros.matching.repository.MatchRepository
 import com.eros.matching.transaction.NoOpTransactionManager
-import com.eros.users.service.UserMatchProfileData
+import com.eros.users.models.UserMatchProfileData
 import com.eros.users.service.UserService
 import io.mockk.*
 import kotlinx.coroutines.test.runTest
