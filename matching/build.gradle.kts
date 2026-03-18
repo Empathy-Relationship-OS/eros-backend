@@ -7,6 +7,8 @@ dependencies {
     // Module dependencies
     implementation(project(":common"))
     implementation(project(":users"))
+    implementation(project(":auth"))
+    implementation(project(":database"))
 
     // Ktor dependencies
     implementation(libs.ktor.server.core)
@@ -20,9 +22,17 @@ dependencies {
 
     // Testing
     testImplementation(libs.junit.jupiter)
-    testRuntimeOnly(libs.junit.platform.launcher)
     testImplementation(libs.kotlin.test.junit)
+    testRuntimeOnly(libs.junit.platform.launcher)
     testImplementation(libs.ktor.server.test.host)
+    testImplementation(libs.ktor.client.content.negotiation)
+    testImplementation(libs.ktor.server.content.negotiation)
+    testImplementation(libs.ktor.server.auth)
+    testImplementation(libs.firebase.admin)
+    testImplementation(libs.mockk)
+    testImplementation(libs.testcontainers.postgresql)
+    testImplementation(libs.testcontainers.junit)
+    testImplementation(libs.postgresql)
 }
 
 tasks.test {

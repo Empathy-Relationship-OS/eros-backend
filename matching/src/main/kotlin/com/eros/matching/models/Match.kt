@@ -157,10 +157,14 @@ data class Match(
 @Serializable
 data class MatchActionRequest(
     val matchId: Long,
+    val fromUserId: String,
+    val toUserId: String,
     val liked: Boolean
 ) {
     init {
         require(matchId > 0) { "matchId must be positive" }
+        require(fromUserId.isNotBlank()) { "fromUserId cannot be blank" }
+        require(toUserId.isNotBlank()) { "toUserId cannot be blank" }
     }
 }
 
@@ -182,3 +186,36 @@ data class MutualMatchInfo(
     @Serializable(with = InstantSerializer::class)
     val matchedAt: Instant
 )
+
+/**
+ * Lightweight profile DTO returned when fetching daily match batches.
+ *
+ * Contains minimal user information for initial display in the matching interface.
+ * Client can fetch full profile details separately when user taps to view more.
+ *
+ * @property matchId The ID of the match record (required for taking action)
+ * @property userId The user's unique identifier
+ * @property name The user's display name
+ * @property age The user's age in years
+ * @property thumbnailUrl URL to the user's primary profile photo
+ * @property badges List of badge names earned by the user
+ * @property servedAt When this match was served to the requesting user
+ */
+@Serializable
+data class UserMatchProfile(
+    val matchId: Long,
+    val userId: String,
+    val name: String,
+    val age: Int,
+    val thumbnailUrl: String?,
+    val badges: Set<String>?,
+    @Serializable(with = InstantSerializer::class)
+    val servedAt: Instant
+) {
+    init {
+        require(matchId > 0) { "matchId must be positive" }
+        require(userId.isNotBlank()) { "userId cannot be blank" }
+        require(name.isNotBlank()) { "name cannot be blank" }
+        require(age > 0) { "age must be positive" }
+    }
+}

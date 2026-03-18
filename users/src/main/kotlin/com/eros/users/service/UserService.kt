@@ -1,8 +1,8 @@
 package com.eros.users.service
 
+import com.eros.common.errors.ConflictException
 import com.eros.common.errors.ForbiddenException
 import com.eros.users.models.*
-import com.eros.common.errors.ConflictException
 import com.eros.common.errors.NotFoundException
 import com.eros.database.dbQuery
 import com.eros.users.models.AdminUpdateUserRequest
@@ -36,9 +36,14 @@ class UserService(
      * @param request CreateUserRequest containing all required user profile data
      * @return The created User
      * @throws IllegalArgumentException if input validation fails
-     * @throws ConflictException if user with same ID or email already exists
+     * @throws IllegalStateException if user already exists
      */
     suspend fun createUser(request: CreateUserRequest): User = dbQuery {
+        // Check if user already exists
+        if (userRepository.doesExist(request.userId)) {
+            throw IllegalStateException("User with ID ${request.userId} already exists")
+        }
+
         val now = Instant.now(clock)
         val user = User(
             userId = request.userId,
@@ -120,6 +125,7 @@ class UserService(
     suspend fun updateUser(userId: String, request: UpdateUserRequest): User? = dbQuery {
         val existing = userRepository.findById(userId) ?: throw NotFoundException("User $userId not found.")
 
+
         // Ensure banned accounts can't edit their profile.
         if (existing.profileStatus == ProfileStatus.BANNED){
             throw ForbiddenException("Can't update a profile that is banned.")
@@ -194,6 +200,7 @@ class UserService(
         userRepository.update(userId, existing.copy(profileStatus = newProfileStatus))
     }
 
+
     /**
      * Updates server-managed fields for a user (admin-only operation).
      *
@@ -220,7 +227,6 @@ class UserService(
                         (request.trustedBadge ?: false) to Badge.TRUSTED
                     )
                 }
-
                 else -> existing.badges
             },
             role = request.role ?: existing.role,
@@ -314,9 +320,49 @@ class UserService(
      * @return List of strings containing only interests that are in both user 1 and user 2's lists.
      */
     fun getSharedInterests(user1Interests: List<String>, user2Interests: List<String>): List<String> {
-        return if (user1Interests == user2Interests) {
-            user1Interests
-        } else (user1Interests intersect user2Interests.toSet()).toList()
+        return if (user1Interests == user2Interests){user1Interests}
+        else(user1Interests intersect user2Interests.toSet()).toList()
+    }
+
+    /**
+     * Gets lightweight user profile data for matching purposes.
+     *
+     * This method is designed for cross-module communication, allowing the matching
+     * module to retrieve minimal user profile data without directly accessing user repositories.
+     *
+     * @param userId Firebase UID of the user
+     * @return UserMatchProfileData containing basic profile info, or null if user not found
+     */
+    suspend fun getUserMatchProfileData(userId: String): UserMatchProfileData? = dbQuery {
+        val user = userRepository.findById(userId) ?: return@dbQuery null
+
+        val thumbnailUrl = photoService.let { service ->
+            val photos = service.getUserMedia(userId).media
+            photos.firstOrNull { it.isPrimary }?.thumbnailUrl
+                ?: photos.firstOrNull()?.thumbnailUrl
+        }
+
+        UserMatchProfileData(
+            userId = user.userId,
+            name = user.firstName,
+            age = user.getAge(),
+            thumbnailUrl = thumbnailUrl,
+            badges = user.badges?.map { it.name }?.toSet()
+        )
     }
 
 }
+
+/**
+ * Lightweight DTO for user profile data used in matching.
+ *
+ * This DTO provides minimal user information needed for match presentation,
+ * avoiding exposure of sensitive profile data across module boundaries.
+ */
+data class UserMatchProfileData(
+    val userId: String,
+    val name: String,
+    val age: Int,
+    val thumbnailUrl: String?,
+    val badges: Set<String>?
+)

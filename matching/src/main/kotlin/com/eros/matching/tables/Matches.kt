@@ -23,7 +23,7 @@ object Matches : Table("matches") {
     val user2Id = varchar("user2_id", 128).references(Users.userId)
 
     /** Whether user1 liked user2 */
-    val liked = bool("liked").default(false)
+    val liked = bool("liked").nullable()
 
     /** When the match record was created */
     val createdAt = timestamp("created_at").clientDefault { Instant.now() }
