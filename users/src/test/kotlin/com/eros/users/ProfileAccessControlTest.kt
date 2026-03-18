@@ -1,185 +1,84 @@
 package com.eros.users
 
 import com.eros.common.errors.ForbiddenException
-import org.junit.jupiter.api.Disabled
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.mockk
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /**
  * Tests for ProfileAccessControl.hasPublicProfileAccess()
  *
  * Tests the access control logic that determines whether a user (viewer) can access
- * another user's (target) public profile.
- *
- * Current implementation always returns true due to hardcoded values, but tests
- * are structured to catch regressions when the full matching logic is implemented.
+ * another user's (target) public profile based on match status and batch serving.
  */
 class ProfileAccessControlTest {
 
-    private val accessControl = ProfileAccessControl()
+    private val mockMatchAccessChecker = mockk<MatchAccessChecker>()
+    private val accessControl = ProfileAccessControl(mockMatchAccessChecker)
 
     @Nested
     inner class `Same User Access` {
 
         @Test
-        fun `returns true when viewer is the profile owner`() {
+        fun `returns true when viewer is the profile owner`() = runTest {
             val userId = "user-123"
 
             val result = accessControl.hasPublicProfileAccess(userId, userId)
 
             assertTrue(result, "User should always have access to their own profile")
+            // Should not call match checker when viewing own profile
+            coVerify(exactly = 0) { mockMatchAccessChecker.hasServedMatch(any(), any()) }
+            coVerify(exactly = 0) { mockMatchAccessChecker.isInCurrentBatch(any(), any()) }
         }
 
         @Test
-        fun `returns true for same user with UUID format ID`() {
+        fun `returns true for same user with UUID format ID`() = runTest {
             val userId = "550e8400-e29b-41d4-a716-446655440000"
 
             val result = accessControl.hasPublicProfileAccess(userId, userId)
 
             assertTrue(result)
+            coVerify(exactly = 0) { mockMatchAccessChecker.hasServedMatch(any(), any()) }
         }
 
         @Test
-        fun `returns true for same user with special characters in ID`() {
-            val userId = "user-123-abc_def"
-
-            val result = accessControl.hasPublicProfileAccess(userId, userId)
-
-            assertTrue(result)
-        }
-
-        @Test
-        fun `returns true for same user with long ID`() {
-            val userId = "a".repeat(100)
-
-            val result = accessControl.hasPublicProfileAccess(userId, userId)
-
-            assertTrue(result)
-        }
-    }
-
-    @Nested
-    inner class `Different User Access` {
-        // NOTE: These tests reflect STUB behavior where hasMatch=true and currentBatch=true are hardcoded.
-        // Enable and update these tests when real matching logic is implemented.
-
-        @Disabled("Reflects stub behavior with hardcoded hasMatch=true")
-        @Test
-        fun `returns true when viewer accesses different user profile`() {
-            val viewerId = "viewer"
-            val targetId = "target"
-
-            // Current implementation: hardcoded values cause this to always return true
-            val result = accessControl.hasPublicProfileAccess(viewerId, targetId)
-
-            assertTrue(result, "Current implementation allows access to all profiles")
-        }
-
-        @Disabled("Reflects stub behavior with hardcoded hasMatch=true")
-        @Test
-        fun `returns true for different users with UUID format IDs`() {
-            val viewerId = "550e8400-e29b-41d4-a716-446655440000"
-            val targetId = "660e8400-e29b-41d4-a716-446655440001"
-
-            val result = accessControl.hasPublicProfileAccess(viewerId, targetId)
-
-            assertTrue(result)
-        }
-
-        @Disabled("Reflects stub behavior with hardcoded hasMatch=true")
-        @Test
-        fun `returns true when viewer ID is different from target ID`() {
-            val viewerId = "viewer"
-            val targetId = "target"
-
-            val result = accessControl.hasPublicProfileAccess(viewerId, targetId)
-
-            assertTrue(result)
-        }
-
-        @Disabled("Reflects stub behavior with hardcoded hasMatch=true")
-        @Test
-        fun `returns true for users with similar but different IDs`() {
-            val viewerId = "user-001"
-            val targetId = "user-002"
-
-            val result = accessControl.hasPublicProfileAccess(viewerId, targetId)
-
-            assertTrue(result)
-        }
-    }
-
-    @Nested
-    inner class `Edge Cases` {
-
-        @Test
-        fun `returns true when both IDs are empty strings`() {
+        fun `returns true for same user with empty string ID`() = runTest {
             val result = accessControl.hasPublicProfileAccess("", "")
 
             assertTrue(result, "Empty string IDs are equal, so should return true")
         }
+    }
+
+    @Nested
+    inner class `Different User Access - Has Served Match` {
 
         @Test
-        fun `returns true when viewer ID is empty and target is not`() {
-            val viewerId = ""
-            val targetId = "user-123"
+        fun `returns true when viewer has been served the target as a match`() = runTest {
+            val viewerId = "viewer"
+            val targetId = "target"
 
-            // Current implementation: hardcoded values cause this to return true
-            val result = accessControl.hasPublicProfileAccess(viewerId, targetId)
-
-            assertTrue(result)
-        }
-
-        @Test
-        fun `returns true when target ID is empty and viewer is not`() {
-            val viewerId = "user-123"
-            val targetId = ""
-
-            // Current implementation: hardcoded values cause this to return true
-            val result = accessControl.hasPublicProfileAccess(viewerId, targetId)
-
-            assertTrue(result)
-        }
-
-        @Test
-        fun `returns true for IDs with whitespace`() {
-            val viewerId = "user 123"
-            val targetId = "user 456"
+            coEvery { mockMatchAccessChecker.hasServedMatch(viewerId, targetId) } returns true
+            coEvery { mockMatchAccessChecker.isInCurrentBatch(viewerId, targetId) } returns false
 
             val result = accessControl.hasPublicProfileAccess(viewerId, targetId)
 
-            assertTrue(result)
+            assertTrue(result, "Access should be granted when user has been served the match")
+            coVerify { mockMatchAccessChecker.hasServedMatch(viewerId, targetId) }
         }
 
         @Test
-        fun `returns true when IDs differ only in case`() {
-            val viewerId = "User-123"
-            val targetId = "user-123"
+        fun `returns true when both hasMatch and currentBatch are true`() = runTest {
+            val viewerId = "viewer"
+            val targetId = "target"
 
-            // Note: These are different strings, so will take the different-user path
-            val result = accessControl.hasPublicProfileAccess(viewerId, targetId)
-
-            assertTrue(result)
-        }
-
-        @Test
-        fun `returns true for single character IDs`() {
-            val viewerId = "a"
-            val targetId = "b"
-
-            val result = accessControl.hasPublicProfileAccess(viewerId, targetId)
-
-            assertTrue(result)
-        }
-
-        @Test
-        fun `returns true for numeric string IDs`() {
-            val viewerId = "12345"
-            val targetId = "67890"
+            coEvery { mockMatchAccessChecker.hasServedMatch(viewerId, targetId) } returns true
+            coEvery { mockMatchAccessChecker.isInCurrentBatch(viewerId, targetId) } returns true
 
             val result = accessControl.hasPublicProfileAccess(viewerId, targetId)
 
@@ -188,150 +87,53 @@ class ProfileAccessControlTest {
     }
 
     @Nested
-    inner class `Current Implementation Behavior` {
-        // NOTE: These tests document STUB behavior where hasMatch=true and currentBatch=true are hardcoded.
-        // These tests should be updated or removed when real matching logic is implemented.
+    inner class `Different User Access - In Current Batch` {
 
-        @Disabled("Documents stub behavior - update when implementing real matching logic")
         @Test
-        fun `always returns true due to hardcoded match and batch values`() {
-            // This test documents the current behavior where hasMatch=true and currentBatch=true
-            // are hardcoded, preventing the ForbiddenException from ever being thrown
-
+        fun `returns true when target is in viewer's current batch`() = runTest {
             val viewerId = "viewer"
             val targetId = "target"
 
+            coEvery { mockMatchAccessChecker.hasServedMatch(viewerId, targetId) } returns false
+            coEvery { mockMatchAccessChecker.isInCurrentBatch(viewerId, targetId) } returns true
+
             val result = accessControl.hasPublicProfileAccess(viewerId, targetId)
 
-            assertTrue(result, "Current implementation has hardcoded values that always return true")
-        }
-
-        @Disabled("Documents stub behavior - update when implementing real matching logic")
-        @Test
-        fun `never throws ForbiddenException with current hardcoded values`() {
-            // The condition !hasMatch && !currentBatch is never true with hardcoded values
-            // So ForbiddenException is never thrown in the current implementation
-
-            val viewerId = "viewer"
-            val targetId = "target"
-
-            // This should not throw with current implementation
-            val result = accessControl.hasPublicProfileAccess(viewerId, targetId)
-
-            assertTrue(result)
+            assertTrue(result, "Access should be granted when target is in current batch")
+            coVerify { mockMatchAccessChecker.hasServedMatch(viewerId, targetId) }
+            coVerify { mockMatchAccessChecker.isInCurrentBatch(viewerId, targetId) }
         }
     }
 
     @Nested
     inner class `Access Denied Scenarios` {
-        // NOTE: These tests document INTENDED behavior when real matching logic is implemented.
-        // They are disabled because current stub implementation has hasMatch=true and currentBatch=true hardcoded.
-        // Enable these tests when implementing real matchService integration.
 
-        @Disabled("Requires real matchService - currently hasMatch is hardcoded to true")
         @Test
-        fun `throws ForbiddenException when viewer has no match with target`() {
-            // When hasMatch=false and currentBatch=false, access should be denied
+        fun `throws ForbiddenException when no match and not in current batch`() = runTest {
             val viewerId = "viewer"
             val targetId = "target"
 
-            // Expected: matchService.hasMatch(viewer, target) returns false
-            // Expected: matchService.currentBatch(viewer).contains(target) returns false
-            // Result: Should throw ForbiddenException
+            coEvery { mockMatchAccessChecker.hasServedMatch(viewerId, targetId) } returns false
+            coEvery { mockMatchAccessChecker.isInCurrentBatch(viewerId, targetId) } returns false
 
-            assertFailsWith<ForbiddenException>(
-                message = "Should throw ForbiddenException when viewer has no match and target not in current batch"
-            ) {
+            val exception = assertFailsWith<ForbiddenException> {
                 accessControl.hasPublicProfileAccess(viewerId, targetId)
             }
+
+            assertEquals("You do not have access to this profile", exception.message)
+            coVerify { mockMatchAccessChecker.hasServedMatch(viewerId, targetId) }
+            coVerify { mockMatchAccessChecker.isInCurrentBatch(viewerId, targetId) }
         }
 
-        @Disabled("Requires real matchService - currently hasMatch is hardcoded to true")
         @Test
-        fun `throws ForbiddenException when blocked viewer tries to access profile`() {
-            // Blocked users should not have access even if they had a previous match
-            val blockedViewerId = "blocked-viewer"
-            val targetId = "target"
+        fun `throws ForbiddenException for unmatched users not in batch`() = runTest {
+            val viewerId = "user-1"
+            val targetId = "user-2"
 
-            // Expected: User has blocked the viewer
-            // Result: Should throw ForbiddenException
+            coEvery { mockMatchAccessChecker.hasServedMatch(viewerId, targetId) } returns false
+            coEvery { mockMatchAccessChecker.isInCurrentBatch(viewerId, targetId) } returns false
 
-            assertFailsWith<ForbiddenException>(
-                message = "Blocked viewers should not have access to target profile"
-            ) {
-                accessControl.hasPublicProfileAccess(blockedViewerId, targetId)
-            }
-        }
-
-        @Disabled("Requires real matchService - currently currentBatch is hardcoded to true")
-        @Test
-        fun `throws ForbiddenException when viewer and target are not in matching batch`() {
-            // Users who are not in the same matching batch and have no existing match should not have access
-            val viewerId = "viewer"
-            val targetId = "target"
-
-            // Expected: matchService.hasMatch(viewer, target) returns false
-            // Expected: matchService.currentBatch(viewer).contains(target) returns false
-            // Result: Should throw ForbiddenException
-
-            assertFailsWith<ForbiddenException>(
-                message = "Users not in matching batch and with no existing match should not have access"
-            ) {
-                accessControl.hasPublicProfileAccess(viewerId, targetId)
-            }
-        }
-
-        @Disabled("Requires real matchService - currently hasMatch is hardcoded to true")
-        @Test
-        fun `returns false when checking access for non-matching users`() {
-            // Alternative test: Some implementations might return false instead of throwing
-            // This documents that behavior option
-            val viewerId = "viewer-no-match"
-            val targetId = "target-no-match"
-
-            // Expected: matchService.hasMatch returns false
-            // Expected: matchService.currentBatch returns false
-            // Alternative behavior: Could return false instead of throwing
-
-            // Note: Current implementation throws ForbiddenException, but this test
-            // documents an alternative API design where false is returned
-            assertFalse(
-                accessControl.hasPublicProfileAccess(viewerId, targetId),
-                message = "Non-matching users might return false instead of throwing"
-            )
-        }
-
-        @Disabled("Requires real matchService - documents intended blocking behavior")
-        @Test
-        fun `throws ForbiddenException when target has blocked the viewer`() {
-            // When target user has blocked the viewer, access must be denied
-            val viewerId = "viewer"
-            val blockedTargetId = "target-who-blocked-viewer"
-
-            // Expected: Target has blocked the viewer
-            // Result: Should throw ForbiddenException regardless of match status
-
-            assertFailsWith<ForbiddenException>(
-                message = "Access denied when target has blocked the viewer"
-            ) {
-                accessControl.hasPublicProfileAccess(viewerId, blockedTargetId)
-            }
-        }
-
-        @Disabled("Requires real matchService - documents intended expired match behavior")
-        @Test
-        fun `throws ForbiddenException when match has expired`() {
-            // Matches may have expiration - expired matches should deny access
-            val viewerId = "viewer"
-            val targetId = "target-with-expired-match"
-
-            // Expected: Previous match exists but has expired
-            // Expected: Not in current batch
-            // Result: Should throw ForbiddenException
-
-            assertFailsWith<ForbiddenException>(
-                message = "Expired matches should not grant profile access"
-            ) {
+            assertFailsWith<ForbiddenException> {
                 accessControl.hasPublicProfileAccess(viewerId, targetId)
             }
         }
@@ -341,16 +143,12 @@ class ProfileAccessControlTest {
     inner class `Return Value Verification` {
 
         @Test
-        fun `returns boolean true type`() {
-            val result = accessControl.hasPublicProfileAccess("user-1", "user-2")
-
-            assertEquals(true, result)
-        }
-
-        @Test
-        fun `consistently returns true for repeated calls with same parameters`() {
+        fun `consistently returns true for repeated calls with same parameters`() = runTest {
             val viewerId = "user-1"
             val targetId = "user-2"
+
+            coEvery { mockMatchAccessChecker.hasServedMatch(viewerId, targetId) } returns true
+            coEvery { mockMatchAccessChecker.isInCurrentBatch(viewerId, targetId) } returns false
 
             val result1 = accessControl.hasPublicProfileAccess(viewerId, targetId)
             val result2 = accessControl.hasPublicProfileAccess(viewerId, targetId)
@@ -364,15 +162,24 @@ class ProfileAccessControlTest {
         }
 
         @Test
-        fun `returns true regardless of parameter order`() {
+        fun `access is directional based on match direction`() = runTest {
             val userId1 = "user-1"
             val userId2 = "user-2"
 
-            val result1 = accessControl.hasPublicProfileAccess(userId1, userId2)
-            val result2 = accessControl.hasPublicProfileAccess(userId2, userId1)
+            // user-1 has been served user-2
+            coEvery { mockMatchAccessChecker.hasServedMatch(userId1, userId2) } returns true
+            coEvery { mockMatchAccessChecker.isInCurrentBatch(userId1, userId2) } returns false
 
-            assertTrue(result1)
-            assertTrue(result2)
+            // user-2 has NOT been served user-1
+            coEvery { mockMatchAccessChecker.hasServedMatch(userId2, userId1) } returns false
+            coEvery { mockMatchAccessChecker.isInCurrentBatch(userId2, userId1) } returns false
+
+            val result1 = accessControl.hasPublicProfileAccess(userId1, userId2)
+            assertTrue(result1, "user-1 should have access to user-2")
+
+            assertFailsWith<ForbiddenException> {
+                accessControl.hasPublicProfileAccess(userId2, userId1)
+            }
         }
     }
 }

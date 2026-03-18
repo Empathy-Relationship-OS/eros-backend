@@ -66,7 +66,8 @@ fun Application.configureRouting() {
     val qaService = QAService(questionRepository, qaRepository)
     val matchService = MatchService(matchRepository, dailyBatchRepository, userService, transactionManager)
 
-    val profileAccessControl = ProfileAccessControl()
+    val matchAccessChecker = MatchAccessCheckerImpl(matchService)
+    val profileAccessControl = ProfileAccessControl(matchAccessChecker)
     routing {
         get("/") {
             call.respondText("Hello World!")

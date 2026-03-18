@@ -104,4 +104,13 @@ class MatchRepositoryImpl : BaseDAOImpl<Long, Match>(Matches, Matches.matchId), 
             .singleOrNull()
             ?.toDomain()
     }
+
+    override suspend fun hasServedMatch(user1Id: String, user2Id: String): Boolean {
+        return !Matches.selectAll()
+            .where {
+                (Matches.user1Id eq user1Id) and
+                (Matches.user2Id eq user2Id) and
+                (Matches.servedAt.isNotNull())
+            }.empty()
+    }
 }
