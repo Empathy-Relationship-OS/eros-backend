@@ -1,5 +1,8 @@
 package com.eros.matching.service
 
+import com.eros.common.errors.ConflictException
+import com.eros.common.errors.ForbiddenException
+import com.eros.common.errors.NotFoundException
 import com.eros.matching.models.Match
 import com.eros.matching.models.MutualMatchInfo
 import com.eros.matching.models.UserMatchProfile
@@ -28,11 +31,40 @@ class MatchService(
         const val MAX_DAILY_BATCHES = 3
     }
 
-    suspend fun matchAction(matchId: Long, like: Boolean): Match = transactionManager.execute {
-        // todo should we pass in the user commiting the action and detect that they are the same or should we only care about that in route layer?
-        val existingMatch = matchRepository.findById(matchId) ?: throw IllegalArgumentException("The match does not exist.")
+    /**
+     * Records a user's action (like/pass) on a match.
+     *
+     * Business rules:
+     * - Match must exist (throws NotFoundException if not found)
+     * - User cannot change action once taken (throws ConflictException if liked is not null)
+     * - Updates match with liked value and current timestamp
+     *
+     * @param matchId The ID of the match to update
+     * @param userId The user taking the action (for validation)
+     * @param like Whether the user liked (true) or passed (false)
+     * @return Updated match record
+     * @throws NotFoundException if match doesn't exist
+     * @throws ConflictException if user already took action on this match
+     * @throws ForbiddenException if user doesn't own the match
+     */
+    suspend fun matchAction(matchId: Long, userId: String, like: Boolean): Match = transactionManager.execute {
+        val existingMatch = matchRepository.findById(matchId)
+            ?: throw NotFoundException("Match with ID $matchId not found")
 
-        matchRepository.update(matchId, existingMatch.copy(liked = like))!!
+        // Verify the user owns this match (is user1)
+        if (existingMatch.user1Id != userId) {
+            throw ForbiddenException("You do not have permission to act on this match")
+        }
+
+        // Check if user has already taken action
+        // hasUserActed() returns true when servedAt is set and updatedAt > servedAt
+        if (existingMatch.hasUserActed() && existingMatch.isLiked()) {
+            throw ConflictException("You have already taken action on this match")
+        }
+
+        // Update match with action
+        val updatedMatch = existingMatch.recordAction(like)
+        matchRepository.update(matchId, updatedMatch)!!
     }
 
     suspend fun isMutualMatch(fromUserId: String, toUserId: String): Boolean = transactionManager.execute {
@@ -42,11 +74,35 @@ class MatchService(
         originalMatch && secondaryMatch
     }
 
-    suspend fun matchUser(matchId : Long, like: Boolean) : MutualMatchInfo? {
-        val match = matchAction(matchId, like)
+    /**
+     * Handles a user's match action and checks for mutual matches.
+     *
+     * Business rules:
+     * - Records the user's action (like/pass) on the match
+     * - If user liked, checks if it's a mutual match (both users liked each other)
+     * - Returns MutualMatchInfo if mutual match detected, null otherwise
+     *
+     * @param matchId The ID of the match being acted upon
+     * @param userId The user taking the action
+     * @param like Whether the user liked (true) or passed (false)
+     * @return MutualMatchInfo if mutual match, null if not
+     * @throws NotFoundException if match doesn't exist
+     * @throws ConflictException if user already took action
+     * @throws ForbiddenException if user doesn't own the match
+     */
+    suspend fun matchUser(matchId: Long, userId: String, like: Boolean): MutualMatchInfo? {
+        val match = matchAction(matchId, userId, like)
+
+        // Only check for mutual match if the user liked (not if they passed)
+        if (!like) {
+            // TODO: When a user passes, consider showing this profile again in their batch with lower priority
+            return null
+        }
+
         val mutualMatch = isMutualMatch(match.user1Id, match.user2Id)
         if (mutualMatch) {
-            // TODO send back event to say its a match
+            // TODO: Send event notification to both users about the mutual match
+            // TODO: In the matching algorithm, weight liked users more heavily when generating future matches
             // This works for the single user case, but you have a mutual connection, how do we send the event to the other user that they have a date?
             // Do we send it such that on app start up they will poll to get dates and if a date exists then no more actions can be taken
             return MutualMatchInfo(
@@ -56,6 +112,9 @@ class MatchService(
                 matchedAt = Instant.now(),
             )
         }
+
+        // TODO: When a user likes but no mutual match yet, increase the weight/priority of showing
+        // the liking user's profile to the liked user in future batches (matching algorithm enhancement)
         return null
     }
 
