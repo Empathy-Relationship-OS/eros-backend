@@ -32,6 +32,175 @@ class MatchRoutesTest {
     private val mockMatchService = mockk<MatchService>()
 
     @Nested
+    inner class `PATCH match action matchId` {
+
+        @Test
+        fun `should return 200 with MutualMatchInfo when both users like each other`() = testApplication {
+            setupTestApp()
+            val client = configuredClient()
+
+            val userId = "user123"
+            val matchId = 1L
+            val mutualMatchInfo = com.eros.matching.models.MutualMatchInfo(
+                matchId = matchId,
+                user1Id = userId,
+                user2Id = "user456",
+                matchedAt = Instant.parse("2024-01-15T10:00:00Z")
+            )
+
+            coEvery { mockMatchService.matchUser(matchId, userId, true) } returns mutualMatchInfo
+
+            val response = client.patch("/match/action/$matchId") {
+                setAuthenticatedUser(userId)
+                contentType(ContentType.Application.Json)
+                setBody("""{"liked": true}""")
+            }
+
+            assertEquals(HttpStatusCode.OK, response.status)
+            val result = response.body<com.eros.matching.models.MutualMatchInfo>()
+            assertEquals(matchId, result.matchId)
+            assertEquals(userId, result.user1Id)
+            assertEquals("user456", result.user2Id)
+            coVerify { mockMatchService.matchUser(matchId, userId, true) }
+        }
+
+        @Test
+        fun `should return 204 when user likes but no mutual match`() = testApplication {
+            setupTestApp()
+            val client = configuredClient()
+
+            val userId = "user123"
+            val matchId = 1L
+
+            coEvery { mockMatchService.matchUser(matchId, userId, true) } returns null
+
+            val response = client.patch("/match/action/$matchId") {
+                setAuthenticatedUser(userId)
+                contentType(ContentType.Application.Json)
+                setBody("""{"liked": true}""")
+            }
+
+            assertEquals(HttpStatusCode.NoContent, response.status)
+            coVerify { mockMatchService.matchUser(matchId, userId, true) }
+        }
+
+        @Test
+        fun `should return 204 when user passes on match`() = testApplication {
+            setupTestApp()
+            val client = configuredClient()
+
+            val userId = "user123"
+            val matchId = 1L
+
+            coEvery { mockMatchService.matchUser(matchId, userId, false) } returns null
+
+            val response = client.patch("/match/action/$matchId") {
+                setAuthenticatedUser(userId)
+                contentType(ContentType.Application.Json)
+                setBody("""{"liked": false}""")
+            }
+
+            assertEquals(HttpStatusCode.NoContent, response.status)
+            coVerify { mockMatchService.matchUser(matchId, userId, false) }
+        }
+
+        @Test
+        fun `should return 400 when matchId is invalid`() = testApplication {
+            setupTestApp()
+            val client = configuredClient()
+
+            val userId = "user123"
+
+            val response = client.patch("/match/action/invalid") {
+                setAuthenticatedUser(userId)
+                contentType(ContentType.Application.Json)
+                setBody("""{"liked": true}""")
+            }
+
+            assertEquals(HttpStatusCode.BadRequest, response.status)
+        }
+
+        @Test
+        fun `should return 401 when not authenticated`() = testApplication {
+            setupTestApp()
+            val client = configuredClient()
+
+            val response = client.patch("/match/action/1") {
+                contentType(ContentType.Application.Json)
+                setBody("""{"liked": true}""")
+            }
+
+            assertEquals(HttpStatusCode.Unauthorized, response.status)
+        }
+
+        @Test
+        fun `should return 403 when user doesn't own the match`() = testApplication {
+            setupTestApp()
+            val client = configuredClient()
+
+            val userId = "user123"
+            val matchId = 1L
+
+            coEvery {
+                mockMatchService.matchUser(matchId, userId, true)
+            } throws com.eros.common.errors.ForbiddenException("You do not have permission to act on this match")
+
+            val response = client.patch("/match/action/$matchId") {
+                setAuthenticatedUser(userId)
+                contentType(ContentType.Application.Json)
+                setBody("""{"liked": true}""")
+            }
+
+            assertEquals(HttpStatusCode.Forbidden, response.status)
+            coVerify { mockMatchService.matchUser(matchId, userId, true) }
+        }
+
+        @Test
+        fun `should return 404 when match doesn't exist`() = testApplication {
+            setupTestApp()
+            val client = configuredClient()
+
+            val userId = "user123"
+            val matchId = 999L
+
+            coEvery {
+                mockMatchService.matchUser(matchId, userId, true)
+            } throws com.eros.common.errors.NotFoundException("Match with ID $matchId not found")
+
+            val response = client.patch("/match/action/$matchId") {
+                setAuthenticatedUser(userId)
+                contentType(ContentType.Application.Json)
+                setBody("""{"liked": true}""")
+            }
+
+            assertEquals(HttpStatusCode.NotFound, response.status)
+            coVerify { mockMatchService.matchUser(matchId, userId, true) }
+        }
+
+        @Test
+        fun `should return 409 when user already took action on match`() = testApplication {
+            setupTestApp()
+            val client = configuredClient()
+
+            val userId = "user123"
+            val matchId = 1L
+
+            coEvery {
+                mockMatchService.matchUser(matchId, userId, true)
+            } throws com.eros.common.errors.ConflictException("You have already taken action on this match")
+
+            val response = client.patch("/match/action/$matchId") {
+                setAuthenticatedUser(userId)
+                contentType(ContentType.Application.Json)
+                setBody("""{"liked": true}""")
+            }
+
+            assertEquals(HttpStatusCode.Conflict, response.status)
+            coVerify { mockMatchService.matchUser(matchId, userId, true) }
+        }
+    }
+
+    @Nested
     inner class `GET match` {
 
         @Test

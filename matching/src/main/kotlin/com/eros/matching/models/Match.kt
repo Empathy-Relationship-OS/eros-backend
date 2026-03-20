@@ -150,23 +150,14 @@ data class Match(
  * Request DTO for a user taking action on a potential match.
  *
  * Sent when a user likes or passes on a match they've been served.
+ * The matchId is provided in the URL path, and the authenticated user is derived from the bearer token.
  *
- * @property matchId The ID of the match being acted upon
  * @property liked Whether the user liked the match (true) or passed (false)
  */
 @Serializable
 data class MatchActionRequest(
-    val matchId: Long,
-    val fromUserId: String,
-    val toUserId: String,
     val liked: Boolean
-) {
-    init {
-        require(matchId > 0) { "matchId must be positive" }
-        require(fromUserId.isNotBlank()) { "fromUserId cannot be blank" }
-        require(toUserId.isNotBlank()) { "toUserId cannot be blank" }
-    }
-}
+)
 
 /**
  * DTO returned when both users have liked each other, creating a mutual match.

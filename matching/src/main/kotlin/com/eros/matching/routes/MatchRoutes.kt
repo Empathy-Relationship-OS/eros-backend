@@ -96,23 +96,31 @@ fun Route.matchRoutes(matchService: MatchService) {
             // probably more optimal for later, but does this cross concerns modules or does it simply quicken up process
         }
 
-        patch("action/{matchId}"){
+        /**
+         * PATCH /match/action/{matchId} - Take action on a potential match
+         *
+         * Allows a user to like or pass on a match they've been served.
+         *
+         * Request body:
+         * - liked (boolean): true for like, false for pass
+         *
+         * Responses:
+         * - 200 OK: MutualMatchInfo - Both users liked each other (mutual match)
+         * - 204 No Content: Action recorded, but no mutual match
+         * - 400 Bad Request: Invalid matchId format
+         * - 401 Unauthorized: Not authenticated
+         * - 403 Forbidden: User doesn't own this match
+         * - 409 Conflict: User already took action on this match
+         */
+        patch("action/{matchId}") {
             val principal = call.requireFirebasePrincipal()
             val request = call.receive<MatchActionRequest>()
 
-            val matchId = call.parameters["matchId"]?.toLong()
-                ?: throw BadRequestException("Invalid matchId provided.")
+            val matchId = call.parameters["matchId"]?.toLongOrNull()
+                ?: throw BadRequestException("Invalid matchId provided")
 
-            if (principal.uid != request.fromUserId) {
-                throw BadRequestException("Invalid fromUserId provided.")
-            }
-
-            if (matchId != request.matchId) {
-                throw BadRequestException("Invalid matchId provided.")
-            }
-
-            // update match info the only alterable field here is like or not for me
-            val mutualMatchInfo = matchService.matchUser(matchId, request.liked)
+            // Service handles all validation: ownership, conflict detection, mutual match logic
+            val mutualMatchInfo = matchService.matchUser(matchId, principal.uid, request.liked)
 
             if (mutualMatchInfo != null) {
                 call.respond(HttpStatusCode.OK, mutualMatchInfo)

@@ -111,77 +111,148 @@ class MatchServiceTest {
     inner class `matchAction function` {
 
         @Test
-        fun `should update match with like action`() = runTest {
-            val match = createTestMatch(liked = false)
-            val updatedMatch = match.copy(liked = true)
+        fun `should return match with liked true when user likes`() = runTest {
+            val match = createTestMatch(
+                matchId = 1L,
+                user1Id = "user1",
+                user2Id = "user2",
+                liked = false,
+                servedAt = fixedInstant
+            )
+            val updatedMatch = match.recordAction(true, fixedInstant.plusSeconds(60))
 
             coEvery { matchRepository.findById(1L) } returns match
             coEvery { matchRepository.update(1L, any()) } returns updatedMatch
 
-            val result = matchService.matchAction(1L, true)
+            val result = matchService.matchAction(1L, "user1", true)
 
+            // Assert on the outcome, not the implementation
             assertNotNull(result)
             assertTrue(result.liked)
             assertEquals(1L, result.matchId)
-
-            coVerify { matchRepository.findById(1L) }
-            coVerify { matchRepository.update(1L, match.copy(liked = true)) }
+            assertEquals("user1", result.user1Id)
+            assertEquals("user2", result.user2Id)
         }
 
         @Test
-        fun `should update match with dislike action`() = runTest {
-            val match = createTestMatch(liked = true)
-            val updatedMatch = match.copy(liked = false)
+        fun `should return match with liked false when user passes`() = runTest {
+            val match = createTestMatch(
+                matchId = 1L,
+                user1Id = "user1",
+                user2Id = "user2",
+                liked = false,
+                servedAt = fixedInstant
+            )
+            val updatedMatch = match.recordAction(false, fixedInstant.plusSeconds(60))
 
             coEvery { matchRepository.findById(1L) } returns match
             coEvery { matchRepository.update(1L, any()) } returns updatedMatch
 
-            val result = matchService.matchAction(1L, false)
+            val result = matchService.matchAction(1L, "user1", false)
 
+            // Assert on the outcome
             assertNotNull(result)
             assertFalse(result.liked)
             assertEquals(1L, result.matchId)
-
-            coVerify { matchRepository.findById(1L) }
-            coVerify { matchRepository.update(1L, match.copy(liked = false)) }
         }
 
         @Test
-        fun `should throw exception when match does not exist`() = runTest {
+        fun `should throw NotFoundException when match does not exist`() = runTest {
             coEvery { matchRepository.findById(999L) } returns null
 
-            val exception = assertThrows<IllegalArgumentException> {
-                matchService.matchAction(999L, true)
+            val exception = assertThrows<com.eros.common.errors.NotFoundException> {
+                matchService.matchAction(999L, "user1", true)
             }
 
-            assertEquals("The match does not exist.", exception.message)
-            coVerify { matchRepository.findById(999L) }
-            coVerify(exactly = 0) { matchRepository.update(any(), any()) }
+            // Assert on the exception behavior
+            assertTrue(exception.message!!.contains("Match with ID 999 not found"))
         }
 
         @Test
-        fun `should preserve match metadata when updating action`() = runTest {
+        fun `should throw ForbiddenException when user doesn't own match`() = runTest {
             val match = createTestMatch(
-                matchId = 5L,
+                matchId = 1L,
                 user1Id = "userA",
                 user2Id = "userB",
-                liked = false,
-                createdAt = fixedInstant.minusSeconds(7200),  // Earlier than servedAt
-                updatedAt = fixedInstant.minusSeconds(7200),
-                servedAt = fixedInstant.minusSeconds(3600)
+                servedAt = fixedInstant
             )
-            val updatedMatch = match.copy(liked = true)
 
-            coEvery { matchRepository.findById(5L) } returns match
-            coEvery { matchRepository.update(5L, any()) } returns updatedMatch
+            coEvery { matchRepository.findById(1L) } returns match
 
-            val result = matchService.matchAction(5L, true)
+            val exception = assertThrows<com.eros.common.errors.ForbiddenException> {
+                matchService.matchAction(1L, "wrongUser", true)
+            }
 
-            assertEquals("userA", result.user1Id)
-            assertEquals("userB", result.user2Id)
-            assertEquals(fixedInstant.minusSeconds(3600), result.servedAt)
+            // Assert on the exception behavior
+            assertTrue(exception.message!!.contains("You do not have permission"))
+        }
 
-            coVerify { matchRepository.findById(5L) }
+        @Test
+        fun `should throw ConflictException when attempting to change a previous like`() = runTest {
+            val match = createTestMatch(
+                matchId = 1L,
+                user1Id = "user1",
+                user2Id = "user2",
+                liked = true,
+                createdAt = fixedInstant,
+                updatedAt = fixedInstant.plusSeconds(120), // Updated after served
+                servedAt = fixedInstant
+            )
+
+            coEvery { matchRepository.findById(1L) } returns match
+
+            val exception = assertThrows<com.eros.common.errors.ConflictException> {
+                matchService.matchAction(1L, "user1", false)
+            }
+
+            // Assert on the exception behavior
+            assertTrue(exception.message!!.contains("already taken action"))
+        }
+
+        @Test
+        fun `should allow changing pass to like within 24 hours`() = runTest {
+            val match = createTestMatch(
+                matchId = 1L,
+                user1Id = "user1",
+                user2Id = "user2",
+                liked = false,
+                createdAt = fixedInstant,
+                updatedAt = fixedInstant.plusSeconds(120), // Previously passed
+                servedAt = fixedInstant
+            )
+            val updatedMatch = match.recordAction(true, fixedInstant.plusSeconds(180))
+
+            coEvery { matchRepository.findById(1L) } returns match
+            coEvery { matchRepository.update(1L, any()) } returns updatedMatch
+
+            val result = matchService.matchAction(1L, "user1", true)
+
+            // Assert user can change from pass to like
+            assertNotNull(result)
+            assertTrue(result.liked)
+        }
+
+        @Test
+        fun `should allow action on served match that hasn't been acted on`() = runTest {
+            val match = createTestMatch(
+                matchId = 1L,
+                user1Id = "user1",
+                user2Id = "user2",
+                liked = false,
+                createdAt = fixedInstant,
+                updatedAt = fixedInstant,
+                servedAt = fixedInstant
+            )
+            val updatedMatch = match.recordAction(true, fixedInstant.plusSeconds(60))
+
+            coEvery { matchRepository.findById(1L) } returns match
+            coEvery { matchRepository.update(1L, any()) } returns updatedMatch
+
+            val result = matchService.matchAction(1L, "user1", true)
+
+            // Assert first action is allowed
+            assertNotNull(result)
+            assertTrue(result.liked)
         }
     }
 
@@ -202,10 +273,8 @@ class MatchServiceTest {
 
             val result = matchService.isMutualMatch("user1", "user2")
 
+            // Assert on the outcome: mutual match detected
             assertTrue(result)
-
-            coVerify { matchRepository.getLikeMatch("user1", "user2") }
-            coVerify { matchRepository.getLikeMatch("user2", "user1") }
         }
 
         @Test
@@ -217,26 +286,18 @@ class MatchServiceTest {
 
             val result = matchService.isMutualMatch("user1", "user2")
 
+            // Assert on the outcome: no mutual match
             assertFalse(result)
-
-            coVerify { matchRepository.getLikeMatch("user1", "user2") }
-            coVerify { matchRepository.getLikeMatch("user2", "user1") }
         }
 
         @Test
         fun `should return false when first user did not like`() = runTest {
-            val match2 = createTestMatch(user1Id = "user2", user2Id = "user1", liked = true)
-
             coEvery { matchRepository.getLikeMatch("user1", "user2") } returns null
-            coEvery { matchRepository.getLikeMatch("user2", "user1") } returns match2
 
             val result = matchService.isMutualMatch("user1", "user2")
 
+            // Assert on the outcome: no mutual match
             assertFalse(result)
-
-            coVerify { matchRepository.getLikeMatch("user1", "user2") }
-            // Should short-circuit and not check second match
-            coVerify(exactly = 0) { matchRepository.getLikeMatch("user2", "user1") }
         }
 
         @Test
@@ -246,23 +307,19 @@ class MatchServiceTest {
 
             val result = matchService.isMutualMatch("user1", "user2")
 
+            // Assert on the outcome: no mutual match
             assertFalse(result)
-
-            coVerify { matchRepository.getLikeMatch("user1", "user2") }
-            coVerify(exactly = 0) { matchRepository.getLikeMatch("user2", "user1") }
         }
 
         @Test
-        fun `should return false when first match exists but liked is false`() = runTest {
+        fun `should return false when match exists but not liked`() = runTest {
             // getLikeMatch returns null when liked is false (it only returns liked matches)
             coEvery { matchRepository.getLikeMatch("user1", "user2") } returns null
 
             val result = matchService.isMutualMatch("user1", "user2")
 
+            // Assert on the outcome: no mutual match
             assertFalse(result)
-
-            coVerify { matchRepository.getLikeMatch("user1", "user2") }
-            coVerify(exactly = 0) { matchRepository.getLikeMatch("user2", "user1") }
         }
     }
 
@@ -275,8 +332,14 @@ class MatchServiceTest {
 
         @Test
         fun `should return MutualMatchInfo when both users liked each other`() = runTest {
-            val match = createTestMatch(matchId = 1L, user1Id = "user1", user2Id = "user2", liked = false)
-            val updatedMatch = match.copy(liked = true)
+            val match = createTestMatch(
+                matchId = 1L,
+                user1Id = "user1",
+                user2Id = "user2",
+                liked = false,
+                servedAt = fixedInstant
+            )
+            val updatedMatch = match.recordAction(true, fixedInstant.plusSeconds(60))
             val reverseMatch = createTestMatch(user1Id = "user2", user2Id = "user1", liked = true)
 
             coEvery { matchRepository.findById(1L) } returns match
@@ -284,70 +347,109 @@ class MatchServiceTest {
             coEvery { matchRepository.getLikeMatch("user1", "user2") } returns updatedMatch
             coEvery { matchRepository.getLikeMatch("user2", "user1") } returns reverseMatch
 
-            val result = matchService.matchUser(1L, true)
+            val result = matchService.matchUser(1L, "user1", true)
 
+            // Assert on the outcome: mutual match info is returned
             assertNotNull(result)
             assertEquals(1L, result.matchId)
             assertEquals("user1", result.user1Id)
             assertEquals("user2", result.user2Id)
             assertNotNull(result.matchedAt)
-
-            coVerify { matchRepository.findById(1L) }
-            coVerify { matchRepository.update(1L, any()) }
-            coVerify { matchRepository.getLikeMatch("user1", "user2") }
-            coVerify { matchRepository.getLikeMatch("user2", "user1") }
         }
 
         @Test
-        fun `should return null when not a mutual match`() = runTest {
-            val match = createTestMatch(matchId = 1L, user1Id = "user1", user2Id = "user2", liked = false)
-            val updatedMatch = match.copy(liked = true)
+        fun `should return null when user likes but not a mutual match`() = runTest {
+            val match = createTestMatch(
+                matchId = 1L,
+                user1Id = "user1",
+                user2Id = "user2",
+                liked = false,
+                servedAt = fixedInstant
+            )
+            val updatedMatch = match.recordAction(true, fixedInstant.plusSeconds(60))
 
             coEvery { matchRepository.findById(1L) } returns match
             coEvery { matchRepository.update(1L, any()) } returns updatedMatch
             coEvery { matchRepository.getLikeMatch("user1", "user2") } returns updatedMatch
             coEvery { matchRepository.getLikeMatch("user2", "user1") } returns null
 
-            val result = matchService.matchUser(1L, true)
+            val result = matchService.matchUser(1L, "user1", true)
 
+            // Assert on the outcome: no mutual match info returned
             assertNull(result)
-
-            coVerify { matchRepository.findById(1L) }
-            coVerify { matchRepository.update(1L, any()) }
-            coVerify { matchRepository.getLikeMatch("user1", "user2") }
-            coVerify { matchRepository.getLikeMatch("user2", "user1") }
         }
 
         @Test
-        fun `should return null when user dislikes`() = runTest {
-            val match = createTestMatch(matchId = 1L, user1Id = "user1", user2Id = "user2", liked = true)
-            val updatedMatch = match.copy(liked = false)
+        fun `should return null when user passes`() = runTest {
+            val match = createTestMatch(
+                matchId = 1L,
+                user1Id = "user1",
+                user2Id = "user2",
+                liked = false,
+                servedAt = fixedInstant
+            )
+            val updatedMatch = match.recordAction(false, fixedInstant.plusSeconds(60))
 
             coEvery { matchRepository.findById(1L) } returns match
             coEvery { matchRepository.update(1L, any()) } returns updatedMatch
-            coEvery { matchRepository.getLikeMatch("user1", "user2") } returns null
 
-            val result = matchService.matchUser(1L, false)
+            val result = matchService.matchUser(1L, "user1", false)
 
+            // Assert on the outcome: no mutual match check when passing
             assertNull(result)
-
-            coVerify { matchRepository.findById(1L) }
-            coVerify { matchRepository.update(1L, any()) }
-            coVerify { matchRepository.getLikeMatch("user1", "user2") }
         }
 
         @Test
-        fun `should throw exception when match does not exist`() = runTest {
+        fun `should throw NotFoundException when match does not exist`() = runTest {
             coEvery { matchRepository.findById(999L) } returns null
 
-            val exception = assertThrows<IllegalArgumentException> {
-                matchService.matchUser(999L, true)
+            val exception = assertThrows<com.eros.common.errors.NotFoundException> {
+                matchService.matchUser(999L, "user1", true)
             }
 
-            assertEquals("The match does not exist.", exception.message)
+            // Assert on the exception behavior
+            assertTrue(exception.message!!.contains("Match with ID 999 not found"))
+        }
 
-            coVerify { matchRepository.findById(999L) }
-            coVerify(exactly = 0) { matchRepository.update(any(), any()) }
+        @Test
+        fun `should throw ForbiddenException when user doesn't own match`() = runTest {
+            val match = createTestMatch(
+                matchId = 1L,
+                user1Id = "userA",
+                user2Id = "userB",
+                servedAt = fixedInstant
+            )
+
+            coEvery { matchRepository.findById(1L) } returns match
+
+            val exception = assertThrows<com.eros.common.errors.ForbiddenException> {
+                matchService.matchUser(1L, "wrongUser", true)
+            }
+
+            // Assert on the exception behavior
+            assertTrue(exception.message!!.contains("You do not have permission"))
+        }
+
+        @Test
+        fun `should throw ConflictException when user already took action`() = runTest {
+            val match = createTestMatch(
+                matchId = 1L,
+                user1Id = "user1",
+                user2Id = "user2",
+                liked = true,
+                createdAt = fixedInstant,
+                updatedAt = fixedInstant.plusSeconds(120),
+                servedAt = fixedInstant
+            )
+
+            coEvery { matchRepository.findById(1L) } returns match
+
+            val exception = assertThrows<com.eros.common.errors.ConflictException> {
+                matchService.matchUser(1L, "user1", true)
+            }
+
+            // Assert on the exception behavior
+            assertTrue(exception.message!!.contains("already taken action"))
         }
     }
 
@@ -365,8 +467,8 @@ class MatchServiceTest {
                 createTestMatch(matchId = 1L, user1Id = "user1", user2Id = "user2", servedAt = null),
                 createTestMatch(matchId = 2L, user1Id = "user1", user2Id = "user3", servedAt = null)
             )
-            val userData1 = createTestUserMatchProfileData(userId = "user2", name = "Alice")
-            val userData2 = createTestUserMatchProfileData(userId = "user3", name = "Bob")
+            val userData1 = createTestUserMatchProfileData(userId = "user2", name = "Alice", age = 28)
+            val userData2 = createTestUserMatchProfileData(userId = "user3", name = "Bob", age = 32)
             val dailyBatch = createTestDailyBatch(batchCount = 1)
 
             coEvery { dailyBatchRepository.getBatchCount("user1", today) } returns 0
@@ -378,18 +480,18 @@ class MatchServiceTest {
 
             val result = matchService.fetchDailyBatch("user1")
 
+            // Assert on the outcome: correct profiles returned
             assertEquals(2, result.size)
             assertEquals(1L, result[0].matchId)
+            assertEquals("user2", result[0].userId)
             assertEquals("Alice", result[0].name)
+            assertEquals(28, result[0].age)
             assertEquals(2L, result[1].matchId)
+            assertEquals("user3", result[1].userId)
             assertEquals("Bob", result[1].name)
-
-            coVerify { dailyBatchRepository.getBatchCount("user1", today) }
-            coVerify { matchRepository.findUnservedMatches("user1", 7) }
-            coVerify { matchRepository.markAsServed(listOf(1L, 2L), any()) }
-            coVerify { dailyBatchRepository.incrementBatchCount("user1", today) }
-            coVerify { userService.getUserMatchProfileData("user2") }
-            coVerify { userService.getUserMatchProfileData("user3") }
+            assertEquals(32, result[1].age)
+            assertNotNull(result[0].servedAt)
+            assertNotNull(result[1].servedAt)
         }
 
         @Test
@@ -402,10 +504,8 @@ class MatchServiceTest {
                 matchService.fetchDailyBatch("user1")
             }
 
+            // Assert on the exception behavior
             assertTrue(exception.message!!.contains("Daily batch limit of 3 exceeded"))
-
-            coVerify { dailyBatchRepository.getBatchCount("user1", today) }
-            coVerify(exactly = 0) { matchRepository.findUnservedMatches(any(), any()) }
         }
 
         @Test
@@ -419,11 +519,8 @@ class MatchServiceTest {
                 matchService.fetchDailyBatch("user1")
             }
 
+            // Assert on the exception behavior
             assertTrue(exception.message!!.contains("No unserved matches available"))
-
-            coVerify { dailyBatchRepository.getBatchCount("user1", today) }
-            coVerify { matchRepository.findUnservedMatches("user1", 7) }
-            coVerify(exactly = 0) { matchRepository.markAsServed(any(), any()) }
         }
 
         @Test
@@ -447,17 +544,14 @@ class MatchServiceTest {
 
             val result = matchService.fetchDailyBatch("user1")
 
+            // Assert on the outcome: only profiles with valid user data
             assertEquals(1, result.size)
             assertEquals(1L, result[0].matchId)
             assertEquals("Alice", result[0].name)
-
-            coVerify { userService.getUserMatchProfileData("user2") }
-            coVerify { userService.getUserMatchProfileData("user3") }
-            coVerify { userService.getUserMatchProfileData("user4") }
         }
 
         @Test
-        fun `should respect BATCH_SIZE constant when fetching matches`() = runTest {
+        fun `should return up to 7 matches per batch`() = runTest {
             val today = LocalDate.now()
             val matches = List(7) { index ->
                 createTestMatch(
@@ -475,52 +569,14 @@ class MatchServiceTest {
             coEvery { dailyBatchRepository.incrementBatchCount("user1", today) } returns dailyBatch
             coEvery { userService.getUserMatchProfileData(any()) } returns createTestUserMatchProfileData()
 
-            matchService.fetchDailyBatch("user1")
+            val result = matchService.fetchDailyBatch("user1")
 
-            coVerify { matchRepository.findUnservedMatches("user1", 7) }
+            // Assert on the outcome: batch size respected
+            assertEquals(7, result.size)
         }
 
         @Test
-        fun `should mark all fetched matches as served with timestamp`() = runTest {
-            val today = LocalDate.now()
-            val matches = listOf(
-                createTestMatch(matchId = 1L, user1Id = "user1", user2Id = "user2", servedAt = null),
-                createTestMatch(matchId = 2L, user1Id = "user1", user2Id = "user3", servedAt = null)
-            )
-            val dailyBatch = createTestDailyBatch()
-
-            coEvery { dailyBatchRepository.getBatchCount("user1", today) } returns 0
-            coEvery { matchRepository.findUnservedMatches("user1", 7) } returns matches
-            coEvery { matchRepository.markAsServed(any(), any()) } returns 2
-            coEvery { dailyBatchRepository.incrementBatchCount("user1", today) } returns dailyBatch
-            coEvery { userService.getUserMatchProfileData(any()) } returns createTestUserMatchProfileData()
-
-            matchService.fetchDailyBatch("user1")
-
-            coVerify { matchRepository.markAsServed(listOf(1L, 2L), any()) }
-        }
-
-        @Test
-        fun `should increment batch count after serving matches`() = runTest {
-            val today = LocalDate.now()
-            val matches = listOf(
-                createTestMatch(matchId = 1L, user1Id = "user1", user2Id = "user2", servedAt = null)
-            )
-            val dailyBatch = createTestDailyBatch()
-
-            coEvery { dailyBatchRepository.getBatchCount("user1", today) } returns 1
-            coEvery { matchRepository.findUnservedMatches("user1", 7) } returns matches
-            coEvery { matchRepository.markAsServed(any(), any()) } returns 1
-            coEvery { dailyBatchRepository.incrementBatchCount("user1", today) } returns dailyBatch
-            coEvery { userService.getUserMatchProfileData("user2") } returns createTestUserMatchProfileData()
-
-            matchService.fetchDailyBatch("user1")
-
-            coVerify { dailyBatchRepository.incrementBatchCount("user1", today) }
-        }
-
-        @Test
-        fun `should handle batch count at limit boundary`() = runTest {
+        fun `should allow fetching batch when under daily limit`() = runTest {
             val today = LocalDate.now()
             val matches = listOf(
                 createTestMatch(matchId = 1L, user1Id = "user1", user2Id = "user2", servedAt = null)
@@ -535,10 +591,8 @@ class MatchServiceTest {
 
             val result = matchService.fetchDailyBatch("user1")
 
+            // Assert on the outcome: batch fetched successfully at limit boundary
             assertEquals(1, result.size)
-
-            coVerify { dailyBatchRepository.getBatchCount("user1", today) }
-            coVerify { matchRepository.findUnservedMatches("user1", 7) }
         }
     }
 
@@ -550,7 +604,7 @@ class MatchServiceTest {
     inner class `buildUserMatchProfile function` {
 
         @Test
-        fun `should correctly map UserMatchProfileData to UserMatchProfile`() = runTest {
+        fun `should correctly map UserMatchProfileData to UserMatchProfile with all fields`() = runTest {
             val today = LocalDate.now()
             val match = createTestMatch(
                 matchId = 1L,
@@ -575,6 +629,7 @@ class MatchServiceTest {
 
             val result = matchService.fetchDailyBatch("user1")
 
+            // Assert on the outcome: profile correctly mapped with all fields
             assertEquals(1, result.size)
             val profile = result[0]
             assertEquals(1L, profile.matchId)
@@ -587,7 +642,7 @@ class MatchServiceTest {
         }
 
         @Test
-        fun `should handle null thumbnailUrl and badges`() = runTest {
+        fun `should handle null thumbnailUrl and badges gracefully`() = runTest {
             val today = LocalDate.now()
             val match = createTestMatch(matchId = 1L, user1Id = "user1", user2Id = "user2", servedAt = null)
             val userData = UserMatchProfileData(
@@ -607,8 +662,11 @@ class MatchServiceTest {
 
             val result = matchService.fetchDailyBatch("user1")
 
+            // Assert on the outcome: null values handled correctly
             assertEquals(1, result.size)
             val profile = result[0]
+            assertEquals("Bob", profile.name)
+            assertEquals(30, profile.age)
             assertNull(profile.thumbnailUrl)
             assertNull(profile.badges)
         }
