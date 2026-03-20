@@ -32,7 +32,7 @@ fun Route.matchRoutes(matchService: MatchService) {
         }
 
         get("/{matchId}"){
-            val id = call.parameters["matchId"]?.toLong()
+            call.parameters["matchId"]?.toLong()
                 ?: throw BadRequestException("Invalid matchId provided.")
         }
 
@@ -71,29 +71,32 @@ fun Route.matchRoutes(matchService: MatchService) {
             try {
                 val matches = matchService.fetchDailyBatch(principal.uid)
                 call.respond(HttpStatusCode.OK, matches)
-            } catch (e: NoMatchesAvailableException) {
+            } catch (_: NoMatchesAvailableException) {
                 call.respond(HttpStatusCode.NoContent)
             } catch (e: DailyBatchLimitExceededException) {
                 call.respond(HttpStatusCode.TooManyRequests, mapOf("error" to e.message))
             }
         }
 
-        get("/latest/{uid}") {
-            // get the most recent 24 hours action of user from match table, where decision is not null and equal to false on liked
-            // this will allow a user to get a view of the last 24 hours, so can like if they accidentally said no
-            // due to events they cant unsend a like once sent will have to cancel date in date section
-        }
-
-        get("/today/{uid}") {
-            // fetch the daily batch's for today
-            // a user has 21 potential matchs available a day
-            // we will send this in 3 lots of 7
-            // they should not be able to get the next batch until all actionable events taken upon the users presented
-            // returned value should be a list of userIds with matchId.
-            // The system should then call get on the public profile info
-            // Or should we return a list of basic info with userId, such as Lightweight Public Profile that will allow a user
-            // to see the name, thumbnail and badges until they click and get full profile?
-            // probably more optimal for later, but does this cross concerns modules or does it simply quicken up process
+        /**
+         * GET /match/last-24 - Fetch profiles user passed on in last 24 hours
+         *
+         * Returns all profiles the authenticated user said "no" to within the last 24 hours,
+         * allowing them to reconsider and potentially change their decision to "like".
+         * This is a "second chance" feature for accidental swipes.
+         *
+         * The 24-hour window is calculated from the servedAt timestamp (when the match was shown).
+         * Users can change pass→like within this window by calling PATCH /match/action/{matchId}.
+         *
+         * Responses:
+         * - 200 OK: List<UserMatchProfile> - List of passed profiles with matchIds
+         * - 200 OK: [] - Empty list if no passes in last 24 hours
+         * - 401 Unauthorized: Not authenticated
+         */
+        get("/last-24") {
+            val principal = call.requireFirebasePrincipal()
+            val passes = matchService.getPassesInLast24Hours(principal.uid)
+            call.respond(HttpStatusCode.OK, passes)
         }
 
         /**

@@ -7,10 +7,13 @@ import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.insertReturning
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.updateReturning
+import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 
-class DailyBatchRepositoryImpl : DailyBatchRepository {
+class DailyBatchRepositoryImpl(
+    private val clock: Clock = Clock.systemUTC()
+) : DailyBatchRepository {
 
     override suspend fun findByUserAndDate(userId: String, date: LocalDate): DailyBatch? {
         return UserDailyBatches.selectAll()
@@ -76,7 +79,7 @@ class DailyBatchRepositoryImpl : DailyBatchRepository {
             val incremented = existing.incrementBatchCount()
             update(incremented) ?: throw IllegalStateException("Failed to update batch count for user $userId on $date")
         } else {
-            val now = Instant.now()
+            val now = Instant.now(clock)
             create(
                 DailyBatch(
                     userId = userId,

@@ -205,22 +205,25 @@ class MatchServiceTest {
                 matchService.matchAction(1L, "user1", false)
             }
 
-            // Assert on the exception behavior
-            assertTrue(exception.message!!.contains("already taken action"))
+            // Assert on the exception behavior - like→pass is prevented
+            assertTrue(exception.message!!.contains("Cannot change from like to pass"))
         }
 
         @Test
         fun `should allow changing pass to like within 24 hours`() = runTest {
+            // Use a recent timestamp (within last 24 hours)
+            val recentServedAt = Instant.now().minusSeconds(3600) // 1 hour ago
+
             val match = createTestMatch(
                 matchId = 1L,
                 user1Id = "user1",
                 user2Id = "user2",
                 liked = false,
-                createdAt = fixedInstant,
-                updatedAt = fixedInstant.plusSeconds(120), // Previously passed
-                servedAt = fixedInstant
+                createdAt = recentServedAt.minusSeconds(60),
+                updatedAt = recentServedAt.plusSeconds(120), // Previously passed
+                servedAt = recentServedAt
             )
-            val updatedMatch = match.recordAction(true, fixedInstant.plusSeconds(180))
+            val updatedMatch = match.recordAction(true, Instant.now())
 
             coEvery { matchRepository.findById(1L) } returns match
             coEvery { matchRepository.update(1L, any()) } returns updatedMatch
@@ -448,8 +451,8 @@ class MatchServiceTest {
                 matchService.matchUser(1L, "user1", true)
             }
 
-            // Assert on the exception behavior
-            assertTrue(exception.message!!.contains("already taken action"))
+            // Assert on the exception behavior - can't like again when already liked
+            assertTrue(exception.message!!.contains("already liked"))
         }
     }
 
