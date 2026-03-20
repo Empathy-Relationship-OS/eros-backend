@@ -64,7 +64,8 @@ class MatchService(
 
         // Update match with action
         val updatedMatch = existingMatch.recordAction(like)
-        matchRepository.update(matchId, updatedMatch)!!
+        matchRepository.update(matchId, updatedMatch)
+            ?: throw NotFoundException("Match with ID $matchId was deleted or not found during update")
     }
 
     suspend fun isMutualMatch(fromUserId: String, toUserId: String): Boolean = transactionManager.execute {

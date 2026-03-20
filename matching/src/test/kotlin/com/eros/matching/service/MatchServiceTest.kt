@@ -188,7 +188,7 @@ class MatchServiceTest {
         }
 
         @Test
-        fun `should throw ConflictException when user already liked`() = runTest {
+        fun `should throw ConflictException when attempting to change a previous like`() = runTest {
             val match = createTestMatch(
                 matchId = 1L,
                 user1Id = "user1",
