@@ -64,4 +64,18 @@ interface MatchRepository : IBaseDAO<Long, Match> {
      * @return True if a served match exists (servedAt is not null), false otherwise
      */
     suspend fun hasServedMatch(user1Id: String, user2Id: String): Boolean
+
+    /**
+     * Finds all matches where the user explicitly passed (liked = false) within the last 24 hours.
+     *
+     * Returns matches where:
+     * - user1_id matches the given userId
+     * - liked = false (explicit pass)
+     * - servedAt is not null
+     * - servedAt is within the last 24 hours from now
+     *
+     * @param userId The user whose passes to retrieve
+     * @return List of matches that the user passed on in the last 24 hours
+     */
+    suspend fun findPassesInLast24Hours(userId: String): List<Match>
 }

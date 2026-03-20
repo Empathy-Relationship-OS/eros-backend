@@ -10,6 +10,7 @@ import com.eros.matching.repository.DailyBatchRepository
 import com.eros.matching.repository.MatchRepository
 import com.eros.matching.transaction.TransactionManager
 import com.eros.users.service.UserService
+import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -23,7 +24,8 @@ class MatchService(
     private val matchRepository: MatchRepository,
     private val dailyBatchRepository: DailyBatchRepository,
     private val userService: UserService,
-    private val transactionManager: TransactionManager
+    private val transactionManager: TransactionManager,
+    private val clock: Clock = Clock.systemUTC()
 ) {
 
     companion object {
@@ -36,7 +38,9 @@ class MatchService(
      *
      * Business rules:
      * - Match must exist (throws NotFoundException if not found)
-     * - User cannot change action once taken (throws ConflictException if liked is not null)
+     * - User cannot change like→pass (prevents unmatching)
+     * - User can change pass→like only within 24 hours of servedAt
+     * - After 24 hours, pass decisions become permanent
      * - Updates match with liked value and current timestamp
      *
      * @param matchId The ID of the match to update
@@ -44,7 +48,7 @@ class MatchService(
      * @param like Whether the user liked (true) or passed (false)
      * @return Updated match record
      * @throws NotFoundException if match doesn't exist
-     * @throws ConflictException if user already took action on this match
+     * @throws ConflictException if user already took action or trying to change outside 24-hour window
      * @throws ForbiddenException if user doesn't own the match
      */
     suspend fun matchAction(matchId: Long, userId: String, like: Boolean): Match = transactionManager.execute {
@@ -57,13 +61,31 @@ class MatchService(
         }
 
         // Check if user has already taken action
-        // hasUserActed() returns true when servedAt is set and updatedAt > servedAt
-        if (existingMatch.hasUserActed() && existingMatch.isLiked()) {
-            throw ConflictException("You have already taken action on this match")
+        if (existingMatch.hasUserActed()) {
+            // Prevent like→pass (cannot unmatch)
+            if (existingMatch.isLiked() && !like) {
+                throw ConflictException("Cannot change from like to pass. You have already liked this profile.")
+            }
+
+            // Prevent pass→like after 24 hours (pass becomes permanent)
+            if (!existingMatch.isLiked() && like) {
+                val servedAt = existingMatch.servedAt
+                    ?: throw ConflictException("Cannot change action on unserved match")
+
+                val twentyFourHoursAgo = Instant.now(clock).minusSeconds(24 * 60 * 60)
+                if (servedAt.isBefore(twentyFourHoursAgo)) {
+                    throw ConflictException("Cannot change pass to like. The 24-hour reconsideration window has expired.")
+                }
+            }
+
+            // Prevent changing action if already set to the same value
+            if (existingMatch.isLiked() == like) {
+                throw ConflictException("You have already ${if (like) "liked" else "passed on"} this profile.")
+            }
         }
 
         // Update match with action
-        val updatedMatch = existingMatch.recordAction(like)
+        val updatedMatch = existingMatch.recordAction(like, Instant.now(clock))
         matchRepository.update(matchId, updatedMatch)
             ?: throw NotFoundException("Match with ID $matchId was deleted or not found during update")
     }
@@ -110,7 +132,7 @@ class MatchService(
                 matchId = match.matchId,
                 user1Id = match.user1Id,
                 user2Id = match.user2Id,
-                matchedAt = Instant.now(),
+                matchedAt = Instant.now(clock),
             )
         }
 
@@ -151,7 +173,7 @@ class MatchService(
         }
 
         // Mark matches as served
-        val servedAt = Instant.now()
+        val servedAt = Instant.now(clock)
         val matchIds = unservedMatches.map { it.matchId }
         matchRepository.markAsServed(matchIds, servedAt)
 
@@ -217,6 +239,31 @@ class MatchService(
         val servedDate = LocalDate.ofInstant(servedAt, ZoneId.of("UTC"))
 
         servedDate.isAfter(today.minusDays(1))  && servedDate.isBefore(today.plusDays(1))
+    }
+
+    /**
+     * Fetches all profiles that the user passed on in the last 24 hours.
+     *
+     * This allows users to reconsider and potentially like profiles they accidentally passed.
+     * The 24-hour window is calculated from the servedAt timestamp.
+     *
+     * Business rules:
+     * - Only matches where user explicitly passed (liked = false)
+     * - Only matches served within the last 24 hours
+     * - Returns UserMatchProfile including matchId to enable re-action
+     * - Returns empty list if no passes in last 24 hours
+     *
+     * @param userId The user whose passes to retrieve
+     * @return List of UserMatchProfile for profiles the user passed on
+     */
+    suspend fun getPassesInLast24Hours(userId: String): List<UserMatchProfile> = transactionManager.execute {
+        val passedMatches = matchRepository.findPassesInLast24Hours(userId)
+
+        // Build lightweight profile responses
+        passedMatches.mapNotNull { match ->
+            val servedAt = match.servedAt ?: return@mapNotNull null
+            buildUserMatchProfile(match, servedAt)
+        }
     }
 }
 

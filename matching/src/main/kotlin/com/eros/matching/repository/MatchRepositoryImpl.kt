@@ -4,6 +4,7 @@ import com.eros.database.repository.BaseDAOImpl
 import com.eros.matching.models.Match
 import com.eros.matching.tables.Matches
 import org.jetbrains.exposed.v1.core.ResultRow
+import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.greaterEq
@@ -12,11 +13,14 @@ import org.jetbrains.exposed.v1.core.isNull
 import org.jetbrains.exposed.v1.core.less
 import org.jetbrains.exposed.v1.core.statements.UpdateBuilder
 import org.jetbrains.exposed.v1.jdbc.selectAll
+import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 
-class MatchRepositoryImpl : BaseDAOImpl<Long, Match>(Matches, Matches.matchId), MatchRepository {
+class MatchRepositoryImpl(
+    private val clock: Clock = Clock.systemUTC()
+) : BaseDAOImpl<Long, Match>(Matches, Matches.matchId), MatchRepository {
 
     // -------------------------------------------------------------------------
     // BaseDAOImpl required implementations
@@ -112,5 +116,19 @@ class MatchRepositoryImpl : BaseDAOImpl<Long, Match>(Matches, Matches.matchId), 
                 (Matches.user2Id eq user2Id) and
                 (Matches.servedAt.isNotNull())
             }.empty()
+    }
+
+    override suspend fun findPassesInLast24Hours(userId: String): List<Match> {
+        val twentyFourHoursAgo = Instant.now(clock).minusSeconds(24 * 60 * 60)
+
+        return Matches.selectAll()
+            .where {
+                (Matches.user1Id eq userId) and
+                (Matches.liked eq false) and
+                (Matches.servedAt.isNotNull()) and
+                (Matches.servedAt greaterEq twentyFourHoursAgo)
+            }
+            .orderBy(Matches.servedAt to SortOrder.DESC)
+            .map { it.toDomain() }
     }
 }
