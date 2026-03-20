@@ -32,7 +32,7 @@ fun Route.matchRoutes(matchService: MatchService) {
         }
 
         get("/{matchId}"){
-            val id = call.parameters["matchId"]?.toLong()
+            call.parameters["matchId"]?.toLong()
                 ?: throw BadRequestException("Invalid matchId provided.")
         }
 
@@ -71,7 +71,7 @@ fun Route.matchRoutes(matchService: MatchService) {
             try {
                 val matches = matchService.fetchDailyBatch(principal.uid)
                 call.respond(HttpStatusCode.OK, matches)
-            } catch (e: NoMatchesAvailableException) {
+            } catch (_: NoMatchesAvailableException) {
                 call.respond(HttpStatusCode.NoContent)
             } catch (e: DailyBatchLimitExceededException) {
                 call.respond(HttpStatusCode.TooManyRequests, mapOf("error" to e.message))
