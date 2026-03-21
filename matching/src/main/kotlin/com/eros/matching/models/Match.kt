@@ -230,7 +230,7 @@ data class DailyBatchResponse(
 ) {
     init {
         require(batchNumber in 1..MAX_DAILY_BATCHES) { "batchNumber must be between 1 and $MAX_DAILY_BATCHES, got: $batchNumber" }
-        require(remainingBatches in 0..(MAX_DAILY_BATCHES - 1)) { "remainingBatches must be between 0 and ${MAX_DAILY_BATCHES - 1}, got: $remainingBatches" }
+        require(remainingBatches in 0..<MAX_DAILY_BATCHES) { "remainingBatches must be between 0 and ${MAX_DAILY_BATCHES - 1}, got: $remainingBatches" }
         require(profiles.size <= BATCH_SIZE) { "profiles must contain at most $BATCH_SIZE items, got: ${profiles.size}" }
     }
 }
