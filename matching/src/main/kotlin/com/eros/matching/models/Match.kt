@@ -1,6 +1,8 @@
 package com.eros.matching.models
 
 import com.eros.common.serializers.InstantSerializer
+import com.eros.matching.service.MatchService.Companion.BATCH_SIZE
+import com.eros.matching.service.MatchService.Companion.MAX_DAILY_BATCHES
 import kotlinx.serialization.Serializable
 import java.time.Duration
 import java.time.Instant
@@ -227,9 +229,9 @@ data class DailyBatchResponse(
     val remainingBatches: Int
 ) {
     init {
-        require(batchNumber in 1..3) { "batchNumber must be between 1 and 3, got: $batchNumber" }
-        require(remainingBatches in 0..2) { "remainingBatches must be between 0 and 2, got: $remainingBatches" }
-        require(profiles.size <= 7) { "profiles must contain at most 7 items, got: ${profiles.size}" }
+        require(batchNumber in 1..MAX_DAILY_BATCHES) { "batchNumber must be between 1 and $MAX_DAILY_BATCHES, got: $batchNumber" }
+        require(remainingBatches in 0..(MAX_DAILY_BATCHES - 1)) { "remainingBatches must be between 0 and ${MAX_DAILY_BATCHES - 1}, got: $remainingBatches" }
+        require(profiles.size <= BATCH_SIZE) { "profiles must contain at most $BATCH_SIZE items, got: ${profiles.size}" }
     }
 }
 
