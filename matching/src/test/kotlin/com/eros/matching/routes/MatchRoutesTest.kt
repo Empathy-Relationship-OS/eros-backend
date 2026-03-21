@@ -2,13 +2,14 @@ package com.eros.matching.routes
 
 import com.eros.auth.firebase.FirebaseUserPrincipal
 import com.eros.common.plugins.configureExceptionHandling
+import com.eros.matching.models.DailyBatchLimitError
+import com.eros.matching.models.DailyBatchResponse
 import com.eros.matching.models.UserMatchProfile
 import com.eros.matching.service.DailyBatchLimitExceededException
 import com.eros.matching.service.MatchService
 import com.eros.matching.service.NoMatchesAvailableException
 import io.ktor.client.call.*
 import io.ktor.client.request.*
-import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -21,9 +22,11 @@ import io.mockk.mockk
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import java.time.Clock
 import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation as ClientContentNegotiation
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation as ServerContentNegotiation
 
@@ -209,7 +212,7 @@ class MatchRoutesTest {
             val client = configuredClient()
 
             val userId = "user123"
-            val matches = listOf(
+            val profiles = listOf(
                 UserMatchProfile(
                     matchId = 1L,
                     userId = "user456",
@@ -229,19 +232,26 @@ class MatchRoutesTest {
                     servedAt = Instant.parse("2024-01-15T10:00:00Z")
                 )
             )
+            val batchResponse = DailyBatchResponse(
+                profiles = profiles,
+                batchNumber = 1,
+                remainingBatches = 2
+            )
 
-            coEvery { mockMatchService.fetchDailyBatch(userId) } returns matches
+            coEvery { mockMatchService.fetchDailyBatch(userId) } returns batchResponse
 
             val response = client.get("/match/") {
                 setAuthenticatedUser(userId)
             }
 
             assertEquals(HttpStatusCode.OK, response.status)
-            val returnedMatches = response.body<List<UserMatchProfile>>()
-            assertEquals(2, returnedMatches.size)
-            assertEquals("user456", returnedMatches[0].userId)
-            assertEquals("Jane", returnedMatches[0].name)
-            assertEquals(28, returnedMatches[0].age)
+            val result = response.body<DailyBatchResponse>()
+            assertEquals(1, result.batchNumber)
+            assertEquals(2, result.remainingBatches)
+            assertEquals(2, result.profiles.size)
+            assertEquals("user456", result.profiles[0].userId)
+            assertEquals("Jane", result.profiles[0].name)
+            assertEquals(28, result.profiles[0].age)
             coVerify { mockMatchService.fetchDailyBatch(userId) }
         }
 
@@ -264,21 +274,45 @@ class MatchRoutesTest {
 
         @Test
         fun `should return 429 when daily batch limit exceeded`() = testApplication {
-            setupTestApp()
+            // Use fixed clock for deterministic testing
+            val fixedClock = Clock.fixed(
+                Instant.parse("2024-01-15T18:30:00Z"),
+                ZoneId.of("UTC")
+            )
+            setupTestApp(fixedClock)
             val client = configuredClient()
 
             val userId = "user123"
+            val today = LocalDate.ofInstant(fixedClock.instant(), ZoneId.of("UTC"))
+            val resetAt = today.plusDays(1).atStartOfDay(ZoneId.of("UTC")).toInstant()
 
-            coEvery { mockMatchService.fetchDailyBatch(userId) } throws DailyBatchLimitExceededException("Limit exceeded")
+            coEvery { mockMatchService.fetchDailyBatch(userId) } throws DailyBatchLimitExceededException(
+                userId = userId,
+                batchesUsed = 3,
+                maxBatches = 3,
+                resetAt = resetAt
+            )
 
             val response = client.get("/match/") {
                 setAuthenticatedUser(userId)
             }
 
             assertEquals(HttpStatusCode.TooManyRequests, response.status)
-            val body = response.bodyAsText()
-            assertTrue(body.contains("error"))
-            assertTrue(body.contains("Limit exceeded"))
+
+            // Check Retry-After header value matches expected seconds until reset
+            val retryAfter = response.headers[HttpHeaders.RetryAfter]
+            kotlin.test.assertNotNull(retryAfter, "Retry-After header should be present")
+
+            val expectedSeconds = java.time.Duration.between(fixedClock.instant(), resetAt).seconds
+            assertEquals(expectedSeconds.toString(), retryAfter, "Retry-After header should contain seconds until reset")
+
+            // Check response body structure
+            val errorBody = response.body<DailyBatchLimitError>()
+            assertEquals("Daily batch limit exceeded", errorBody.error)
+            assertEquals(3, errorBody.batchesUsed)
+            assertEquals(3, errorBody.maxBatches)
+            assertEquals(resetAt, errorBody.resetAt)
+
             coVerify { mockMatchService.fetchDailyBatch(userId) }
         }
 
@@ -298,7 +332,7 @@ class MatchRoutesTest {
             val client = configuredClient()
 
             val userId = "user123"
-            val matches = (1..7).map { i ->
+            val profiles = (1..7).map { i ->
                 UserMatchProfile(
                     matchId = i.toLong(),
                     userId = "user$i",
@@ -309,16 +343,23 @@ class MatchRoutesTest {
                     servedAt = Instant.parse("2024-01-15T10:00:00Z")
                 )
             }
+            val batchResponse = DailyBatchResponse(
+                profiles = profiles,
+                batchNumber = 2,
+                remainingBatches = 1
+            )
 
-            coEvery { mockMatchService.fetchDailyBatch(userId) } returns matches
+            coEvery { mockMatchService.fetchDailyBatch(userId) } returns batchResponse
 
             val response = client.get("/match/") {
                 setAuthenticatedUser(userId)
             }
 
             assertEquals(HttpStatusCode.OK, response.status)
-            val returnedMatches = response.body<List<UserMatchProfile>>()
-            assertEquals(7, returnedMatches.size)
+            val result = response.body<DailyBatchResponse>()
+            assertEquals(2, result.batchNumber)
+            assertEquals(1, result.remainingBatches)
+            assertEquals(7, result.profiles.size)
             coVerify { mockMatchService.fetchDailyBatch(userId) }
         }
 
@@ -328,7 +369,7 @@ class MatchRoutesTest {
             val client = configuredClient()
 
             val userId = "user123"
-            val matches = listOf(
+            val profiles = listOf(
                 UserMatchProfile(
                     matchId = 1L,
                     userId = "user456",
@@ -339,18 +380,23 @@ class MatchRoutesTest {
                     servedAt = Instant.parse("2024-01-15T10:00:00Z")
                 )
             )
+            val batchResponse = DailyBatchResponse(
+                profiles = profiles,
+                batchNumber = 1,
+                remainingBatches = 2
+            )
 
-            coEvery { mockMatchService.fetchDailyBatch(userId) } returns matches
+            coEvery { mockMatchService.fetchDailyBatch(userId) } returns batchResponse
 
             val response = client.get("/match/") {
                 setAuthenticatedUser(userId)
             }
 
             assertEquals(HttpStatusCode.OK, response.status)
-            val returnedMatches = response.body<List<UserMatchProfile>>()
-            assertEquals(1, returnedMatches.size)
-            assertEquals(null, returnedMatches[0].thumbnailUrl)
-            assertEquals(null, returnedMatches[0].badges)
+            val result = response.body<DailyBatchResponse>()
+            assertEquals(1, result.profiles.size)
+            assertEquals(null, result.profiles[0].thumbnailUrl)
+            assertEquals(null, result.profiles[0].badges)
         }
 
         @Test
@@ -391,7 +437,7 @@ class MatchRoutesTest {
     /**
      * Sets up the test application with authentication and routing.
      */
-    private fun ApplicationTestBuilder.setupTestApp() {
+    private fun ApplicationTestBuilder.setupTestApp(clock: java.time.Clock = java.time.Clock.systemUTC()) {
         application {
             configureExceptionHandling()
 
@@ -428,7 +474,7 @@ class MatchRoutesTest {
 
             routing {
                 authenticate("firebase-auth") {
-                    matchRoutes(mockMatchService)
+                    matchRoutes(mockMatchService, clock)
                 }
             }
         }

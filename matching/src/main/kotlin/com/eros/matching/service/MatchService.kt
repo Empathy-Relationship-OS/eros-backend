@@ -3,6 +3,7 @@ package com.eros.matching.service
 import com.eros.common.errors.ConflictException
 import com.eros.common.errors.ForbiddenException
 import com.eros.common.errors.NotFoundException
+import com.eros.matching.models.DailyBatchResponse
 import com.eros.matching.models.Match
 import com.eros.matching.models.MutualMatchInfo
 import com.eros.matching.models.UserMatchProfile
@@ -153,17 +154,22 @@ class MatchService(
      * - Returns 429 Too Many Requests if daily limit reached
      *
      * @param userId The user requesting matches
-     * @return List of UserMatchProfile with lightweight profile data
+     * @return DailyBatchResponse with profiles and batch metadata
      * @throws DailyBatchLimitExceededException if user has reached 3 batches today
      * @throws NoMatchesAvailableException if no unserved matches exist
      */
-    suspend fun fetchDailyBatch(userId: String): List<UserMatchProfile> = transactionManager.execute {
-        val today = LocalDate.now(ZoneId.of("UTC"))
+    suspend fun fetchDailyBatch(userId: String): DailyBatchResponse = transactionManager.execute {
+        val today = LocalDate.now(clock)
 
         // Check daily batch limit
         val batchCount = dailyBatchRepository.getBatchCount(userId, today)
         if (batchCount >= MAX_DAILY_BATCHES) {
-            throw DailyBatchLimitExceededException("Daily batch limit of $MAX_DAILY_BATCHES exceeded for user $userId")
+            throw DailyBatchLimitExceededException(
+                userId = userId,
+                batchesUsed = batchCount,
+                maxBatches = MAX_DAILY_BATCHES,
+                resetAt = calculateMidnightUtc(today.plusDays(1))
+            )
         }
 
         // Fetch unserved matches
@@ -181,9 +187,29 @@ class MatchService(
         dailyBatchRepository.incrementBatchCount(userId, today)
 
         // Build lightweight profile responses
-        unservedMatches.mapNotNull { match ->
+        val profiles = unservedMatches.mapNotNull { match ->
             buildUserMatchProfile(match, servedAt)
         }
+
+        // Calculate batch metadata
+        val batchNumber = batchCount + 1
+        val remainingBatches = MAX_DAILY_BATCHES - batchNumber
+
+        DailyBatchResponse(
+            profiles = profiles,
+            batchNumber = batchNumber,
+            remainingBatches = remainingBatches
+        )
+    }
+
+    /**
+     * Calculates midnight UTC for a given date.
+     *
+     * @param date The date to calculate midnight for
+     * @return Instant representing midnight UTC on the given date
+     */
+    private fun calculateMidnightUtc(date: LocalDate): Instant {
+        return date.atStartOfDay(ZoneId.of("UTC")).toInstant()
     }
 
     /**
@@ -270,8 +296,20 @@ class MatchService(
 /**
  * Exception thrown when user has reached daily batch limit (3 batches).
  * Should be mapped to 429 Too Many Requests in the route layer.
+ *
+ * @property userId The user who exceeded the limit
+ * @property batchesUsed Number of batches already used today
+ * @property maxBatches Maximum allowed batches per day
+ * @property resetAt When the limit resets (midnight UTC next day)
  */
-class DailyBatchLimitExceededException(message: String) : Exception(message)
+class DailyBatchLimitExceededException(
+    val userId: String,
+    val batchesUsed: Int,
+    val maxBatches: Int,
+    val resetAt: Instant
+) : Exception("Daily batch limit of $maxBatches exceeded for user $userId") {
+    // TODO: Consider making the error message generic (without userId) for privacy/security
+}
 
 /**
  * Exception thrown when no unserved matches are available.

@@ -3,12 +3,15 @@ package com.eros.matching.routes
 import com.eros.auth.extensions.requireFirebasePrincipal
 import com.eros.auth.extensions.requireRoles
 import com.eros.common.errors.BadRequestException
+import com.eros.matching.models.DailyBatchLimitError
 import com.eros.matching.models.MatchActionRequest
 import com.eros.matching.service.DailyBatchLimitExceededException
 import com.eros.matching.service.MatchService
 import com.eros.matching.service.NoMatchesAvailableException
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
+import io.ktor.server.response.header
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.delete
@@ -16,9 +19,12 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.patch
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
+import java.time.Clock
+import java.time.Duration
+import java.time.Instant
 
 
-fun Route.matchRoutes(matchService: MatchService) {
+fun Route.matchRoutes(matchService: MatchService, clock: Clock = Clock.systemUTC()) {
     route("/match/admin") {
         requireRoles("ADMIN", "EMPLOYEE")
 
@@ -60,21 +66,35 @@ fun Route.matchRoutes(matchService: MatchService) {
          * Users can fetch maximum 3 batches per day (21 total matches).
          *
          * Responses:
-         * - 200 OK: List<UserMatchProfile> - Successfully fetched batch
+         * - 200 OK: DailyBatchResponse - Successfully fetched batch with metadata
          * - 204 No Content: No unserved matches available
-         * - 429 Too Many Requests: Daily batch limit (3) exceeded
+         * - 429 Too Many Requests: Daily batch limit (3) exceeded (includes Retry-After header)
          * - 401 Unauthorized: Not authenticated
          */
         get("/") {
             val principal = call.requireFirebasePrincipal()
 
             try {
-                val matches = matchService.fetchDailyBatch(principal.uid)
-                call.respond(HttpStatusCode.OK, matches)
+                val batchResponse = matchService.fetchDailyBatch(principal.uid)
+                call.respond(HttpStatusCode.OK, batchResponse)
             } catch (_: NoMatchesAvailableException) {
                 call.respond(HttpStatusCode.NoContent)
             } catch (e: DailyBatchLimitExceededException) {
-                call.respond(HttpStatusCode.TooManyRequests, mapOf("error" to e.message))
+                // Calculate seconds until midnight UTC (when limit resets)
+                val now = Instant.now(clock)
+                val secondsUntilReset = maxOf(0, Duration.between(now, e.resetAt).seconds)
+
+                // Add Retry-After header with seconds until reset
+                call.response.header(HttpHeaders.RetryAfter, secondsUntilReset.toString())
+
+                // Return structured error response
+                val errorResponse = DailyBatchLimitError(
+                    error = "Daily batch limit exceeded",
+                    batchesUsed = e.batchesUsed,
+                    maxBatches = e.maxBatches,
+                    resetAt = e.resetAt
+                )
+                call.respond(HttpStatusCode.TooManyRequests, errorResponse)
             }
         }
 
