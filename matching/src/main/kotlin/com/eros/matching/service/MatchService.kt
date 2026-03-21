@@ -159,7 +159,7 @@ class MatchService(
      * @throws NoMatchesAvailableException if no unserved matches exist
      */
     suspend fun fetchDailyBatch(userId: String): DailyBatchResponse = transactionManager.execute {
-        val today = LocalDate.now(ZoneId.of("UTC"))
+        val today = LocalDate.now(clock)
 
         // Check daily batch limit
         val batchCount = dailyBatchRepository.getBatchCount(userId, today)
