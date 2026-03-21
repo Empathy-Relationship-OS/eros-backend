@@ -6,8 +6,10 @@ import com.eros.users.models.createTestUser
 import com.eros.wallet.models.WalletResponse
 import com.eros.wallet.models.WalletWithPending
 import com.eros.wallet.models.createTestWallet
+import com.eros.wallet.services.PaymentService
 import com.eros.wallet.services.TransactionService
 import com.eros.wallet.services.WalletService
+import com.eros.wallet.stripe.StripeWebhookHandler
 import com.google.firebase.auth.FirebaseToken
 import io.ktor.client.call.body
 import io.ktor.client.request.HttpRequestBuilder
@@ -41,6 +43,8 @@ class WalletRoutesTest {
 
     private val mockWalletService = mockk<WalletService>()
     private val mockTransactionService = mockk<TransactionService>()
+    private val mockPaymentService = mockk<PaymentService>()
+    private val mockWebhookHandler = mockk<StripeWebhookHandler>()
 
     @Nested
     inner class `GET Wallet` {
@@ -129,7 +133,7 @@ class WalletRoutesTest {
 
             routing {
                 authenticate("firebase-auth") {
-                    walletRoutes(mockWalletService)
+                    walletRoutes(mockPaymentService, mockWebhookHandler)
                 }
             }
         }

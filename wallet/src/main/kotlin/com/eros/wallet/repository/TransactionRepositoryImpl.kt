@@ -16,8 +16,11 @@ import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
 import org.jetbrains.exposed.v1.jdbc.updateReturning
+import java.math.BigDecimal
 import java.time.Clock
 import java.time.Instant
+import kotlin.and
+import kotlin.compareTo
 
 class TransactionRepositoryImpl(
     private val clock: Clock = Clock.systemUTC()
@@ -107,12 +110,22 @@ class TransactionRepositoryImpl(
             .singleOrNull()?.toTransactionDomain()
     }
 
+    override suspend fun hasUserAlreadyPaid(userId: String, dateId: Long): Boolean {
+        return Transactions.selectAll().where {
+            (Transactions.userId eq userId) and
+                    (Transactions.relatedDateId eq dateId) and
+                    (Transactions.type eq TransactionType.SPEND) and
+                    (Transactions.status eq TransactionStatus.COMPLETED)
+        }.empty().not()
+    }
+
 
     override suspend fun updateTransactionStatus(
         idempotencyKey: String,
         status: TransactionStatus,
         stripePaymentIntentId: String?,
-        failureReason: String?
+        failureReason: String?,
+        balanceAfter : BigDecimal?
     ): Transaction? {
         val updated = Transactions.updateReturning(
             where = { Transactions.idempotencyKey eq idempotencyKey }
@@ -129,6 +142,11 @@ class TransactionRepositoryImpl(
                     mapOf("failure_reason" to reason)
                 )
             }
+
+            balanceAfter?.let{ balance ->
+                it[Transactions.balanceAfter] = balanceAfter
+            }
+
         }
         return updated.singleOrNull()?.toDomain()
     }

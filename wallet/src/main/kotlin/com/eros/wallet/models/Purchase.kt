@@ -34,7 +34,7 @@ data class Purchase(
     val amount: BigDecimal,
     val currency: String,
     val tokenAmount: BigDecimal,
-    val status: TransactionStatus,
+    val status: String,
     val newBalance: BigDecimal? = null,
     val transactionId: Long? = null
 )
@@ -61,7 +61,7 @@ data class PurchaseResponse(
     val currency: String,
     @Serializable(with = BigDecimalSerializer::class)
     val tokenAmount: BigDecimal,
-    val status: TransactionStatus,
+    val status: String,
     @Serializable(with = BigDecimalSerializer::class)
     val newBalance: BigDecimal? = null,
     val transactionId: Long? = null

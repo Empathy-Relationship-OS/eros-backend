@@ -1,12 +1,15 @@
 package com.eros.wallet.stripe
 
+import com.eros.database.dbQuery
 import com.eros.wallet.models.TransactionStatus
 import com.eros.wallet.models.TransactionType
+import com.eros.wallet.services.TransactionService
 import com.eros.wallet.services.WalletService
 import com.stripe.exception.SignatureVerificationException
 import com.stripe.model.Event
 import com.stripe.model.PaymentIntent
 import com.stripe.net.Webhook
+import io.ktor.server.plugins.NotFoundException
 import io.ktor.util.logging.error
 import org.slf4j.LoggerFactory
 import java.math.BigDecimal
@@ -14,7 +17,8 @@ import java.math.BigDecimal
 private val logger = LoggerFactory.getLogger(StripeWebhookHandler::class.java)
 
 class StripeWebhookHandler(
-    private val walletService: WalletService
+    private val walletService: WalletService,
+    private val transactionService: TransactionService
 ) {
 
     /**
@@ -47,6 +51,7 @@ class StripeWebhookHandler(
         }
     }
 
+
     private suspend fun handlePaymentSuccess(event: Event): WebhookResult {
         val paymentIntent = deserializePaymentIntent(event)
 
@@ -59,34 +64,22 @@ class StripeWebhookHandler(
         val idempotencyKey = paymentIntent.metadata["idempotencyKey"]
             ?: return WebhookResult.Error("Missing idempotencyKey in metadata")
 
-        val transactionId = paymentIntent.metadata["transactionId"]
-            ?: return WebhookResult.Error("Missing transactionId in metadata")
-
-        val amountPaidGBP = BigDecimal(paymentIntent.amount) / BigDecimal(100)  // Convert from pence
-
         return try {
-
-            // Credit the wallet
-            val transaction = walletService.creditBalance(
-                userId = userId,
-                amount = tokenAmount,
-                type = TransactionType.PURCHASE,
-                description = "Purchased $tokenAmount tokens",
-                stripePaymentIntentId = paymentIntent.id,
-                amountPaidGBP = amountPaidGBP,
-                idempotencyKey = idempotencyKey,
-                metadata = mapOf(
-                    "stripe_payment_intent" to paymentIntent.id,
-                    "package_type" to (paymentIntent.metadata["packageType"] ?: "unknown")
+            val transaction = dbQuery {
+                // Credit the wallet
+                val wallet = walletService.creditBalance(
+                    userId = userId,
+                    amount = tokenAmount,
+                    type = TransactionType.PURCHASE,
+                    idempotencyKey = idempotencyKey
                 )
-            )
 
-            //todo: Update the transaction to be successful.
-            // Update the transaction status
-            val transaction2 = walletService.markTransactionSuccessful(
-                transaction.transactionId,
-                idempotencyKey = idempotencyKey
-            )
+                // Update the transaction to be successful.
+                transactionService.updateTransactionStatus(
+                    idempotencyKey,
+                    TransactionStatus.COMPLETED, null, null, wallet.tokenBalance
+                ) ?: throw NotFoundException("Can't find transaction.")
+            }
 
             logger.info ( "Payment succeeded for user $userId: $tokenAmount tokens credited" )
             WebhookResult.Success(transaction.transactionId)
@@ -97,28 +90,46 @@ class StripeWebhookHandler(
         }
     }
 
+
     private suspend fun handlePaymentFailure(event: Event): WebhookResult {
         val paymentIntent = deserializePaymentIntent(event)
 
+        val idempotencyKey = paymentIntent.metadata["idempotencyKey"]
+            ?: return WebhookResult.Error("Missing idempotencyKey in metadata")
         val userId = paymentIntent.metadata["userId"] ?: return WebhookResult.Error("Missing userId")
         val errorMessage = paymentIntent.lastPaymentError?.message ?: "Payment failed"
 
         logger.warn ( "Payment failed for user $userId: $errorMessage" )
 
-        // TODO: Update pending transaction to FAILED status
+        // Update pending transaction to FAILED status
+        val transaction = dbQuery{
+            transactionService.updateTransactionStatus(
+                idempotencyKey,
+                TransactionStatus.FAILED, null, errorMessage, null
+            ) ?: throw NotFoundException("Can't find transaction.")
+        }
         // TODO: Send notification to user
 
         return WebhookResult.Failure(errorMessage)
     }
 
+
     private suspend fun handlePaymentCancelled(event: Event): WebhookResult {
         val paymentIntent = deserializePaymentIntent(event)
 
         val userId = paymentIntent.metadata["userId"] ?: return WebhookResult.Error("Missing userId")
+        val idempotencyKey = paymentIntent.metadata["idempotencyKey"]
+            ?: return WebhookResult.Error("Missing idempotencyKey in metadata")
 
         logger.info ( "Payment cancelled for user $userId" )
 
-        // TODO: Update pending transaction to CANCELLED status
+        // Update pending transaction to CANCELLED status
+        val transaction = dbQuery{
+            transactionService.updateTransactionStatus(
+                idempotencyKey,
+                TransactionStatus.CANCELLED, null, "Payment cancelled by user.", null
+            ) ?: throw NotFoundException("Can't find transaction.")
+        }
 
         return WebhookResult.Cancelled
     }

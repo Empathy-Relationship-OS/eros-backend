@@ -64,30 +64,6 @@ class WalletService(
     }
 
 
-    suspend fun markTransactionSuccessful(
-        transactionId: Long,
-        idempotencyKey: String
-    ): Transaction? = dbQuery {
-        transactionService.updateTransactionStatus(
-            idempotencyKey = idempotencyKey,
-            status = TransactionStatus.COMPLETED,
-            stripePaymentIntentId = "stripePaymentIntentId",
-            reason = ""
-        )
-    }
-
-    suspend fun markTransactionFailed(
-        idempotencyKey: String,
-        reason: String
-    ): Transaction? = dbQuery {
-        transactionService.updateTransactionStatus(
-            idempotencyKey = idempotencyKey,
-            status = TransactionStatus.FAILED,
-            stripePaymentIntentId = "awd",
-            reason = reason
-        )
-    }
-
     /**
      * Creates a purchase intent for token purchase.
      * Does NOT credit balance - that happens when Stripe webhook confirms payment.
@@ -102,7 +78,7 @@ class WalletService(
                 amount = existing.amountPaidGBP ?: 0.toBigDecimal(),
                 currency = "gbp",
                 tokenAmount = existing.amount,
-                status = existing.status,
+                status = existing.status.name,
                 newBalance = if (existing.status == TransactionStatus.COMPLETED) {
                     walletRepository.findById(userId)?.tokenBalance
                 } else null,
@@ -140,7 +116,7 @@ class WalletService(
             amount = pack.priceGBP,
             currency = "gbp",
             tokenAmount = pack.tokens,
-            status = TransactionStatus.PENDING,
+            status = "pending",
             newBalance = null,  // Not credited yet
             transactionId = transaction.transactionId
         )
@@ -154,26 +130,20 @@ class WalletService(
         userId: String,
         amount: BigDecimal,
         type: TransactionType,
-        description: String,
-        stripePaymentIntentId: String? = null,
-        amountPaidGBP: BigDecimal? = null,
-        idempotencyKey: String? = null,
-        relatedDateId: Long? = null,
-        relatedTransactionId: Long? = null,
-        metadata: Map<String, String> = emptyMap()
-    ): Transaction = dbQuery {
-        // 1. Check idempotency (if key provided)
-        idempotencyKey?.let { key ->
-            transactionService.findByIdempotencyKey(key)?.let {
-                return@dbQuery it
-            }
+        idempotencyKey: String,
+    ): Wallet {
+        // Check idempotency and return wallet if already found.
+        val existingTx = transactionService.findByIdempotencyKey(idempotencyKey)
+        if (existingTx != null && existingTx.status == TransactionStatus.COMPLETED) {
+            return walletRepository.findById(userId)
+                ?: throw NotFoundException("Wallet not found")
         }
 
-        // 2. Lock wallet
+        // Lock wallet
         val wallet = walletRepository.findByIdForUpdate(userId)
             ?: throw NotFoundException("Wallet not found")
 
-        // 3. Calculate new values
+        // Calculate new values
         val newBalance = wallet.tokenBalance + amount
         val newLifetimePurchased = when (type) {
             TransactionType.PURCHASE, TransactionType.REFUND ->
@@ -181,42 +151,12 @@ class WalletService(
             else -> wallet.lifetimePurchased
         }
 
-        // 4. Create transaction based on type
-        val transaction = when (type) {
-            TransactionType.PURCHASE -> transactionService.createPurchaseTransaction(
-                userId = userId,
-                tokenAmount = amount,
-                newBalance = newBalance,
-                amountPaidGBP = amountPaidGBP ?: BigDecimal.ZERO,
-                stripePaymentIntentId = stripePaymentIntentId ?: "",
-                idempotencyKey = idempotencyKey ?: "",
-                status = TransactionStatus.COMPLETED,
-                metadata = metadata
-            )
-
-            TransactionType.REFUND -> transactionService.createRefundTransaction(
-                userId = userId,
-                amount = amount,
-                newBalance = newBalance,
-                description = description,
-                relatedDateId = relatedDateId
-                    ?: throw IllegalArgumentException("relatedDateId required for refunds"),
-                relatedTransactionId = relatedTransactionId
-                    ?: throw IllegalArgumentException("relatedTransactionId required for refunds"),
-                metadata = metadata
-            )
-
-            else -> throw IllegalArgumentException("Invalid type for creditBalance: $type")
-        }
-
-        // 5. Update wallet
-        walletRepository.update(userId, wallet.copy(
+        // Update and return new wallet
+        return walletRepository.update(userId, wallet.copy(
             tokenBalance = newBalance,
             lifetimePurchased = newLifetimePurchased,
             updatedAt = Instant.now(clock)
         )) ?: throw Exception("Failed to update wallet")
-
-        transaction
     }
 
 
@@ -226,21 +166,13 @@ class WalletService(
     suspend fun spendTokens(
         userId: String,
         amount: BigDecimal,
-        dateId: Long?,
-        description: String,
-        idempotencyKey: String,
-        metadata: Map<String, String> = emptyMap()
-    ): Transaction = dbQuery {
-        // 1. Check idempotency
-        transactionService.findByIdempotencyKey(idempotencyKey)?.let {
-            return@dbQuery it
-        }
+    ): Wallet{
 
-        // 2. Lock wallet
+        // Lock wallet
         val wallet = walletRepository.findByIdForUpdate(userId)
             ?: throw NotFoundException("Can't find user $userId's wallet.")
 
-        // 3. Validate balance
+        // Validate balance
         if (!wallet.hasSufficientBalance(amount)) {
             throw InsufficientBalanceException(
                 currentBalance = wallet.tokenBalance,
@@ -248,29 +180,16 @@ class WalletService(
             )
         }
 
-        // 4. Calculate new values
+        // Calculate new values
         val newBalance = wallet.tokenBalance - amount
         val newLifetimeSpent = wallet.lifetimeSpent + amount
 
-        // 5. Create transaction
-        val transaction = transactionService.createSpendTransaction(
-            userId = userId,
-            amount = amount,
-            description = description,
-            relatedDateId = dateId,
-            idempotencyKey = idempotencyKey,
-            newBalance = newBalance,
-            metadata = metadata
-        )
-
-        // 6. Update wallet
-        walletRepository.update(userId, wallet.copy(
+        //  Update wallet
+        return walletRepository.update(userId, wallet.copy(
             tokenBalance = newBalance,
             lifetimeSpent = newLifetimeSpent,
             updatedAt = Instant.now(clock)
         )) ?: throw Exception("Failed to update wallet")
-
-        transaction
     }
 
     /**
@@ -280,7 +199,7 @@ class WalletService(
         userId: String,
         relatedDateId: Long,
         refundPolicy: RefundPolicy
-    ): WalletResponse = dbQuery {
+    ): WalletResponse {
         // 1. Lock wallet
         val wallet = walletRepository.findByIdForUpdate(userId)
             ?: throw NotFoundException("Wallet not found")
@@ -345,7 +264,7 @@ class WalletService(
         val pendingSpends = transactionService.findUserPendingTransactions(userId)
         val pendingBalance = pendingSpends.sumOf { it.amount.abs() }
 
-        WalletResponse(
+        return WalletResponse(
             balance = updatedWallet.tokenBalance,
             pendingBalance = pendingBalance,
             lifetimeSpent = updatedWallet.lifetimeSpent,
@@ -359,7 +278,7 @@ class WalletService(
      *
      * Pending balance includes tokens held for dates with PENDING status.
      */
-    suspend fun getBalance(userId: String): WalletWithPending = dbQuery {
+    suspend fun getBalance(userId: String): WalletWithPending {
         // Get wallet (no lock needed - read-only)
         val wallet = walletRepository.findById(userId)
             ?: throw NotFoundException("Wallet not found for user $userId")
@@ -369,30 +288,12 @@ class WalletService(
         val pendingBalance = pendingSpends.sumOf { it.amount }
 
         // Return WalletResponse with pending balance.
-        WalletWithPending(
+        return WalletWithPending(
             tokenBalance = wallet.tokenBalance,
             pendingTokenBalance = wallet.tokenBalance + pendingBalance,
             lifetimeSpent = wallet.lifetimeSpent,
             lifetimePurchased = wallet.lifetimePurchased,
             currency = wallet.currency
-        )
-    }
-
-    /**
-     * Function to return a specific page for a user's transaction history.
-     *
-     * @param userId id of the user to get the transactions for.
-     * @param limit number of records to return.
-     * @param offset the offset of where the records start from.
-     *
-     * @return List of Transactions for the given user and page number.
-     */
-    suspend fun getTransactionHistory(userId: String, limit: Int, offset: Int, type: String?): TransactionHistory = dbQuery {
-        transactionService.getTransactionHistory(
-            userId = userId,
-            limit = limit,
-            offset = offset,
-            type = type
         )
     }
 }

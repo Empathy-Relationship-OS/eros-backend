@@ -21,11 +21,12 @@ class TransactionService(
 
     /**
      * Service to find a record via the idempotency key.
+     * Runs [dbQuery] and should be done outside other dbQuery calls.
      *
      * @return [Transaction] if found, otherwise `null`.
      */
-    suspend fun findByIdempotencyKey(idempotencyKey: String): Transaction?{
-        return transactionRepository.findByIdempotencyKey(idempotencyKey)
+    suspend fun findByIdempotencyKey(idempotencyKey: String): Transaction? = dbQuery {
+        transactionRepository.findByIdempotencyKey(idempotencyKey)
     }
 
     /**
@@ -43,6 +44,13 @@ class TransactionService(
         return transactionRepository.findByUserIdAndDateId(userId, relatedDateId)
     }
 
+    /**
+     * Function for finding if a given user has paid for a given date.
+     */
+    suspend fun hasUserAlreadyPaid(userId: String, dateId: Long): Boolean {
+        return transactionRepository.hasUserAlreadyPaid(userId, dateId)
+    }
+
 
     /**
      * Function to update the transaction status of a transaction.
@@ -50,10 +58,11 @@ class TransactionService(
     suspend fun updateTransactionStatus(
         idempotencyKey: String,
         status: TransactionStatus,
-        stripePaymentIntentId : String,
-        reason : String?
+        stripePaymentIntentId : String?,
+        reason : String?,
+        balanceAfter : BigDecimal?
     ) : Transaction? {
-        return transactionRepository.updateTransactionStatus(idempotencyKey, status, stripePaymentIntentId, reason)
+        return transactionRepository.updateTransactionStatus(idempotencyKey, status, stripePaymentIntentId, reason, balanceAfter)
     }
 
 

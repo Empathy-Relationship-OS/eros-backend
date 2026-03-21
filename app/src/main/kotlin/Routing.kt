@@ -19,13 +19,13 @@ import com.eros.users.service.PhotoService
 import com.eros.users.service.PreferenceService
 import com.eros.users.service.QAService
 import com.eros.users.service.UserService
-import com.eros.wallet.repository.TransactionRepository
 import com.eros.wallet.repository.TransactionRepositoryImpl
-import com.eros.wallet.repository.WalletRepository
 import com.eros.wallet.repository.WalletRepositoryImpl
 import com.eros.wallet.routes.walletRoutes
+import com.eros.wallet.services.PaymentService
 import com.eros.wallet.services.TransactionService
 import com.eros.wallet.services.WalletService
+import com.eros.wallet.stripe.StripeService
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.plugins.requestvalidation.*
@@ -64,6 +64,8 @@ fun Application.configureRouting() {
     val qaService = QAService(questionRepository, qaRepository)
     val transactionService = TransactionService(transactionRepository)
     val walletService = WalletService(walletRepository, transactionService)
+    val stripeService = StripeService()
+    val paymentService = PaymentService(walletService,transactionService,stripeService)
 
     val profileAccessControl = ProfileAccessControl()
     routing {
@@ -87,7 +89,7 @@ fun Application.configureRouting() {
 
             questionRoutes(qaService)
 
-            walletRoutes(walletService)
+            walletRoutes(paymentService)
         }
     }
 }
