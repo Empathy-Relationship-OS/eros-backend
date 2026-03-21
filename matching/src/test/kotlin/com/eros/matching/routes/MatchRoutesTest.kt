@@ -22,6 +22,7 @@ import io.mockk.mockk
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -273,11 +274,16 @@ class MatchRoutesTest {
 
         @Test
         fun `should return 429 when daily batch limit exceeded`() = testApplication {
-            setupTestApp()
+            // Use fixed clock for deterministic testing
+            val fixedClock = Clock.fixed(
+                Instant.parse("2024-01-15T18:30:00Z"),
+                ZoneId.of("UTC")
+            )
+            setupTestApp(fixedClock)
             val client = configuredClient()
 
             val userId = "user123"
-            val today = LocalDate.now(ZoneId.of("UTC"))
+            val today = LocalDate.ofInstant(fixedClock.instant(), ZoneId.of("UTC"))
             val resetAt = today.plusDays(1).atStartOfDay(ZoneId.of("UTC")).toInstant()
 
             coEvery { mockMatchService.fetchDailyBatch(userId) } throws DailyBatchLimitExceededException(
@@ -293,9 +299,12 @@ class MatchRoutesTest {
 
             assertEquals(HttpStatusCode.TooManyRequests, response.status)
 
-            // Check Retry-After header is present
+            // Check Retry-After header value matches expected seconds until reset
             val retryAfter = response.headers[HttpHeaders.RetryAfter]
             kotlin.test.assertNotNull(retryAfter, "Retry-After header should be present")
+
+            val expectedSeconds = java.time.Duration.between(fixedClock.instant(), resetAt).seconds
+            assertEquals(expectedSeconds.toString(), retryAfter, "Retry-After header should contain seconds until reset")
 
             // Check response body structure
             val errorBody = response.body<DailyBatchLimitError>()
@@ -428,7 +437,7 @@ class MatchRoutesTest {
     /**
      * Sets up the test application with authentication and routing.
      */
-    private fun ApplicationTestBuilder.setupTestApp() {
+    private fun ApplicationTestBuilder.setupTestApp(clock: java.time.Clock = java.time.Clock.systemUTC()) {
         application {
             configureExceptionHandling()
 
@@ -465,7 +474,7 @@ class MatchRoutesTest {
 
             routing {
                 authenticate("firebase-auth") {
-                    matchRoutes(mockMatchService)
+                    matchRoutes(mockMatchService, clock)
                 }
             }
         }
