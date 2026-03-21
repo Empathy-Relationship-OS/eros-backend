@@ -82,7 +82,7 @@ fun Route.matchRoutes(matchService: MatchService, clock: Clock = Clock.systemUTC
             } catch (e: DailyBatchLimitExceededException) {
                 // Calculate seconds until midnight UTC (when limit resets)
                 val now = Instant.now(clock)
-                val secondsUntilReset = Duration.between(now, e.resetAt).seconds
+                val secondsUntilReset = maxOf(0, Duration.between(now, e.resetAt).seconds)
 
                 // Add Retry-After header with seconds until reset
                 call.response.header(HttpHeaders.RetryAfter, secondsUntilReset.toString())
