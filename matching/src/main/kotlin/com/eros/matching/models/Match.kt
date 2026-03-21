@@ -210,3 +210,49 @@ data class UserMatchProfile(
         require(age > 0) { "age must be positive" }
     }
 }
+
+/**
+ * Response DTO for daily batch fetch endpoint.
+ *
+ * Wraps the list of profiles with metadata about batch progress and remaining batches.
+ *
+ * @property profiles List of UserMatchProfile in this batch (up to 7)
+ * @property batchNumber The batch number being served (1, 2, or 3)
+ * @property remainingBatches Number of batches remaining for the day (0, 1, or 2)
+ */
+@Serializable
+data class DailyBatchResponse(
+    val profiles: List<UserMatchProfile>,
+    val batchNumber: Int,
+    val remainingBatches: Int
+) {
+    init {
+        require(batchNumber in 1..3) { "batchNumber must be between 1 and 3, got: $batchNumber" }
+        require(remainingBatches in 0..2) { "remainingBatches must be between 0 and 2, got: $remainingBatches" }
+        require(profiles.size <= 7) { "profiles must contain at most 7 items, got: ${profiles.size}" }
+    }
+}
+
+/**
+ * Error response DTO when daily batch limit is exceeded.
+ *
+ * Returned with 429 Too Many Requests status when user has already fetched 3 batches today.
+ *
+ * @property error Human-readable error message
+ * @property batchesUsed Number of batches the user has already fetched today (always 3)
+ * @property maxBatches Maximum number of batches allowed per day (always 3)
+ * @property resetAt ISO-8601 timestamp when the limit resets (midnight UTC)
+ */
+@Serializable
+data class DailyBatchLimitError(
+    val error: String,
+    val batchesUsed: Int,
+    val maxBatches: Int,
+    @Serializable(with = InstantSerializer::class)
+    val resetAt: Instant
+) {
+    init {
+        require(batchesUsed >= 0) { "batchesUsed must be non-negative, got: $batchesUsed" }
+        require(maxBatches > 0) { "maxBatches must be positive, got: $maxBatches" }
+    }
+}

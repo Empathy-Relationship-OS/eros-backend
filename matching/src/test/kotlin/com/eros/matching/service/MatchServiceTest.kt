@@ -483,18 +483,20 @@ class MatchServiceTest {
 
             val result = matchService.fetchDailyBatch("user1")
 
-            // Assert on the outcome: correct profiles returned
-            assertEquals(2, result.size)
-            assertEquals(1L, result[0].matchId)
-            assertEquals("user2", result[0].userId)
-            assertEquals("Alice", result[0].name)
-            assertEquals(28, result[0].age)
-            assertEquals(2L, result[1].matchId)
-            assertEquals("user3", result[1].userId)
-            assertEquals("Bob", result[1].name)
-            assertEquals(32, result[1].age)
-            assertNotNull(result[0].servedAt)
-            assertNotNull(result[1].servedAt)
+            // Assert on the outcome: correct response structure and metadata
+            assertEquals(1, result.batchNumber) // batchCount was 0, so this is batch #1
+            assertEquals(2, result.remainingBatches) // 3 - 1 = 2 remaining
+            assertEquals(2, result.profiles.size)
+            assertEquals(1L, result.profiles[0].matchId)
+            assertEquals("user2", result.profiles[0].userId)
+            assertEquals("Alice", result.profiles[0].name)
+            assertEquals(28, result.profiles[0].age)
+            assertEquals(2L, result.profiles[1].matchId)
+            assertEquals("user3", result.profiles[1].userId)
+            assertEquals("Bob", result.profiles[1].name)
+            assertEquals(32, result.profiles[1].age)
+            assertNotNull(result.profiles[0].servedAt)
+            assertNotNull(result.profiles[1].servedAt)
         }
 
         @Test
@@ -507,8 +509,12 @@ class MatchServiceTest {
                 matchService.fetchDailyBatch("user1")
             }
 
-            // Assert on the exception behavior
+            // Assert on the exception behavior and properties
             assertTrue(exception.message!!.contains("Daily batch limit of 3 exceeded"))
+            assertEquals("user1", exception.userId)
+            assertEquals(3, exception.batchesUsed)
+            assertEquals(3, exception.maxBatches)
+            assertNotNull(exception.resetAt)
         }
 
         @Test
@@ -548,9 +554,11 @@ class MatchServiceTest {
             val result = matchService.fetchDailyBatch("user1")
 
             // Assert on the outcome: only profiles with valid user data
-            assertEquals(1, result.size)
-            assertEquals(1L, result[0].matchId)
-            assertEquals("Alice", result[0].name)
+            assertEquals(1, result.batchNumber)
+            assertEquals(2, result.remainingBatches)
+            assertEquals(1, result.profiles.size)
+            assertEquals(1L, result.profiles[0].matchId)
+            assertEquals("Alice", result.profiles[0].name)
         }
 
         @Test
@@ -575,7 +583,9 @@ class MatchServiceTest {
             val result = matchService.fetchDailyBatch("user1")
 
             // Assert on the outcome: batch size respected
-            assertEquals(7, result.size)
+            assertEquals(1, result.batchNumber)
+            assertEquals(2, result.remainingBatches)
+            assertEquals(7, result.profiles.size)
         }
 
         @Test
@@ -595,7 +605,9 @@ class MatchServiceTest {
             val result = matchService.fetchDailyBatch("user1")
 
             // Assert on the outcome: batch fetched successfully at limit boundary
-            assertEquals(1, result.size)
+            assertEquals(3, result.batchNumber) // batchCount was 2, so this is batch #3
+            assertEquals(0, result.remainingBatches) // 3 - 3 = 0 remaining
+            assertEquals(1, result.profiles.size)
         }
     }
 
@@ -633,8 +645,10 @@ class MatchServiceTest {
             val result = matchService.fetchDailyBatch("user1")
 
             // Assert on the outcome: profile correctly mapped with all fields
-            assertEquals(1, result.size)
-            val profile = result[0]
+            assertEquals(1, result.batchNumber)
+            assertEquals(2, result.remainingBatches)
+            assertEquals(1, result.profiles.size)
+            val profile = result.profiles[0]
             assertEquals(1L, profile.matchId)
             assertEquals("user2", profile.userId)
             assertEquals("Alice", profile.name)
@@ -666,8 +680,10 @@ class MatchServiceTest {
             val result = matchService.fetchDailyBatch("user1")
 
             // Assert on the outcome: null values handled correctly
-            assertEquals(1, result.size)
-            val profile = result[0]
+            assertEquals(1, result.batchNumber)
+            assertEquals(2, result.remainingBatches)
+            assertEquals(1, result.profiles.size)
+            val profile = result.profiles[0]
             assertEquals("Bob", profile.name)
             assertEquals(30, profile.age)
             assertNull(profile.thumbnailUrl)
