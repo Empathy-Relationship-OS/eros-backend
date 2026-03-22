@@ -8,6 +8,7 @@ import com.eros.wallet.services.WalletService
 import com.stripe.exception.SignatureVerificationException
 import com.stripe.model.Event
 import com.stripe.model.PaymentIntent
+import com.stripe.net.ApiResource
 import com.stripe.net.Webhook
 import io.ktor.server.plugins.NotFoundException
 import io.ktor.util.logging.error
@@ -53,20 +54,23 @@ class StripeWebhookHandler(
 
 
     private suspend fun handlePaymentSuccess(event: Event): WebhookResult {
-        val paymentIntent = deserializePaymentIntent(event)
+        val dataObject = event.dataObjectDeserializer.rawJson
+
+        // Use ApiResource.GSON to force-map the raw JSON to a PaymentIntent object
+        val paymentIntent = ApiResource.GSON.fromJson(dataObject, PaymentIntent::class.java)
+            ?: return WebhookResult.Error("Failed to parse raw JSON to PaymentIntent")
 
         val userId = paymentIntent.metadata["userId"]
             ?: return WebhookResult.Error("Missing userId in metadata")
 
         val tokenAmount = paymentIntent.metadata["tokenAmount"]?.toBigDecimalOrNull()
-            ?: return WebhookResult.Error("Missing tokenAmount in metadata")
+            ?: return WebhookResult.Error("Missing or invalid tokenAmount in metadata")
 
         val idempotencyKey = paymentIntent.metadata["idempotencyKey"]
             ?: return WebhookResult.Error("Missing idempotencyKey in metadata")
 
         return try {
             val transaction = dbQuery {
-                // Credit the wallet
                 val wallet = walletService.creditBalance(
                     userId = userId,
                     amount = tokenAmount,
@@ -74,7 +78,6 @@ class StripeWebhookHandler(
                     idempotencyKey = idempotencyKey
                 )
 
-                // Update the transaction to be successful.
                 transactionService.updateTransactionStatus(
                     idempotencyKey,
                     TransactionStatus.COMPLETED, null, null, wallet.tokenBalance
@@ -92,7 +95,11 @@ class StripeWebhookHandler(
 
 
     private suspend fun handlePaymentFailure(event: Event): WebhookResult {
-        val paymentIntent = deserializePaymentIntent(event)
+        val dataObject = event.dataObjectDeserializer.rawJson
+
+        // Use ApiResource.GSON to force-map the raw JSON to a PaymentIntent object
+        val paymentIntent = ApiResource.GSON.fromJson(dataObject, PaymentIntent::class.java)
+            ?: return WebhookResult.Error("Failed to parse raw JSON to PaymentIntent")
 
         val idempotencyKey = paymentIntent.metadata["idempotencyKey"]
             ?: return WebhookResult.Error("Missing idempotencyKey in metadata")
@@ -115,7 +122,11 @@ class StripeWebhookHandler(
 
 
     private suspend fun handlePaymentCancelled(event: Event): WebhookResult {
-        val paymentIntent = deserializePaymentIntent(event)
+        val dataObject = event.dataObjectDeserializer.rawJson
+
+        // Use ApiResource.GSON to force-map the raw JSON to a PaymentIntent object
+        val paymentIntent = ApiResource.GSON.fromJson(dataObject, PaymentIntent::class.java)
+            ?: return WebhookResult.Error("Failed to parse raw JSON to PaymentIntent")
 
         val userId = paymentIntent.metadata["userId"] ?: return WebhookResult.Error("Missing userId")
         val idempotencyKey = paymentIntent.metadata["idempotencyKey"]
@@ -124,7 +135,7 @@ class StripeWebhookHandler(
         logger.info ( "Payment cancelled for user $userId" )
 
         // Update pending transaction to CANCELLED status
-        val transaction = dbQuery{
+        dbQuery{
             transactionService.updateTransactionStatus(
                 idempotencyKey,
                 TransactionStatus.CANCELLED, null, "Payment cancelled by user.", null
@@ -132,12 +143,6 @@ class StripeWebhookHandler(
         }
 
         return WebhookResult.Cancelled
-    }
-
-    private fun deserializePaymentIntent(event: Event): PaymentIntent {
-        return event.dataObjectDeserializer
-            .`object`
-            .orElseThrow { IllegalStateException("Failed to deserialize PaymentIntent") } as PaymentIntent
     }
 }
 

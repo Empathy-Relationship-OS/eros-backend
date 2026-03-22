@@ -28,7 +28,12 @@ class StripeService {
             .setAmount(tokenPackage.priceGBP.toLong())
             .setCurrency("gbp")
             .setPaymentMethod(paymentMethodId)
-            .setConfirm(false)
+            .setAutomaticPaymentMethods(
+                PaymentIntentCreateParams.AutomaticPaymentMethods.builder()
+                    .setEnabled(true)
+                    .setAllowRedirects(PaymentIntentCreateParams.AutomaticPaymentMethods.AllowRedirects.NEVER)
+                    .build()
+            )
             .putMetadata("userId", userId)
             .putMetadata("tokenAmount", tokenPackage.tokens.toString())
             .putMetadata("packageType", tokenPackage.name)

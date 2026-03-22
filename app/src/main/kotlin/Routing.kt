@@ -19,17 +19,24 @@ import com.eros.users.service.PhotoService
 import com.eros.users.service.PreferenceService
 import com.eros.users.service.QAService
 import com.eros.users.service.UserService
+import com.eros.wallet.models.PurchaseRequest
+import com.eros.wallet.models.toDTO
 import com.eros.wallet.repository.TransactionRepositoryImpl
 import com.eros.wallet.repository.WalletRepositoryImpl
 import com.eros.wallet.routes.walletRoutes
+import com.eros.wallet.routes.webhookRoute
 import com.eros.wallet.services.PaymentService
 import com.eros.wallet.services.TransactionService
 import com.eros.wallet.services.WalletService
 import com.eros.wallet.stripe.StripeService
+import com.eros.wallet.stripe.StripeWebhookHandler
+import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.plugins.requestvalidation.*
+import io.ktor.server.request.receive
 import io.ktor.server.response.*
+import io.ktor.server.response.respond
 import io.ktor.server.routing.*
 
 fun Application.configureRouting() {
@@ -66,12 +73,16 @@ fun Application.configureRouting() {
     val walletService = WalletService(walletRepository, transactionService)
     val stripeService = StripeService()
     val paymentService = PaymentService(walletService,transactionService,stripeService)
+    val webhookHandler = StripeWebhookHandler(walletService, transactionService)
 
     val profileAccessControl = ProfileAccessControl()
     routing {
         get("/") {
             call.respondText("Hello World!")
         }
+
+        // placed outside the firebase-auth due to external token use.
+        webhookRoute(webhookHandler)
 
         // All routes require Firebase authentication
         authenticate("firebase-auth") {

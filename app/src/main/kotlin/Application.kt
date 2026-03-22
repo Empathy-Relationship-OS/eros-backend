@@ -1,6 +1,7 @@
 package com.eros
 
 import com.eros.common.plugins.configureExceptionHandling
+import com.eros.wallet.stripe.StripeConfig
 import io.ktor.server.application.*
 
 fun main(args: Array<String>) {
@@ -8,6 +9,7 @@ fun main(args: Array<String>) {
 }
 
 fun Application.module() {
+    configureStripe()
     configureExceptionHandling()
     configureDatabase()
     configureSerialization()

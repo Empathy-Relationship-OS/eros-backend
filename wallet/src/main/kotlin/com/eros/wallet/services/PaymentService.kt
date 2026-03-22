@@ -80,9 +80,9 @@ class PaymentService(
             val wallet = walletService.getWallet(userId)
                 ?: throw NotFoundException("Wallet not found")
 
-            transactionService.createPurchaseTransaction(
+            val transaction = transactionService.createPurchaseTransaction(
                 userId = userId,
-                wallet.tokenBalance,
+                tokenPackage.tokens,
                 wallet.tokenBalance + tokenPackage.tokens,
                 amountPaidGBP = tokenPackage.priceGBP,
                 stripePaymentIntentId = paymentIntent.id,
@@ -94,7 +94,8 @@ class PaymentService(
                 tokenPackage.priceGBP,
                 wallet.currency,
                 tokenPackage.tokens,
-                paymentIntent.status)
+                paymentIntent.status,
+                transactionId = transaction.transactionId)
 
         }
     }

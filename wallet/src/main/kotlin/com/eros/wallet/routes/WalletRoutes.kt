@@ -20,7 +20,7 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.post
 
 //todo - Rename to payment routes.
-fun Route.walletRoutes(paymentService: PaymentService, webhookHandler: StripeWebhookHandler) {
+fun Route.walletRoutes(paymentService: PaymentService) {
 
     route("/wallet") {
         requireRoles("USER", "ADMIN", "EMPLOYEE")
@@ -107,41 +107,4 @@ fun Route.walletRoutes(paymentService: PaymentService, webhookHandler: StripeWeb
         }
 
     }
-
-    route("/webhooks") {
-        post("/stripe") {
-            val payload = call.receiveText()
-            val signature = call.request.headers["Stripe-Signature"] ?: ""
-
-            try {
-                val result = webhookHandler.handleWebhook(payload, signature)
-
-                // Map the service result to HTTP responses
-                when (result) {
-                    is WebhookResult.Success -> {
-                        call.respond(HttpStatusCode.OK, "Tokens credited.")
-                    }
-                    is WebhookResult.Ignored -> {
-                        call.respond(HttpStatusCode.OK, "Event ignored.")
-                    }
-                    is WebhookResult.Failure -> {
-                        call.respond(HttpStatusCode.OK, "Transaction failed.")
-                    }
-                    is WebhookResult.Cancelled -> {
-                        call.respond(HttpStatusCode.OK, "Transaction cancelled.")
-                    }
-                    is WebhookResult.Error -> {
-                        call.respond(HttpStatusCode.InternalServerError, result.message)
-                    }
-                }
-
-            } catch (_: InvalidWebhookSignatureException) {
-                call.respond(HttpStatusCode.BadRequest, "Invalid signature")
-            } catch (_: Exception) {
-                call.respond(HttpStatusCode.InternalServerError, "Server error")
-            }
-        }
-    }
-
-
 }

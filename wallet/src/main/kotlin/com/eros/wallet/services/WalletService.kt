@@ -7,12 +7,8 @@ import com.eros.common.errors.NotFoundException
 import com.eros.database.dbQuery
 import com.eros.wallet.models.Purchase
 import com.eros.wallet.models.PurchaseRequest
-import com.eros.wallet.models.PurchaseResponse
 import com.eros.wallet.models.RefundPolicy
 import com.eros.wallet.models.TokenPackage
-import com.eros.wallet.models.Transaction
-import com.eros.wallet.models.TransactionHistory
-import com.eros.wallet.models.TransactionHistoryResponse
 import com.eros.wallet.models.TransactionStatus
 import com.eros.wallet.models.TransactionType
 import com.eros.wallet.models.Wallet

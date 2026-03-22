@@ -2,36 +2,42 @@ package com.eros.wallet.stripe
 
 import com.stripe.Stripe
 
+import io.ktor.server.config.*
+import org.slf4j.LoggerFactory
+
 object StripeConfig {
-    val secretKey: String = System.getenv("STRIPE_SECRET_KEY")
-        ?: throw IllegalStateException("STRIPE_SECRET_KEY environment variable not set")
+    private val logger = LoggerFactory.getLogger(StripeConfig::class.java)
+    private var initialized = false
 
-    val webhookSecret: String = System.getenv("STRIPE_WEBHOOK_SECRET")
-        ?: throw IllegalStateException("STRIPE_WEBHOOK_SECRET environment variable not set")
+    lateinit var secretKey: String
+        private set
+    lateinit var webhookSecret: String
+        private set
+    lateinit var publishableKey: String
+        private set
 
-    val publishableKey: String = System.getenv("STRIPE_PUBLISHABLE_KEY")
-        ?: throw IllegalStateException("STRIPE_PUBLISHABLE_KEY environment variable not set")
+    val isTestMode: Boolean
+        get() = secretKey.startsWith("sk_test_")
 
-    /**
-     * Determines if running in test mode based on API key prefix
-     * Test keys start with sk_test_ or pk_test_
-     * Live keys start with sk_live_ or pk_live_
-     */
-    val isTestMode: Boolean = secretKey.startsWith("sk_test_")
+    fun initialize(config: ApplicationConfig) {
+        if (initialized) return
 
-    init {
-        // Initialize Stripe SDK
+        secretKey = config.property("stripe.secretKey").getString()
+        webhookSecret = config.property("stripe.webhookSecret").getString()
+        publishableKey = config.property("stripe.publishableKey").getString()
+
+        logger.info("Initializing Stripe SDK...")
         Stripe.apiKey = secretKey
 
-        // Validate keys are consistent (all test or all live)
         validateKeyConsistency()
+        initialized = true
 
+        logger.info("Stripe initialized in ${if (isTestMode) "TEST" else "LIVE"} mode")
     }
 
     private fun validateKeyConsistency() {
         val secretIsTest = secretKey.startsWith("sk_test_")
         val publishableIsTest = publishableKey.startsWith("pk_test_")
-        val webhookIsTest = webhookSecret.startsWith("whsec_")
 
         if (secretIsTest != publishableIsTest) {
             throw IllegalStateException(
@@ -39,7 +45,6 @@ object StripeConfig {
             )
         }
 
-        // Validate key formats
         if (!secretKey.startsWith("sk_test_") && !secretKey.startsWith("sk_live_")) {
             throw IllegalStateException("Invalid STRIPE_SECRET_KEY format")
         }
@@ -52,5 +57,4 @@ object StripeConfig {
             throw IllegalStateException("Invalid STRIPE_WEBHOOK_SECRET format")
         }
     }
-
 }
