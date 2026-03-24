@@ -4,7 +4,10 @@ import com.eros.wallet.table.Wallets
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.v1.core.ResultRow
 import java.math.BigDecimal
+import java.time.Clock
 import java.time.Instant
+import java.time.ZoneId
+import kotlin.String
 
 /**
  * Domain Object for a users Wallet.
@@ -12,6 +15,7 @@ import java.time.Instant
  *
  */
 data class Wallet(
+    val walletId: Long,
     val userId: String,
     val tokenBalance: BigDecimal,
     val lifetimeSpent: BigDecimal,
@@ -79,6 +83,7 @@ fun WalletWithPending.toDTO() = WalletResponse(
 
 fun ResultRow.toWalletDomain(): Wallet {
     return Wallet(
+        walletId = this[Wallets.walletId],
         userId = this[Wallets.userId],
         tokenBalance = this[Wallets.tokenBalance],
         lifetimeSpent = this[Wallets.lifetimeSpent],
@@ -90,52 +95,27 @@ fun ResultRow.toWalletDomain(): Wallet {
 }
 
 
-
-/*
 /**
- * Extension function to convert a Domain object to a DTO object.
+ * The following function is used in test classes to get a centralized Wallet object, available to alter as required.
+ * Avoids each test class having their own version that will need to be updated in the event of changes to Wallet.
  */
-fun Wallet.toDTO() = WalletResponse(
-    tokenBalance = tokenBalance,
-    lifetimeSpent = lifetimeSpent,
+val testClock: Clock = Clock.fixed(Instant.parse("2024-01-15T10:00:00Z"), ZoneId.of("UTC"))
+fun createTestWallet(
+    walletId: Long = 0L,
+    userId: String = "test-user-id",
+    tokenBalance: BigDecimal = 5.5.toBigDecimal(),
+    lifetimeSpent: BigDecimal = 4.5.toBigDecimal(),
+    lifetimePurchased: BigDecimal = 10.toBigDecimal(),
+    currency: String = "GBP",
+    createdAt: Instant = Instant.now(testClock),
+    updatedAt: Instant = Instant.now(testClock)
+) = Wallet(
+    walletId          = walletId,
+    userId            = userId,
+    tokenBalance      = tokenBalance,
+    lifetimeSpent     = lifetimeSpent,
     lifetimePurchased = lifetimePurchased,
-    currency = currency
+    currency          = currency,
+    createdAt         = createdAt,
+    updatedAt         = updatedAt
 )
-
-
-/**
- * Wallet with a pending balance field
- */
-data class WalletWithPending(
-    val tokenBalance: BigDecimal,
-    val pendingTokenBalance: BigDecimal,
-    val lifetimeSpent: BigDecimal,
-    val lifetimePurchased: BigDecimal,
-    val currency: String = "GBP"
-)
-
-
-/**
- * Wallet DTO with a pending balance field
- */
-@Serializable
-data class WalletWithPendingDTO(
-    val tokenBalance: BigDecimal,
-    val pendingTokenBalance: BigDecimal,
-    val lifetimeSpent: BigDecimal,
-    val lifetimePurchased: BigDecimal,
-    val currency: String = "GBP"
-)
-
-/**
- * Helper Function to convert a WalletWithPending domain object to a DTO.
- */
-fun WalletWithPending.toDTO() = WalletWithPendingDTO(
-    tokenBalance = tokenBalance,
-    pendingTokenBalance = pendingTokenBalance,
-    lifetimeSpent = lifetimeSpent,
-    lifetimePurchased = lifetimePurchased,
-    currency = currency
-)
-
- */

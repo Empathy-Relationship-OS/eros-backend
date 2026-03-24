@@ -25,6 +25,7 @@ class WalletRepositoryImpl(
         entity: Wallet
     ) {
         statement.apply {
+            this[Wallets.walletId] = entity.walletId
             this[Wallets.userId] = entity.userId
             this[Wallets.tokenBalance] = entity.tokenBalance
             this[Wallets.lifetimeSpent] = entity.lifetimeSpent

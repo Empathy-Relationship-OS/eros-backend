@@ -85,7 +85,7 @@ class TransactionRepositoryImplTest {
             
             val user = testUser("user-1")
             val wallet = testWallet("user-1")
-            val transaction = testTransaction(userId = "user-1", transactionId = 0L)
+            val transaction = testTransaction(walletId = 1L, transactionId = 0L)
 
             
             val created = dbQuery {
@@ -97,10 +97,10 @@ class TransactionRepositoryImplTest {
             
             assertNotNull(created)
             assertTrue(created.transactionId > 0)
-            assertEquals("user-1", created.userId)
+            assertEquals(wallet.walletId, created.walletId)
             assertEquals(TransactionType.PURCHASE, created.type)
-            assertEquals(100.0.toBigDecimal(), created.amount)
-            assertEquals(200.0.toBigDecimal(), created.balanceAfter)
+            assertEquals(BigDecimal("100.00"), created.amount)
+            assertEquals(BigDecimal("200.00"), created.balanceAfter)
         }
 
         @Test
@@ -108,7 +108,7 @@ class TransactionRepositoryImplTest {
             
             val user = testUser("user-1")
             val wallet = testWallet("user-1")
-            val transaction = testTransaction(userId = "user-1", transactionId = 0L)
+            val transaction = testTransaction(walletId = 1L, transactionId = 0L)
 
             
             val created = dbQuery {
@@ -127,10 +127,10 @@ class TransactionRepositoryImplTest {
             val user = testUser("user-1")
             val wallet = testWallet("user-1")
 
-            val purchase = testTransaction(userId = "user-1", type = TransactionType.PURCHASE)
-            val spend = testTransaction(userId = "user-1", type = TransactionType.SPEND)
-            val refund = testTransaction(userId = "user-1", type = TransactionType.REFUND)
-            val adjustment = testTransaction(userId = "user-1", type = TransactionType.ADJUSTMENT)
+            val purchase = testTransaction(1L, type = TransactionType.PURCHASE)
+            val spend = testTransaction(1L, type = TransactionType.SPEND)
+            val refund = testTransaction(1L, type = TransactionType.REFUND)
+            val adjustment = testTransaction(1L, type = TransactionType.ADJUSTMENT)
 
             
             dbQuery {
@@ -158,10 +158,10 @@ class TransactionRepositoryImplTest {
             val user = testUser("user-1")
             val wallet = testWallet("user-1")
 
-            val pending = testTransaction(userId = "user-1", status = TransactionStatus.PENDING)
-            val completed = testTransaction(userId = "user-1", status = TransactionStatus.COMPLETED)
-            val failed = testTransaction(userId = "user-1", status = TransactionStatus.FAILED)
-            val cancelled = testTransaction(userId = "user-1", status = TransactionStatus.CANCELLED)
+            val pending = testTransaction(1L, status = TransactionStatus.PENDING)
+            val completed = testTransaction(1L, status = TransactionStatus.COMPLETED)
+            val failed = testTransaction(1L, status = TransactionStatus.FAILED)
+            val cancelled = testTransaction(1L, status = TransactionStatus.CANCELLED)
 
             
             dbQuery {
@@ -192,7 +192,7 @@ class TransactionRepositoryImplTest {
                 "promo_code" to "SUMMER20",
                 "ip_address" to "192.168.1.1"
             )
-            val transaction = testTransaction(userId = "user-1", metadata = metadata)
+            val transaction = testTransaction(1L, metadata = metadata)
 
             
             val created = dbQuery {
@@ -212,7 +212,7 @@ class TransactionRepositoryImplTest {
             
             val user = testUser("user-1")
             val wallet = testWallet("user-1")
-            val transaction = testTransaction(userId = "user-1", metadata = emptyMap())
+            val transaction = testTransaction(1L, metadata = emptyMap())
 
             
             val created = dbQuery {
@@ -231,7 +231,7 @@ class TransactionRepositoryImplTest {
             val user = testUser("user-1")
             val wallet = testWallet("user-1")
             val transaction = testTransaction(
-                userId = "user-1",
+                1L,
                 stripePaymentIntentId = "pi_test123",
                 amountPaidGBP = 25.00.toBigDecimal()
             )
@@ -245,7 +245,7 @@ class TransactionRepositoryImplTest {
 
             
             assertEquals("pi_test123", created.stripePaymentIntentId)
-            assertEquals(25.00.toBigDecimal(), created.amountPaidGBP)
+            assertEquals(BigDecimal("25.00"), created.amountPaidGBP)
         }
 
         @Test
@@ -254,7 +254,7 @@ class TransactionRepositoryImplTest {
             val user = testUser("user-1")
             val wallet = testWallet("user-1")
             val transaction = testTransaction(
-                userId = "user-1",
+                1L,
                 idempotencyKey = "idem-key-123"
             )
 
@@ -278,7 +278,7 @@ class TransactionRepositoryImplTest {
             
             val user = testUser("user-1")
             val wallet = testWallet("user-1")
-            val transaction = testTransaction(userId = "user-1")
+            val transaction = testTransaction(1L)
 
             val created = dbQuery {
                 userRepository.create(user)
@@ -292,7 +292,7 @@ class TransactionRepositoryImplTest {
             
             assertNotNull(found)
             assertEquals(created.transactionId, found.transactionId)
-            assertEquals("user-1", found.userId)
+            assertEquals(wallet.walletId, found.walletId)
         }
 
         @Test
@@ -309,9 +309,9 @@ class TransactionRepositoryImplTest {
             
             val user = testUser("user-1")
             val wallet = testWallet("user-1")
-            val tx1 = testTransaction(userId = "user-1", amount = 100.0.toBigDecimal())
-            val tx2 = testTransaction(userId = "user-1", amount = 200.0.toBigDecimal())
-            val tx3 = testTransaction(userId = "user-1", amount = 300.0.toBigDecimal())
+            val tx1 = testTransaction(1L, amount = 100.0.toBigDecimal())
+            val tx2 = testTransaction(1L, amount = 200.0.toBigDecimal())
+            val tx3 = testTransaction(1L, amount = 300.0.toBigDecimal())
 
             val created = dbQuery {
                 userRepository.create(user)
@@ -328,7 +328,7 @@ class TransactionRepositoryImplTest {
 
             
             assertNotNull(found)
-            assertEquals(200.0.toBigDecimal(), found.amount)
+            assertEquals(BigDecimal("200.00"), found.amount)
         }
     }
 
@@ -340,9 +340,9 @@ class TransactionRepositoryImplTest {
             
             val user = testUser("user-1")
             val wallet = testWallet("user-1")
-            val tx1 = testTransaction(userId = "user-1")
-            val tx2 = testTransaction(userId = "user-1")
-            val tx3 = testTransaction(userId = "user-1")
+            val tx1 = testTransaction(1L)
+            val tx2 = testTransaction(1L)
+            val tx3 = testTransaction(1L)
 
             dbQuery {
                 userRepository.create(user)
@@ -378,30 +378,30 @@ class TransactionRepositoryImplTest {
             val user1 = testUser("user-1")
             val user2 = testUser("user-2", email = "test@test1.com")
             val wallet1 = testWallet("user-1")
-            val wallet2 = testWallet("user-2")
+            val wallet2 = testWallet("user-2", walletId = 2L)
 
             dbQuery {
                 userRepository.create(user1)
                 userRepository.create(user2)
                 walletRepository.create(wallet1)
                 walletRepository.create(wallet2)
-                transactionRepository.create(testTransaction(userId = "user-1"))
-                transactionRepository.create(testTransaction(userId = "user-1"))
-                transactionRepository.create(testTransaction(userId = "user-2"))
+                transactionRepository.create(testTransaction(walletId = 1L))
+                transactionRepository.create(testTransaction(transactionId = 2L ,walletId = 1L))
+                transactionRepository.create(testTransaction(walletId = wallet2.walletId))
             }
 
             
-            val user1Transactions = dbQuery { transactionRepository.findByUserId("user-1") }
+            val user1Transactions = dbQuery { transactionRepository.findByUserId("user-1",5,0) }
 
             
             assertEquals(2, user1Transactions.size)
-            assertTrue(user1Transactions.all { it.userId == "user-1" })
+            assertTrue(user1Transactions.all { it.walletId == wallet1.walletId })
         }
 
         @Test
         fun `findByUserId should return empty list when user has no transactions`() = runBlocking {
             
-            val transactions = dbQuery { transactionRepository.findByUserId("user-1") }
+            val transactions = dbQuery { transactionRepository.findByUserId("user-1",5,0) }
 
             
             assertTrue(transactions.isEmpty())
@@ -416,13 +416,13 @@ class TransactionRepositoryImplTest {
             dbQuery {
                 userRepository.create(user)
                 walletRepository.create(wallet)
-                transactionRepository.create(testTransaction(userId = "user-1", amount = 100.0.toBigDecimal()))
-                transactionRepository.create(testTransaction(userId = "user-1", amount = 200.0.toBigDecimal()))
-                transactionRepository.create(testTransaction(userId = "user-1", amount = 300.0.toBigDecimal()))
+                transactionRepository.create(testTransaction(1L, amount = 100.0.toBigDecimal()))
+                transactionRepository.create(testTransaction(1L, amount = 200.0.toBigDecimal()))
+                transactionRepository.create(testTransaction(1L, amount = 300.0.toBigDecimal()))
             }
 
             
-            val transactions = dbQuery { transactionRepository.findByUserId("user-1") }
+            val transactions = dbQuery { transactionRepository.findByUserId("user-1",3,0) }
 
             
             assertEquals(3, transactions.size)
@@ -438,7 +438,7 @@ class TransactionRepositoryImplTest {
             val user = testUser("user-1")
             val wallet = testWallet("user-1")
             val transaction = testTransaction(
-                userId = "user-1",
+                1L,
                 idempotencyKey = "idem-key-123"
             )
 
@@ -454,7 +454,7 @@ class TransactionRepositoryImplTest {
             
             assertNotNull(found)
             assertEquals("idem-key-123", found.idempotencyKey)
-            assertEquals("user-1", found.userId)
+            assertEquals(wallet.walletId, found.walletId)
         }
 
         @Test
@@ -475,9 +475,9 @@ class TransactionRepositoryImplTest {
             dbQuery {
                 userRepository.create(user)
                 walletRepository.create(wallet)
-                transactionRepository.create(testTransaction(userId = "user-1", idempotencyKey = "key-1"))
-                transactionRepository.create(testTransaction(userId = "user-1", idempotencyKey = "key-2"))
-                transactionRepository.create(testTransaction(userId = "user-1", idempotencyKey = "key-3"))
+                transactionRepository.create(testTransaction(1L, idempotencyKey = "key-1"))
+                transactionRepository.create(testTransaction(1L, idempotencyKey = "key-2"))
+                transactionRepository.create(testTransaction(1L, idempotencyKey = "key-3"))
             }
 
             
@@ -493,7 +493,7 @@ class TransactionRepositoryImplTest {
             
             val user = testUser("user-1")
             val wallet = testWallet("user-1")
-            val transaction = testTransaction(userId = "user-1", idempotencyKey = null)
+            val transaction = testTransaction(1L, idempotencyKey = null)
 
             dbQuery {
                 userRepository.create(user)
@@ -517,7 +517,7 @@ class TransactionRepositoryImplTest {
             
             val user = testUser("user-1")
             val wallet = testWallet("user-1")
-            val original = testTransaction(userId = "user-1", status = TransactionStatus.PENDING)
+            val original = testTransaction(1L, status = TransactionStatus.PENDING)
 
             val created = dbQuery {
                 userRepository.create(user)
@@ -538,7 +538,7 @@ class TransactionRepositoryImplTest {
         @Test
         fun `update should return null when transaction does not exist`() = runBlocking {
             
-            val transaction = testTransaction(userId = "user-1", transactionId = 999L)
+            val transaction = testTransaction(walletId = 1L, transactionId = 999L)
 
             
             val result = dbQuery { transactionRepository.update(999L, transaction) }
@@ -552,7 +552,7 @@ class TransactionRepositoryImplTest {
             
             val user = testUser("user-1")
             val wallet = testWallet("user-1")
-            val original = testTransaction(userId = "user-1", amount = 100.0.toBigDecimal())
+            val original = testTransaction(1L, amount = 100.0.toBigDecimal())
 
             val created = dbQuery {
                 userRepository.create(user)
@@ -567,7 +567,7 @@ class TransactionRepositoryImplTest {
             val found = dbQuery { transactionRepository.findById(created.transactionId) }
 
             
-            assertEquals(200.0.toBigDecimal(), found?.amount)
+            assertEquals(BigDecimal("200.00"), found?.amount)
         }
     }
 
@@ -579,7 +579,7 @@ class TransactionRepositoryImplTest {
             
             val user = testUser("user-1")
             val wallet = testWallet("user-1")
-            val transaction = testTransaction(userId = "user-1")
+            val transaction = testTransaction(1L)
 
             val created = dbQuery {
                 userRepository.create(user)
@@ -610,8 +610,8 @@ class TransactionRepositoryImplTest {
             
             val user = testUser("user-1")
             val wallet = testWallet("user-1")
-            val tx1 = testTransaction(userId = "user-1")
-            val tx2 = testTransaction(userId = "user-1")
+            val tx1 = testTransaction(1L)
+            val tx2 = testTransaction(1L)
 
             val created = dbQuery {
                 userRepository.create(user)
@@ -642,7 +642,7 @@ class TransactionRepositoryImplTest {
             
             val user = testUser("user-1")
             val wallet = testWallet("user-1")
-            val transaction = testTransaction(userId = "user-1")
+            val transaction = testTransaction(1L)
 
             val created = dbQuery {
                 userRepository.create(user)
@@ -671,7 +671,7 @@ class TransactionRepositoryImplTest {
             
             val user = testUser("user-1")
             val wallet = testWallet("user-1")
-            val transaction = testTransaction(userId = "user-1")
+            val transaction = testTransaction(1L)
 
             val created = dbQuery {
                 userRepository.create(user)
@@ -691,7 +691,7 @@ class TransactionRepositoryImplTest {
     // Helper functions
     private fun testTransaction(
         transactionId: Long = 0L,
-        userId: String = "user-123",
+        walletId: Long = 1L,
         type: TransactionType = TransactionType.PURCHASE,
         amount: BigDecimal = 100.0.toBigDecimal(),
         balanceAfter: BigDecimal = 200.0.toBigDecimal(),
@@ -705,7 +705,7 @@ class TransactionRepositoryImplTest {
         metadata: Map<String, String> = emptyMap()
     ) = Transaction(
         transactionId = transactionId,
-        userId = userId,
+        walletId = walletId,
         type = type,
         amount = amount,
         balanceAfter = balanceAfter,
@@ -717,16 +717,19 @@ class TransactionRepositoryImplTest {
         amountPaidGBP = amountPaidGBP,
         idempotencyKey = idempotencyKey,
         metadata = metadata,
-        createdAt = fixedInstant
+        createdAt = fixedInstant,
+        updatedAt = fixedInstant
     )
 
     private fun testWallet(
         userId: String = "user-123",
+        walletId: Long = 1L,
         tokenBalance: BigDecimal = 100.0.toBigDecimal(),
         lifetimeSpent: BigDecimal = 50.0.toBigDecimal(),
         lifetimePurchased: BigDecimal = 150.0.toBigDecimal(),
         currency: String = "GBP"
     ) = Wallet(
+        walletId = walletId,
         userId = userId,
         tokenBalance = tokenBalance,
         lifetimeSpent = lifetimeSpent,

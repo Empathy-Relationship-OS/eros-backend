@@ -28,7 +28,7 @@ class TransactionServiceTest {
         fun `should create spend transaction with correct values`() = runBlocking {
             val expectedTransaction = Transaction(
                 transactionId = 1L,
-                userId = "user-1",
+                walletId = 1L,
                 type = TransactionType.SPEND,
                 amount = (-50.0).toBigDecimal(),
                 balanceAfter = 50.0.toBigDecimal(),
@@ -36,12 +36,14 @@ class TransactionServiceTest {
                 status = TransactionStatus.COMPLETED,
                 relatedDateId = 123L,
                 idempotencyKey = "key-123",
-                createdAt = Instant.parse("2024-01-15T10:00:00Z")
+                createdAt = Instant.parse("2024-01-15T10:00:00Z"),
+                updatedAt = Instant.parse("2024-01-15T10:00:00Z"),
             )
 
             coEvery { mockTransactionRepo.create(any()) } returns expectedTransaction
 
             val result = service.createSpendTransaction(
+                walletId = 1L,
                 userId = "user-1",
                 amount = 50.0.toBigDecimal(),
                 newBalance = 50.0.toBigDecimal(),
@@ -74,7 +76,7 @@ class TransactionServiceTest {
         fun `should create purchase transaction with stripe details`()  = runBlocking {
             val expectedTransaction = Transaction(
                 transactionId = 1L,
-                userId = "user-1",
+                walletId = 1L,
                 type = TransactionType.PURCHASE,
                 amount = 100.0.toBigDecimal(),
                 balanceAfter = 100.0.toBigDecimal(),
@@ -83,13 +85,14 @@ class TransactionServiceTest {
                 stripePaymentIntentId = "pi_123",
                 amountPaidGBP = 45.00.toBigDecimal(),
                 idempotencyKey = "key-123",
-                createdAt = Instant.parse("2024-01-15T10:00:00Z")
+                createdAt = Instant.parse("2024-01-15T10:00:00Z"),
+                updatedAt = Instant.parse("2024-01-15T10:00:00Z"),
             )
 
             coEvery { mockTransactionRepo.create(any()) } returns expectedTransaction
 
             val result = service.createPurchaseTransaction(
-                userId = "user-1",
+                walletId = 1L,
                 tokenAmount = 100.0.toBigDecimal(),
                 newBalance = 100.0.toBigDecimal(),
                 amountPaidGBP = 45.00.toBigDecimal(),
@@ -113,7 +116,7 @@ class TransactionServiceTest {
         fun `should create refund transaction linking to original`()  = runBlocking  {
             val expectedTransaction = Transaction(
                 transactionId = 2L,
-                userId = "user-1",
+                walletId = 1L,
                 type = TransactionType.REFUND,
                 amount = 50.0.toBigDecimal(),
                 balanceAfter = 100.0.toBigDecimal(),
@@ -121,12 +124,14 @@ class TransactionServiceTest {
                 status = TransactionStatus.COMPLETED,
                 relatedDateId = 123L,
                 relatedTransactionId = 1L,
-                createdAt = Instant.parse("2024-01-15T10:00:00Z")
+                createdAt = Instant.parse("2024-01-15T10:00:00Z"),
+                updatedAt = Instant.parse("2024-01-15T10:00:00Z"),
             )
 
             coEvery { mockTransactionRepo.create(any()) } returns expectedTransaction
 
             val result = service.createRefundTransaction(
+                walletId = 1L,
                 userId = "user-1",
                 amount = 50.0.toBigDecimal(),
                 newBalance = 100.0.toBigDecimal(),

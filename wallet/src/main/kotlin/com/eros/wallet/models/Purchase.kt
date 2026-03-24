@@ -2,6 +2,7 @@ package com.eros.wallet.models
 
 import kotlinx.serialization.Serializable
 import java.math.BigDecimal
+import kotlin.String
 
 /**
  * Request DTO for purchasing tokens.
@@ -25,6 +26,21 @@ data class PurchaseRequest(
 
 
 /**
+ * Domain object for a purchase.
+ */
+data class Purchase(
+    val clientSecret: String,
+    val paymentIntentId: String,
+    val amount: BigDecimal,
+    val currency: String,
+    val tokenAmount: BigDecimal,
+    val status: String,
+    val newBalance: BigDecimal? = null,
+    val transactionId: Long? = null
+)
+
+
+/**
  * Response DTO for purchase intent creation.
  *
  * @property clientSecret Stripe client secret for confirming payment on frontend
@@ -45,8 +61,27 @@ data class PurchaseResponse(
     val currency: String,
     @Serializable(with = BigDecimalSerializer::class)
     val tokenAmount: BigDecimal,
-    val status: TransactionStatus,
+    val status: String,
     @Serializable(with = BigDecimalSerializer::class)
     val newBalance: BigDecimal? = null,
     val transactionId: Long? = null
+)
+
+fun Purchase.toDTO() = PurchaseResponse(
+    clientSecret = clientSecret,
+    paymentIntentId = paymentIntentId,
+    amount = amount,
+    currency = currency,
+    tokenAmount = tokenAmount,
+    status = status,
+    newBalance = newBalance,
+    transactionId = transactionId
+)
+
+
+@Serializable
+data class SpendTokenRequest(
+    val relatedDateId : Long,
+    val activity: String,
+    val idempotencyKey : String
 )

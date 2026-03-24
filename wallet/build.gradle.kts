@@ -13,6 +13,9 @@ dependencies {
     implementation(project(":dates"))
     implementation(project(":auth"))
 
+    // Firebase
+    implementation(libs.firebase.admin)
+
     // Ktor dependencies
     implementation(libs.ktor.serialization.kotlinx.json)
     implementation(libs.ktor.server.core)
@@ -41,6 +44,8 @@ dependencies {
     testImplementation(libs.mockk)
 
     implementation(libs.logstash.logback.encoder)
+
+    implementation(libs.stripe.java)
 }
 
 tasks.test {

@@ -10,8 +10,8 @@ class TransactionTest {
 
     // Test helper function
     private fun transaction(
+        walletId : Long = 1L,
         transactionId: Long = 1L,
-        userId: String = "user-123",
         type: TransactionType = TransactionType.PURCHASE,
         amount: BigDecimal = 100.0.toBigDecimal(),
         balanceAfter: BigDecimal = 200.0.toBigDecimal(),
@@ -23,11 +23,12 @@ class TransactionTest {
         amountPaidGBP: BigDecimal? = null,
         idempotencyKey: String? = null,
         metadata: Map<String, String> = emptyMap(),
-        createdAt: Instant = Instant.now()
+        createdAt: Instant = Instant.now(),
+        updatedAt: Instant = Instant.now(),
     ) = Transaction(
-        transactionId, userId, type, amount, balanceAfter, description,
+        transactionId, walletId, type, amount, balanceAfter, description,
         status, relatedDateId, relatedTransactionId, stripePaymentIntentId,
-        amountPaidGBP, idempotencyKey, metadata, createdAt
+        amountPaidGBP, idempotencyKey, metadata, createdAt, updatedAt
     )
 
     @Nested
@@ -118,14 +119,14 @@ class TransactionTest {
         @Test
         fun `spend decreases balance after`() {
             val previousBalance = 100.0.toBigDecimal()
-            val spendAmount = -30.0.toBigDecimal()
+            val spendAmount = (-30.0).toBigDecimal()
             val transaction = transaction(
                 type = TransactionType.SPEND,
                 amount = spendAmount,
                 balanceAfter = previousBalance + spendAmount
             )
 
-            assertEquals(70.0, transaction.balanceAfter)
+            assertEquals((70.0).toBigDecimal(), transaction.balanceAfter)
         }
 
         @Test
@@ -184,7 +185,7 @@ class TransactionTest {
                 balanceAfter = previousBalance + refundAmount
             )
 
-            assertEquals(80.0, transaction.balanceAfter)
+            assertEquals((80.0).toBigDecimal(), transaction.balanceAfter)
         }
     }
 

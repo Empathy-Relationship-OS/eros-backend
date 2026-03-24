@@ -41,6 +41,7 @@ services:
     restart: no
     env_file:
       - .env
+
 volumes:
   postgres_data:
 
