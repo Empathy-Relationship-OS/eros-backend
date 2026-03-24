@@ -35,7 +35,7 @@ class PaymentService(
     /**
      * Function to retrieve a users transaction history.
      */
-    suspend fun getTransactionHistory(userId: String, limit: Int, offset: Int, type: String?): TransactionHistory =
+    suspend fun getTransactionHistory(userId: String, limit: Int, offset: Long, type: String?): TransactionHistory =
         dbQuery {
             transactionService.getTransactionHistory(userId, limit, offset, type)
         }
@@ -69,34 +69,62 @@ class PaymentService(
 
         val tokenPackage = TokenPackage.valueOf(request.packageType)
 
-        // Create Payment Intent
-        val paymentIntent = stripeService.createPaymentIntent(
-            userId, tokenPackage,
-            request.paymentMethodId, request.idempotencyKey
-        )
-
         // Create a pending transaction and return.
-        return dbQuery {
+        val (transaction, wallet) = dbQuery {
             val wallet = walletService.getWallet(userId)
                 ?: throw NotFoundException("Wallet not found")
 
             val transaction = transactionService.createPurchaseTransaction(
-                userId = userId,
+                walletId = wallet.walletId,
                 tokenPackage.tokens,
                 wallet.tokenBalance + tokenPackage.tokens,
                 amountPaidGBP = tokenPackage.priceGBP,
-                stripePaymentIntentId = paymentIntent.id,
+                stripePaymentIntentId = null,
                 idempotencyKey = request.idempotencyKey
             )
+            transaction to wallet
+        }
 
-            Purchase(paymentIntent.clientSecret,
-                paymentIntent.id,
-                tokenPackage.priceGBP,
-                wallet.currency,
-                tokenPackage.tokens,
-                paymentIntent.status,
-                transactionId = transaction.transactionId)
+        // Try-catch to alter the transaction to failed if an error occurs
+        try {
+            // Create Payment Intent
+            val paymentIntent = stripeService.createPaymentIntent(
+                userId, tokenPackage,
+                request.paymentMethodId, request.idempotencyKey,
+                wallet.currency
+            )
 
+            // Update transaction and return purchase request.
+            return dbQuery {
+                transactionService.updateTransactionStatus(
+                    request.idempotencyKey,
+                    TransactionStatus.PENDING,
+                    paymentIntent.id,
+                    null, null
+                )
+
+                Purchase(
+                    paymentIntent.clientSecret,
+                    paymentIntent.id,
+                    tokenPackage.priceGBP,
+                    wallet.currency,
+                    tokenPackage.tokens,
+                    paymentIntent.status,
+                    transactionId = transaction.transactionId
+                )
+
+            }
+            //todo: I don't know what error paymentIntend might throw
+        }catch(e: Exception){
+            dbQuery {
+                transactionService.updateTransactionStatus(
+                    request.idempotencyKey,
+                    TransactionStatus.FAILED,
+                    null,
+                    e.message, null
+                )
+            }
+            throw e
         }
     }
 
@@ -134,6 +162,7 @@ class PaymentService(
 
             // Create transaction of the user spend for the date.
             transactionService.createSpendTransaction(
+                walletId = updatedWallet.walletId,
                 userId = userId,
                 amount = cost,
                 description = "Paid for ${request.activity} date for $cost tokens",

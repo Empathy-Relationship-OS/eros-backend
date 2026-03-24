@@ -1,5 +1,6 @@
 package com.eros.wallet.stripe
 
+import com.eros.wallet.convertToUserCurrency
 import com.eros.wallet.models.TokenPackage
 import com.stripe.exception.StripeException
 import com.stripe.model.PaymentIntent
@@ -21,12 +22,14 @@ class StripeService {
         userId: String,
         tokenPackage: TokenPackage,
         paymentMethodId: String,
-        idempotencyKey: String
+        idempotencyKey: String,
+        userCurrency: String
     ): PaymentIntent {
-        //todo; Implement so it uses the users currency from their wallet / change amount to correct.
+        val amount = convertToUserCurrency(tokenPackage.priceGBP, userCurrency)
+
         val params = PaymentIntentCreateParams.builder()
-            .setAmount(tokenPackage.priceGBP.toLong())
-            .setCurrency("gbp")
+            .setAmount(amount.toLong())
+            .setCurrency(userCurrency)
             .setPaymentMethod(paymentMethodId)
             .setAutomaticPaymentMethods(
                 PaymentIntentCreateParams.AutomaticPaymentMethods.builder()

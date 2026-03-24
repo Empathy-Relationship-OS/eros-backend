@@ -12,6 +12,7 @@ class WalletTest {
 
     // Test helper function
     private fun wallet(
+        walletId: Long = 1L,
         userId: String = "user-123",
         tokenBalance: BigDecimal = 1000.toBigDecimal(),
         lifetimeSpent: BigDecimal = 500.toBigDecimal(),
@@ -19,7 +20,7 @@ class WalletTest {
         currency: String = "GBP",
         createdAt: Instant = Instant.now(),
         updatedAt: Instant = Instant.now()
-    ) = Wallet(userId, tokenBalance, lifetimeSpent, lifetimePurchased, currency, createdAt, updatedAt)
+    ) = Wallet(walletId,userId, tokenBalance, lifetimeSpent, lifetimePurchased, currency, createdAt, updatedAt)
 
     @Nested
     inner class HasSufficientBalance {
@@ -73,9 +74,9 @@ class WalletTest {
         @Test
         fun `pendingBalance calculates sum with decimal values`() {
             val wallet = wallet()
-            val pending = listOf(1.5.toBigDecimal(), 2.75.toBigDecimal(), 3.25.toBigDecimal())
+            val pending = listOf(1.50.toBigDecimal(), 2.75.toBigDecimal(), 3.25.toBigDecimal())
 
-            assertEquals(7.5.toBigDecimal(), wallet.pendingBalance(pending))
+            assertEquals(BigDecimal("7.50"), wallet.pendingBalance(pending))
         }
 
         @Test
@@ -92,6 +93,7 @@ class WalletTest {
         @Test
         fun `default currency is GBP`() {
             val wallet = Wallet(
+                walletId = 1L,
                 userId = "user-123",
                 tokenBalance = 1000.toBigDecimal(),
                 lifetimeSpent = 500.toBigDecimal(),

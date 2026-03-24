@@ -75,18 +75,18 @@ class TransactionService(
      * Creates a PURCHASE transaction.
      */
     suspend fun createPurchaseTransaction(
-        userId: String,
+        walletId: Long,
         tokenAmount: BigDecimal,
         newBalance: BigDecimal,
         amountPaidGBP: BigDecimal,
-        stripePaymentIntentId: String,
+        stripePaymentIntentId: String?,
         idempotencyKey: String,
         status: TransactionStatus = TransactionStatus.PENDING,
         metadata: Map<String, String> = emptyMap()
     ): Transaction {
         val transaction = Transaction(
+            walletId = walletId,
             transactionId = 0L,
-            userId = userId,
             type = TransactionType.PURCHASE,
             amount = tokenAmount,
             balanceAfter = newBalance,
@@ -98,7 +98,8 @@ class TransactionService(
             amountPaidGBP = amountPaidGBP,
             idempotencyKey = idempotencyKey,
             metadata = metadata,
-            createdAt = Instant.now(clock)
+            createdAt = Instant.now(clock),
+            updatedAt = Instant.now(clock)
         )
 
         return transactionRepository.create(transaction)
@@ -131,6 +132,7 @@ class TransactionService(
      * @return Transaction of the spend transaction
      */
     suspend fun createSpendTransaction(
+        walletId: Long,
         userId: String,
         amount: BigDecimal,
         description: String,
@@ -140,8 +142,8 @@ class TransactionService(
         metadata: Map<String, String>
     ): Transaction {
         val transaction = Transaction(
+            walletId = walletId,
             transactionId = 0L,
-            userId = userId,
             type = TransactionType.SPEND,
             amount = -amount,
             balanceAfter = newBalance,
@@ -153,7 +155,8 @@ class TransactionService(
             amountPaidGBP = null,
             idempotencyKey = idempotencyKey,
             metadata = metadata,
-            createdAt = Instant.now(clock)
+            createdAt = Instant.now(clock),
+            updatedAt = Instant.now(clock)
         )
         return transactionRepository.create(transaction)
     }
@@ -164,6 +167,7 @@ class TransactionService(
      * @return Transaction of the refund transaction
      */
     suspend fun createRefundTransaction(
+        walletId: Long,
         userId: String,
         amount: BigDecimal,
         description: String,
@@ -173,8 +177,8 @@ class TransactionService(
         metadata: Map<String, String>
     ): Transaction {
         val transaction = Transaction(
+            walletId = walletId,
             transactionId = 0L,
-            userId = userId,
             type = TransactionType.REFUND,
             amount = amount,
             balanceAfter = newBalance,
@@ -186,7 +190,8 @@ class TransactionService(
             amountPaidGBP = null,
             idempotencyKey = null,
             metadata = metadata,
-            createdAt = Instant.now(clock)
+            createdAt = Instant.now(clock),
+            updatedAt = Instant.now(clock)
         )
         return transactionRepository.create(transaction)
     }
@@ -196,17 +201,24 @@ class TransactionService(
      */
     suspend fun getTransactionHistory(
         userId: String,
-        limit: Int = 20,
-        offset: Int = 0,
+        limit: Int = 0,
+        offset: Long = 0L,
         type: String? = null
     ): TransactionHistory {
-       val history = if (type == null) {
-            transactionRepository.findByUserId(userId)
-        }else{
-            transactionRepository.findByUserIdAndType(userId, TransactionType.valueOf(type))
+        // 1. Fetch limit + 1 from the DB
+        val dbResult = if (type == null) {
+            transactionRepository.findByUserId(userId, limit, offset)
+        } else {
+            transactionRepository.findByUserIdAndType(userId, TransactionType.valueOf(type), limit, offset)
         }
-        val hasMore = history.size > limit+offset
-        val paginated = history.drop(offset).take(limit)
-        return TransactionHistory(paginated, paginated.size, hasMore)
+
+        val hasMore = dbResult.size > limit
+        val finalData = if (hasMore) dbResult.take(limit) else dbResult
+
+        return TransactionHistory(
+            transactions = finalData,
+            total = finalData.size,
+            hasMore = hasMore
+        )
     }
 }

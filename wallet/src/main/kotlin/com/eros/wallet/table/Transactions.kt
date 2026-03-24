@@ -15,7 +15,7 @@ import java.time.Instant
 // Database table
 object Transactions : Table("transactions") {
     val transactionId = long("transaction_id").autoIncrement()
-    val userId = varchar("user_id", 128).references(Users.userId)
+    val walletId = long("wallet_id").references(Wallets.walletId)
     val type = enumerationByName("type", 20, TransactionType::class)
     val amount = decimal("amount", 10, 2)
     val balanceAfter = decimal("balance_after", 10, 2)
@@ -28,11 +28,12 @@ object Transactions : Table("transactions") {
     val idempotencyKey = varchar("idempotency_key", 255).nullable().uniqueIndex()
     val metadata = text("metadata").nullable() // JSON
     val createdAt = timestamp("created_at").clientDefault { Instant.now() }
+    val updatedAt = timestamp("updated_at").clientDefault { Instant.now() }
 
     override val primaryKey = PrimaryKey(transactionId)
 
     init {
-        index(false, userId, createdAt)
+        index(false, walletId, createdAt)
         index(false, stripePaymentIntentId)
     }
 }

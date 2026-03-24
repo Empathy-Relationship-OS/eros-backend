@@ -46,7 +46,7 @@ fun Route.walletRoutes(paymentService: PaymentService) {
         get("/transactions"){
             // Get the params from the query.
             val limit = call.request.queryParameters["limit"]?.toInt() ?: throw BadRequestException("Limit requires an integer")
-            val offset = call.request.queryParameters["offset"]?.toInt() ?: throw BadRequestException("Offset requires an integer")
+            val offset = call.request.queryParameters["offset"]?.toLong() ?: throw BadRequestException("Offset requires an integer")
             val type = call.request.queryParameters["type"]
 
             // Get the user id.

@@ -13,7 +13,7 @@ import java.time.Instant
  */
 data class Transaction(
     val transactionId: Long,
-    val userId: String,
+    val walletId: Long,
     val type: TransactionType,
     val amount: BigDecimal, // Positive for credit, negative for debit
     val balanceAfter: BigDecimal,
@@ -25,7 +25,8 @@ data class Transaction(
     val amountPaidGBP: BigDecimal? = null,
     val idempotencyKey: String? = null,
     val metadata: Map<String, String> = emptyMap(),
-    val createdAt: Instant
+    val createdAt: Instant,
+    val updatedAt: Instant,
 )
 
 /**
@@ -70,7 +71,8 @@ data class TransactionResponse(
     val stripePaymentIntentId: String? = null,
     @Serializable(with = BigDecimalSerializer::class)
     val amountPaid: BigDecimal? = null,
-    val createdAt: String
+    val createdAt: String,
+    val updatedAt: String
 )
 
 fun Transaction.toDTO() = TransactionResponse(
@@ -82,13 +84,14 @@ fun Transaction.toDTO() = TransactionResponse(
     relatedDateId = this.relatedDateId,
     stripePaymentIntentId = this.stripePaymentIntentId,
     amountPaid = this.amountPaidGBP,
-    createdAt = this.createdAt.toString()
+    createdAt = this.createdAt.toString(),
+    updatedAt = this.updatedAt.toString()
 )
 
 fun ResultRow.toTransactionDomain(): Transaction {
     return Transaction(
+        walletId = this[Transactions.walletId],
         transactionId = this[Transactions.transactionId],
-        userId = this[Transactions.userId],
         type = this[Transactions.type],
         amount = this[Transactions.amount],
         balanceAfter = this[Transactions.balanceAfter],
@@ -100,7 +103,8 @@ fun ResultRow.toTransactionDomain(): Transaction {
         amountPaidGBP = this[Transactions.amountPaidGbp],
         idempotencyKey = this[Transactions.idempotencyKey],
         metadata = parseMetadata(this[Transactions.metadata]),
-        createdAt = this[Transactions.createdAt]
+        createdAt = this[Transactions.createdAt],
+        updatedAt = this[Transactions.updatedAt],
     )
 }
 

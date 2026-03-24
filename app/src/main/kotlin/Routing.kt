@@ -1,5 +1,6 @@
 package com.eros
 
+import com.eros.auth.extensions.requireFirebasePrincipal
 import com.eros.common.config.S3Config
 import com.eros.users.repository.CityRepositoryImpl
 import com.eros.users.ProfileAccessControl

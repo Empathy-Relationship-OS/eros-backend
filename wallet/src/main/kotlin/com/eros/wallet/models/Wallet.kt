@@ -15,6 +15,7 @@ import kotlin.String
  *
  */
 data class Wallet(
+    val walletId: Long,
     val userId: String,
     val tokenBalance: BigDecimal,
     val lifetimeSpent: BigDecimal,
@@ -82,6 +83,7 @@ fun WalletWithPending.toDTO() = WalletResponse(
 
 fun ResultRow.toWalletDomain(): Wallet {
     return Wallet(
+        walletId = this[Wallets.walletId],
         userId = this[Wallets.userId],
         tokenBalance = this[Wallets.tokenBalance],
         lifetimeSpent = this[Wallets.lifetimeSpent],
@@ -99,6 +101,7 @@ fun ResultRow.toWalletDomain(): Wallet {
  */
 val testClock: Clock = Clock.fixed(Instant.parse("2024-01-15T10:00:00Z"), ZoneId.of("UTC"))
 fun createTestWallet(
+    walletId: Long = 0L,
     userId: String = "test-user-id",
     tokenBalance: BigDecimal = 5.5.toBigDecimal(),
     lifetimeSpent: BigDecimal = 4.5.toBigDecimal(),
@@ -107,6 +110,7 @@ fun createTestWallet(
     createdAt: Instant = Instant.now(testClock),
     updatedAt: Instant = Instant.now(testClock)
 ) = Wallet(
+    walletId          = walletId,
     userId            = userId,
     tokenBalance      = tokenBalance,
     lifetimeSpent     = lifetimeSpent,

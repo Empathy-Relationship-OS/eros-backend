@@ -46,6 +46,7 @@ class WalletService(
         // Create wallet
         val now = Instant.now(clock)
         val wallet = Wallet(
+            walletId = 0L,
             userId = userId,
             tokenBalance = BigDecimal.ZERO,
             lifetimeSpent = BigDecimal.ZERO,
@@ -95,7 +96,7 @@ class WalletService(
 
         // 4. Create pending transaction
         val transaction = transactionService.createPurchaseTransaction(
-            userId = userId,
+            walletId = wallet.walletId,
             tokenAmount = pack.tokens,
             newBalance = wallet.tokenBalance,
             amountPaidGBP = pack.priceGBP,
@@ -236,6 +237,7 @@ class WalletService(
 
             // Create refund transaction
             transactionService.createRefundTransaction(
+                walletId = wallet.walletId,
                 userId = userId,
                 amount = refundAmount,
                 relatedDateId = relatedDateId,

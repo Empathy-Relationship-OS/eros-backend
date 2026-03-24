@@ -11,7 +11,7 @@
 
 CREATE TABLE IF NOT EXISTS transactions (
     transaction_id BIGSERIAL PRIMARY KEY,
-    user_id VARCHAR(128) NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    wallet_id BIGINT NOT NULL REFERENCES wallets(wallet_id) ON DELETE CASCADE,
     type VARCHAR(20) NOT NULL,
     amount NUMERIC(10, 2) NOT NULL,
     balance_after NUMERIC(10, 2) NOT NULL,
@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     idempotency_key VARCHAR(255),
     metadata TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT unique_idempotency_key UNIQUE (idempotency_key),
     CONSTRAINT valid_transaction_type CHECK (type IN ('PURCHASE', 'SPEND', 'REFUND', 'ADJUSTMENT')),
@@ -31,5 +32,4 @@ CREATE TABLE IF NOT EXISTS transactions (
 );
 
 -- Indexes for query optimization
-CREATE INDEX idx_transactions_user_created ON transactions(user_id, created_at);
 CREATE INDEX idx_transactions_stripe_payment_intent ON transactions(stripe_payment_intent_id);
