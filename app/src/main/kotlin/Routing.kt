@@ -2,7 +2,11 @@ package com.eros
 
 import com.eros.auth.extensions.requireFirebasePrincipal
 import com.eros.common.config.S3Config
-import com.eros.users.repository.CityRepositoryImpl
+import com.eros.matching.repository.DailyBatchRepositoryImpl
+import com.eros.matching.repository.MatchRepositoryImpl
+import com.eros.matching.routes.matchRoutes
+import com.eros.matching.service.MatchService
+import com.eros.matching.transaction.DatabaseTransactionManager
 import com.eros.users.ProfileAccessControl
 import com.eros.users.repository.PhotoRepositoryImpl
 import com.eros.users.repository.PreferenceRepositoryImpl
@@ -32,6 +36,9 @@ import com.eros.wallet.services.WalletService
 import com.eros.wallet.stripe.StripeService
 import com.eros.wallet.stripe.StripeWebhookHandler
 import io.ktor.http.HttpStatusCode
+import com.eros.users.repository.*
+import com.eros.users.routes.*
+import com.eros.users.service.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.plugins.requestvalidation.*
@@ -49,6 +56,8 @@ fun Application.configureRouting() {
         }
     }
 
+    val transactionManager = DatabaseTransactionManager()
+
     // Initialize repositories
     val userRepository = UserRepositoryImpl()
     val photoRepository = PhotoRepositoryImpl()
@@ -60,6 +69,9 @@ fun Application.configureRouting() {
     val questionRepository = QuestionRepositoryImpl()
     val transactionRepository = TransactionRepositoryImpl()
     val walletRepository = WalletRepositoryImpl()
+
+    val matchRepository = MatchRepositoryImpl()
+    val dailyBatchRepository = DailyBatchRepositoryImpl()
 
     // Initialize configs
     val s3Config = S3Config.fromApplicationConfig(environment.config)
@@ -75,8 +87,10 @@ fun Application.configureRouting() {
     val stripeService = StripeService()
     val paymentService = PaymentService(walletService,transactionService,stripeService)
     val webhookHandler = StripeWebhookHandler(walletService, transactionService)
+    val matchService = MatchService(matchRepository, dailyBatchRepository, userService, transactionManager)
 
-    val profileAccessControl = ProfileAccessControl()
+    val matchAccessChecker = MatchAccessCheckerImpl(matchService)
+    val profileAccessControl = ProfileAccessControl(matchAccessChecker)
     routing {
         get("/") {
             call.respondText("Hello World!")
@@ -102,6 +116,8 @@ fun Application.configureRouting() {
             questionRoutes(qaService)
 
             walletRoutes(paymentService)
+
+            matchRoutes(matchService)
         }
     }
 }
