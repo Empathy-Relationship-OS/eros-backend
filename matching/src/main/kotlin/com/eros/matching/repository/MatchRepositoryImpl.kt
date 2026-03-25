@@ -31,7 +31,7 @@ class MatchRepositoryImpl(
             matchId = this[Matches.matchId],
             user1Id = this[Matches.user1Id],
             user2Id = this[Matches.user2Id],
-            liked = this[Matches.liked] ?: false,
+            liked = this[Matches.liked],
             createdAt = this[Matches.createdAt],
             updatedAt = this[Matches.updatedAt],
             servedAt = this[Matches.servedAt]

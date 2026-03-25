@@ -66,7 +66,7 @@ class MatchService(
             }
 
             // Prevent pass→like after 24 hours (pass becomes permanent)
-            if (!existingMatch.isLiked() && like) {
+            if (existingMatch.isPassed() && like) {
                 val servedAt = existingMatch.servedAt
                     ?: throw ConflictException("Cannot change action on unserved match")
 

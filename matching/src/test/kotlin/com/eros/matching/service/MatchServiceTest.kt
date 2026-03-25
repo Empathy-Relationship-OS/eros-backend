@@ -63,7 +63,7 @@ class MatchServiceTest {
         matchId: Long = 1L,
         user1Id: String = "user1",
         user2Id: String = "user2",
-        liked: Boolean = false,
+        liked: Boolean? = null,
         createdAt: Instant = fixedInstant,
         updatedAt: Instant = fixedInstant,
         servedAt: Instant? = null
@@ -116,7 +116,7 @@ class MatchServiceTest {
                 matchId = 1L,
                 user1Id = "user1",
                 user2Id = "user2",
-                liked = false,
+                liked = null,
                 servedAt = fixedInstant
             )
             val updatedMatch = match.recordAction(true, fixedInstant.plusSeconds(60))
@@ -128,7 +128,7 @@ class MatchServiceTest {
 
             // Assert on the outcome, not the implementation
             assertNotNull(result)
-            assertTrue(result.liked)
+            assertEquals(true, result.liked)
             assertEquals(1L, result.matchId)
             assertEquals("user1", result.user1Id)
             assertEquals("user2", result.user2Id)
@@ -140,7 +140,7 @@ class MatchServiceTest {
                 matchId = 1L,
                 user1Id = "user1",
                 user2Id = "user2",
-                liked = false,
+                liked = null,
                 servedAt = fixedInstant
             )
             val updatedMatch = match.recordAction(false, fixedInstant.plusSeconds(60))
@@ -152,7 +152,7 @@ class MatchServiceTest {
 
             // Assert on the outcome
             assertNotNull(result)
-            assertFalse(result.liked)
+            assertEquals(false, result.liked)
             assertEquals(1L, result.matchId)
         }
 
@@ -232,7 +232,7 @@ class MatchServiceTest {
 
             // Assert user can change from pass to like
             assertNotNull(result)
-            assertTrue(result.liked)
+            assertEquals(true, result.liked)
         }
 
         @Test
@@ -241,7 +241,7 @@ class MatchServiceTest {
                 matchId = 1L,
                 user1Id = "user1",
                 user2Id = "user2",
-                liked = false,
+                liked = null,
                 createdAt = fixedInstant,
                 updatedAt = fixedInstant,
                 servedAt = fixedInstant
@@ -255,7 +255,7 @@ class MatchServiceTest {
 
             // Assert first action is allowed
             assertNotNull(result)
-            assertTrue(result.liked)
+            assertEquals(true, result.liked)
         }
     }
 
@@ -339,7 +339,7 @@ class MatchServiceTest {
                 matchId = 1L,
                 user1Id = "user1",
                 user2Id = "user2",
-                liked = false,
+                liked = null,
                 servedAt = fixedInstant
             )
             val updatedMatch = match.recordAction(true, fixedInstant.plusSeconds(60))
@@ -366,7 +366,7 @@ class MatchServiceTest {
                 matchId = 1L,
                 user1Id = "user1",
                 user2Id = "user2",
-                liked = false,
+                liked = null,
                 servedAt = fixedInstant
             )
             val updatedMatch = match.recordAction(true, fixedInstant.plusSeconds(60))
@@ -388,7 +388,7 @@ class MatchServiceTest {
                 matchId = 1L,
                 user1Id = "user1",
                 user2Id = "user2",
-                liked = false,
+                liked = null,
                 servedAt = fixedInstant
             )
             val updatedMatch = match.recordAction(false, fixedInstant.plusSeconds(60))
