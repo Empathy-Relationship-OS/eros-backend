@@ -1,8 +1,8 @@
 package com.eros.matching.models
 
 import com.eros.common.serializers.InstantSerializer
-import com.eros.matching.service.MatchService.Companion.BATCH_SIZE
-import com.eros.matching.service.MatchService.Companion.MAX_DAILY_BATCHES
+import com.eros.matching.MatchingConstants.BATCH_SIZE
+import com.eros.matching.MatchingConstants.MAX_DAILY_BATCHES
 import kotlinx.serialization.Serializable
 import java.time.Duration
 import java.time.Instant

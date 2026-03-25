@@ -3,6 +3,8 @@ package com.eros.matching.service
 import com.eros.common.errors.ConflictException
 import com.eros.common.errors.ForbiddenException
 import com.eros.common.errors.NotFoundException
+import com.eros.matching.MatchingConstants.BATCH_SIZE
+import com.eros.matching.MatchingConstants.MAX_DAILY_BATCHES
 import com.eros.matching.models.DailyBatchResponse
 import com.eros.matching.models.Match
 import com.eros.matching.models.MutualMatchInfo
@@ -28,11 +30,6 @@ class MatchService(
     private val transactionManager: TransactionManager,
     private val clock: Clock = Clock.systemUTC()
 ) {
-
-    companion object {
-        const val BATCH_SIZE = 7
-        const val MAX_DAILY_BATCHES = 3
-    }
 
     /**
      * Records a user's action (like/pass) on a match.
