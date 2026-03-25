@@ -178,18 +178,27 @@ class MatchService(
             throw NoMatchesAvailableException("No unserved matches available for user $userId")
         }
 
-        // Mark matches as served
+        // Build lightweight profile responses first to ensure they're returnable
         val servedAt = Instant.now(clock)
-        val matchIds = unservedMatches.map { it.matchId }
-        matchRepository.markAsServed(matchIds, servedAt)
-
-        // Increment batch count
-        dailyBatchRepository.incrementBatchCount(userId, today)
-
-        // Build lightweight profile responses
-        val profiles = unservedMatches.mapNotNull { match ->
-            buildUserMatchProfile(match, servedAt)
+        val successfulResults = unservedMatches.mapNotNull { match ->
+            buildUserMatchProfile(match, servedAt)?.let { profile ->
+                match.matchId to profile
+            }
         }
+
+        // Only mark matches as served if we have successful profiles to return
+        if (successfulResults.isEmpty()) {
+            throw NoMatchesAvailableException("No valid user profiles available for matches")
+        }
+
+        val successfulMatchIds = successfulResults.map { it.first }
+        val profiles = successfulResults.map { it.second }
+
+        // Mark only successful matches as served
+        matchRepository.markAsServed(successfulMatchIds, servedAt)
+
+        // Increment batch count only by the number of successfully served profiles
+        dailyBatchRepository.incrementBatchCount(userId, today)
 
         // Calculate batch metadata
         val batchNumber = batchCount + 1
