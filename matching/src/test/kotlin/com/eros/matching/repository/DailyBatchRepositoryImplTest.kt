@@ -5,6 +5,7 @@ import com.eros.matching.models.DailyBatch
 import com.eros.matching.tables.UserDailyBatches
 import com.eros.users.table.Users
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.deleteAll
@@ -138,7 +139,7 @@ class DailyBatchRepositoryImplTest {
     inner class `create function` {
 
         @Test
-        fun `should create daily batch with correct fields`() = runBlocking {
+        fun `should create daily batch with correct fields`() = runTest {
             val dailyBatch = dbQuery {
                 repository.create(
                     DailyBatch(
@@ -159,14 +160,14 @@ class DailyBatchRepositoryImplTest {
         }
 
         @Test
-        fun `should create daily batch with batchCount of 0`() = runBlocking {
+        fun `should create daily batch with batchCount of 0`() = runTest {
             val dailyBatch = createDailyBatch("user1", testDate, batchCount = 0)
 
             assertEquals(0, dailyBatch.batchCount)
         }
 
         @Test
-        fun `should create daily batch with batchCount of 3`() = runBlocking {
+        fun `should create daily batch with batchCount of 3`() = runTest {
             val dailyBatch = createDailyBatch("user1", testDate, batchCount = 3)
 
             assertEquals(3, dailyBatch.batchCount)
@@ -174,7 +175,7 @@ class DailyBatchRepositoryImplTest {
 
         @Test
         fun `should enforce unique user and date combination`() {
-            runBlocking {
+            runTest {
                 createDailyBatch("user1", testDate, batchCount = 1)
 
                 assertFails {
@@ -184,7 +185,7 @@ class DailyBatchRepositoryImplTest {
         }
 
         @Test
-        fun `should allow same user on different dates`() = runBlocking {
+        fun `should allow same user on different dates`() = runTest {
             val batch1 = createDailyBatch("user1", testDate, batchCount = 1)
             val batch2 = createDailyBatch("user1", testDate.plusDays(1), batchCount = 1)
 
@@ -194,7 +195,7 @@ class DailyBatchRepositoryImplTest {
         }
 
         @Test
-        fun `should allow different users on same date`() = runBlocking {
+        fun `should allow different users on same date`() = runTest {
             val batch1 = createDailyBatch("user1", testDate, batchCount = 1)
             val batch2 = createDailyBatch("user2", testDate, batchCount = 1)
 
@@ -212,7 +213,7 @@ class DailyBatchRepositoryImplTest {
     inner class `findByUserAndDate function` {
 
         @Test
-        fun `should find daily batch by user and date`() = runBlocking {
+        fun `should find daily batch by user and date`() = runTest {
             createDailyBatch("user1", testDate, batchCount = 2)
 
             val found = dbQuery {
@@ -226,7 +227,7 @@ class DailyBatchRepositoryImplTest {
         }
 
         @Test
-        fun `should return null when no batch exists for user and date`() = runBlocking {
+        fun `should return null when no batch exists for user and date`() = runTest {
             val found = dbQuery {
                 repository.findByUserAndDate("user1", testDate)
             }
@@ -235,7 +236,7 @@ class DailyBatchRepositoryImplTest {
         }
 
         @Test
-        fun `should return null when user exists but different date`() = runBlocking {
+        fun `should return null when user exists but different date`() = runTest {
             createDailyBatch("user1", testDate, batchCount = 1)
 
             val found = dbQuery {
@@ -246,7 +247,7 @@ class DailyBatchRepositoryImplTest {
         }
 
         @Test
-        fun `should return null when date exists but different user`() = runBlocking {
+        fun `should return null when date exists but different user`() = runTest {
             createDailyBatch("user1", testDate, batchCount = 1)
 
             val found = dbQuery {
@@ -257,7 +258,7 @@ class DailyBatchRepositoryImplTest {
         }
 
         @Test
-        fun `should find correct batch among multiple batches`() = runBlocking {
+        fun `should find correct batch among multiple batches`() = runTest {
             createDailyBatch("user1", testDate, batchCount = 1)
             createDailyBatch("user1", testDate.plusDays(1), batchCount = 2)
             createDailyBatch("user2", testDate, batchCount = 3)
@@ -281,7 +282,7 @@ class DailyBatchRepositoryImplTest {
     inner class `update function` {
 
         @Test
-        fun `should update batch count successfully`() = runBlocking {
+        fun `should update batch count successfully`() = runTest {
             val batch = createDailyBatch("user1", testDate, batchCount = 1)
             val newUpdatedAt = fixedInstant.plusSeconds(3600)
 
@@ -296,7 +297,7 @@ class DailyBatchRepositoryImplTest {
         }
 
         @Test
-        fun `should update updatedAt timestamp on update`() = runBlocking {
+        fun `should update updatedAt timestamp on update`() = runTest {
             val batch = createDailyBatch("user1", testDate, batchCount = 1)
             val newUpdatedAt = fixedInstant.plusSeconds(7200)
 
@@ -310,7 +311,7 @@ class DailyBatchRepositoryImplTest {
         }
 
         @Test
-        fun `should return null when updating non-existent batch`() = runBlocking {
+        fun `should return null when updating non-existent batch`() = runTest {
             val result = dbQuery {
                 repository.update(
                     DailyBatch(
@@ -327,7 +328,7 @@ class DailyBatchRepositoryImplTest {
         }
 
         @Test
-        fun `should update only specified batch`() = runBlocking {
+        fun `should update only specified batch`() = runTest {
             val batch1 = createDailyBatch("user1", testDate, batchCount = 1)
             createDailyBatch("user2", testDate, batchCount = 1)
 
@@ -353,7 +354,7 @@ class DailyBatchRepositoryImplTest {
     inner class `incrementBatchCount function` {
 
         @Test
-        fun `should create new batch with count 1 when none exists`() = runBlocking {
+        fun `should create new batch with count 1 when none exists`() = runTest {
             val batch = dbQuery {
                 repository.incrementBatchCount("user1", testDate)
             }
@@ -365,7 +366,7 @@ class DailyBatchRepositoryImplTest {
         }
 
         @Test
-        fun `should increment existing batch count`() = runBlocking {
+        fun `should increment existing batch count`() = runTest {
             createDailyBatch("user1", testDate, batchCount = 1)
 
             val batch = dbQuery {
@@ -376,7 +377,7 @@ class DailyBatchRepositoryImplTest {
         }
 
         @Test
-        fun `should increment from 2 to 3`() = runBlocking {
+        fun `should increment from 2 to 3`() = runTest {
             createDailyBatch("user1", testDate, batchCount = 2)
 
             val batch = dbQuery {
@@ -387,20 +388,19 @@ class DailyBatchRepositoryImplTest {
         }
 
         @Test
-        fun `should throw exception when trying to increment beyond 3`() {
-            runBlocking {
-                createDailyBatch("user1", testDate, batchCount = 3)
+        fun `should throw exception when trying to increment beyond 3`() = runTest {
+            createDailyBatch("user1", testDate, batchCount = 3)
 
-                assertFails {
-                    dbQuery {
-                        repository.incrementBatchCount("user1", testDate)
-                    }
+            assertFails {
+                dbQuery {
+                    repository.incrementBatchCount("user1", testDate)
                 }
             }
         }
 
+
         @Test
-        fun `should update updatedAt when incrementing`() = runBlocking {
+        fun `should update updatedAt when incrementing`() = runTest {
             val batch = createDailyBatch("user1", testDate, batchCount = 1)
 
             // Wait a bit to ensure timestamp difference (in real scenario)
@@ -417,7 +417,7 @@ class DailyBatchRepositoryImplTest {
         }
 
         @Test
-        fun `should handle multiple users incrementing on same date`() = runBlocking {
+        fun `should handle multiple users incrementing on same date`() = runTest {
             val batch1 = dbQuery {
                 repository.incrementBatchCount("user1", testDate)
             }
@@ -432,7 +432,7 @@ class DailyBatchRepositoryImplTest {
         }
 
         @Test
-        fun `should handle same user incrementing on different dates`() = runBlocking {
+        fun `should handle same user incrementing on different dates`() = runTest {
             val batch1 = dbQuery {
                 repository.incrementBatchCount("user1", testDate)
             }
@@ -455,7 +455,7 @@ class DailyBatchRepositoryImplTest {
     inner class `getBatchCount function` {
 
         @Test
-        fun `should return 0 when no batch exists`() = runBlocking {
+        fun `should return 0 when no batch exists`() = runTest {
             val count = dbQuery {
                 repository.getBatchCount("user1", testDate)
             }
@@ -464,7 +464,7 @@ class DailyBatchRepositoryImplTest {
         }
 
         @Test
-        fun `should return correct batch count when batch exists`() = runBlocking {
+        fun `should return correct batch count when batch exists`() = runTest {
             createDailyBatch("user1", testDate, batchCount = 2)
 
             val count = dbQuery {
@@ -475,7 +475,7 @@ class DailyBatchRepositoryImplTest {
         }
 
         @Test
-        fun `should return 0 for different date`() = runBlocking {
+        fun `should return 0 for different date`() = runTest {
             createDailyBatch("user1", testDate, batchCount = 2)
 
             val count = dbQuery {
@@ -486,7 +486,7 @@ class DailyBatchRepositoryImplTest {
         }
 
         @Test
-        fun `should return 0 for different user`() = runBlocking {
+        fun `should return 0 for different user`() = runTest {
             createDailyBatch("user1", testDate, batchCount = 2)
 
             val count = dbQuery {
@@ -497,7 +497,7 @@ class DailyBatchRepositoryImplTest {
         }
 
         @Test
-        fun `should return correct count for multiple batches`() = runBlocking {
+        fun `should return correct count for multiple batches`() = runTest {
             createDailyBatch("user1", testDate, batchCount = 1)
             createDailyBatch("user1", testDate.plusDays(1), batchCount = 2)
             createDailyBatch("user2", testDate, batchCount = 3)
@@ -520,7 +520,7 @@ class DailyBatchRepositoryImplTest {
     inner class `integration tests` {
 
         @Test
-        fun `should handle full daily batch lifecycle`() = runBlocking {
+        fun `should handle full daily batch lifecycle`() = runTest {
             // Day 1: User fetches 3 batches
             val batch1 = dbQuery { repository.incrementBatchCount("user1", testDate) }
             assertEquals(1, batch1.batchCount)
@@ -547,7 +547,7 @@ class DailyBatchRepositoryImplTest {
         }
 
         @Test
-        fun `should handle multiple users with different batch counts`() = runBlocking {
+        fun `should handle multiple users with different batch counts`() = runTest {
             // User1: 2 batches
             dbQuery { repository.incrementBatchCount("user1", testDate) }
             dbQuery { repository.incrementBatchCount("user1", testDate) }
@@ -570,7 +570,7 @@ class DailyBatchRepositoryImplTest {
         }
 
         @Test
-        fun `should track batches across multiple dates`() = runBlocking {
+        fun `should track batches across multiple dates`() = runTest {
             val day1 = testDate
             val day2 = testDate.plusDays(1)
             val day3 = testDate.plusDays(2)
@@ -593,7 +593,7 @@ class DailyBatchRepositoryImplTest {
         }
 
         @Test
-        fun `should handle update and increment operations together`() = runBlocking {
+        fun `should handle update and increment operations together`() = runTest {
             // Create initial batch
             val batch = createDailyBatch("user1", testDate, batchCount = 1)
 
@@ -618,7 +618,7 @@ class DailyBatchRepositoryImplTest {
         }
 
         @Test
-        fun `should maintain data consistency across operations`() = runBlocking {
+        fun `should maintain data consistency across operations`() = runTest {
             // Create batches for multiple users and dates
             dbQuery { repository.incrementBatchCount("user1", testDate) }
             dbQuery { repository.incrementBatchCount("user1", testDate.plusDays(1)) }

@@ -4,9 +4,11 @@ import com.eros.matching.models.DailyBatch
 import com.eros.matching.tables.UserDailyBatches
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.plus
 import org.jetbrains.exposed.v1.jdbc.insertReturning
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.updateReturning
+import org.jetbrains.exposed.v1.jdbc.upsert
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
@@ -73,23 +75,28 @@ class DailyBatchRepositoryImpl(
     }
 
     override suspend fun incrementBatchCount(userId: String, date: LocalDate): DailyBatch {
-        val existing = findByUserAndDate(userId, date)
+        val now = Instant.now(clock)
 
-        return if (existing != null) {
-            val incremented = existing.incrementBatchCount()
-            update(incremented) ?: throw IllegalStateException("Failed to update batch count for user $userId on $date")
-        } else {
-            val now = Instant.now(clock)
-            create(
-                DailyBatch(
-                    userId = userId,
-                    batchDate = date,
-                    batchCount = 1,
-                    createdAt = now,
-                    updatedAt = now
-                )
-            )
+        // Atomic upsert: INSERT with batchCount=1, or UPDATE existing by incrementing batchCount
+        // This eliminates the race condition from the previous read-then-write pattern
+        UserDailyBatches.upsert(
+            UserDailyBatches.userId,
+            UserDailyBatches.batchDate,
+            onUpdate = {
+                it[UserDailyBatches.batchCount] = UserDailyBatches.batchCount + 1
+                it[UserDailyBatches.updatedAt] = now
+            }
+        ) {
+            it[UserDailyBatches.userId] = userId
+            it[UserDailyBatches.batchDate] = date
+            it[UserDailyBatches.batchCount] = 1
+            it[UserDailyBatches.createdAt] = now
+            it[UserDailyBatches.updatedAt] = now
         }
+
+        // Fetch and return the updated/inserted record
+        return findByUserAndDate(userId, date)
+            ?: throw IllegalStateException("Failed to increment batch count for user $userId on $date")
     }
 
     override suspend fun getBatchCount(userId: String, date: LocalDate): Int {
