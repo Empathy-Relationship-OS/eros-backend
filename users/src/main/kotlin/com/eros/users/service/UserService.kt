@@ -333,16 +333,13 @@ class UserService(
      * @param userId Firebase UID of the user
      * @return UserMatchProfileData containing basic profile info, or null if user not found
      */
-    suspend fun getUserMatchProfileData(userId: String): UserMatchProfileData? = dbQuery {
-        val user = userRepository.findById(userId) ?: return@dbQuery null
+    suspend fun getUserMatchProfileData(userId: String): UserMatchProfileData? {
+        val user = dbQuery { userRepository.findById(userId) } ?: return null
+        val photos = photoService.getUserMedia(userId).media
+        val thumbnailUrl = photos.firstOrNull { it.isPrimary }?.thumbnailUrl
+            ?: photos.firstOrNull()?.thumbnailUrl
 
-        val thumbnailUrl = photoService.let { service ->
-            val photos = service.getUserMedia(userId).media
-            photos.firstOrNull { it.isPrimary }?.thumbnailUrl
-                ?: photos.firstOrNull()?.thumbnailUrl
-        }
-
-        UserMatchProfileData(
+        return UserMatchProfileData(
             userId = user.userId,
             name = user.firstName,
             age = user.getAge(),
