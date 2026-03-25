@@ -214,7 +214,7 @@ class MatchServiceTest {
         @Test
         fun `should allow changing pass to like within 24 hours`() = runTest {
             // Use a recent timestamp (within last 24 hours)
-            val recentServedAt = fixedInstant.minusSeconds(3600) // 1 hour ago
+            val recentServedAt = Instant.now().minusSeconds(3600) // 1 hour ago
 
             val match = createTestMatch(
                 matchId = 1L,
@@ -225,7 +225,7 @@ class MatchServiceTest {
                 updatedAt = recentServedAt.plusSeconds(120), // Previously passed
                 servedAt = recentServedAt
             )
-            val updatedMatch = match.recordAction(true, fixedInstant)
+            val updatedMatch = match.recordAction(true, Instant.now())
 
             coEvery { matchRepository.findById(1L) } returns match
             coEvery { matchRepository.update(1L, any()) } returns updatedMatch
