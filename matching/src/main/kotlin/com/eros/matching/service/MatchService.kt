@@ -258,8 +258,8 @@ class MatchService(
 
         // Check if match was served today
         val servedAt = match.servedAt ?: return@execute false
-        val today = LocalDate.now(ZoneId.of("UTC"))
-        val servedDate = LocalDate.ofInstant(servedAt, ZoneId.of("UTC"))
+        val today = LocalDate.now(clock)
+        val servedDate = LocalDate.ofInstant(servedAt, clock.zone)
 
         servedDate.isAfter(today.minusDays(1))  && servedDate.isBefore(today.plusDays(1))
     }
