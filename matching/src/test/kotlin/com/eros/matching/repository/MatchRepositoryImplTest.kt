@@ -127,7 +127,7 @@ class MatchRepositoryImplTest {
                     matchId = 0,
                     user1Id = user1Id,
                     user2Id = user2Id,
-                    liked = liked ?: false,
+                    liked = liked,
                     createdAt = createdAt,
                     updatedAt = updatedAt,
                     servedAt = servedAt
