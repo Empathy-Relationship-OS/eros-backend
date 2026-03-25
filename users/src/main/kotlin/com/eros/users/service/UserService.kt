@@ -36,12 +36,12 @@ class UserService(
      * @param request CreateUserRequest containing all required user profile data
      * @return The created User
      * @throws IllegalArgumentException if input validation fails
-     * @throws IllegalStateException if user already exists
+     * @throws ConflictException if user already exists
      */
     suspend fun createUser(request: CreateUserRequest): User = dbQuery {
         // Check if user already exists
         if (userRepository.doesExist(request.userId)) {
-            throw IllegalStateException("User with ID ${request.userId} already exists")
+            throw ConflictException("User with ID ${request.userId} already exists")
         }
 
         val now = Instant.now(clock)
@@ -333,16 +333,13 @@ class UserService(
      * @param userId Firebase UID of the user
      * @return UserMatchProfileData containing basic profile info, or null if user not found
      */
-    suspend fun getUserMatchProfileData(userId: String): UserMatchProfileData? = dbQuery {
-        val user = userRepository.findById(userId) ?: return@dbQuery null
+    suspend fun getUserMatchProfileData(userId: String): UserMatchProfileData? {
+        val user = dbQuery { userRepository.findById(userId) } ?: return null
+        val photos = photoService.getUserMedia(userId).media
+        val thumbnailUrl = photos.firstOrNull { it.isPrimary }?.thumbnailUrl
+            ?: photos.firstOrNull()?.thumbnailUrl
 
-        val thumbnailUrl = photoService.let { service ->
-            val photos = service.getUserMedia(userId).media
-            photos.firstOrNull { it.isPrimary }?.thumbnailUrl
-                ?: photos.firstOrNull()?.thumbnailUrl
-        }
-
-        UserMatchProfileData(
+        return UserMatchProfileData(
             userId = user.userId,
             name = user.firstName,
             age = user.getAge(),

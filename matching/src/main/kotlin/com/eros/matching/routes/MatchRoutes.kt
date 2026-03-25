@@ -28,31 +28,38 @@ fun Route.matchRoutes(matchService: MatchService, clock: Clock = Clock.systemUTC
     route("/match/admin") {
         requireRoles("ADMIN", "EMPLOYEE")
 
+        // TODO implement admin endpoints
         get("/user/{uid}") {
-            // get all matchs for user
+            // get all matches for user
             // query params here allow pagination
+            call.respond(HttpStatusCode.NotImplemented, "Not yet implemented")
         }
 
         get("/user/{uid}/{secondaryUid}") {
             // this is used when matchId is unknown but you know the user who did the action against the other user
+            call.respond(HttpStatusCode.NotImplemented, "Not yet implemented")
         }
 
         get("/{matchId}"){
             call.parameters["matchId"]?.toLong()
                 ?: throw BadRequestException("Invalid matchId provided.")
+            call.respond(HttpStatusCode.NotImplemented, "Not yet implemented")
         }
 
         post("/") {
             // gives admin ability to create if system goes down
             // realistically this should never happen or need to be used
+            call.respond(HttpStatusCode.NotImplemented, "Not yet implemented")
         }
 
         patch("/{matchId}"){
             // update the match with the body details.
+            call.respond(HttpStatusCode.NotImplemented, "Not yet implemented")
         }
 
         delete("/{matchId}"){
             // if faulty match in db allows an admin/employee to delete
+            call.respond(HttpStatusCode.NotImplemented, "Not yet implemented")
         }
     }
 
@@ -135,7 +142,7 @@ fun Route.matchRoutes(matchService: MatchService, clock: Clock = Clock.systemUTC
          * - 403 Forbidden: User doesn't own this match
          * - 409 Conflict: User already took action on this match
          */
-        patch("action/{matchId}") {
+        patch("/action/{matchId}") {
             val principal = call.requireFirebasePrincipal()
             val request = call.receive<MatchActionRequest>()
 

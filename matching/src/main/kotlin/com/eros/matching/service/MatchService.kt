@@ -3,6 +3,8 @@ package com.eros.matching.service
 import com.eros.common.errors.ConflictException
 import com.eros.common.errors.ForbiddenException
 import com.eros.common.errors.NotFoundException
+import com.eros.matching.MatchingConstants.BATCH_SIZE
+import com.eros.matching.MatchingConstants.MAX_DAILY_BATCHES
 import com.eros.matching.models.DailyBatchResponse
 import com.eros.matching.models.Match
 import com.eros.matching.models.MutualMatchInfo
@@ -28,11 +30,6 @@ class MatchService(
     private val transactionManager: TransactionManager,
     private val clock: Clock = Clock.systemUTC()
 ) {
-
-    companion object {
-        const val BATCH_SIZE = 7
-        const val MAX_DAILY_BATCHES = 3
-    }
 
     /**
      * Records a user's action (like/pass) on a match.
@@ -61,6 +58,10 @@ class MatchService(
             throw ForbiddenException("You do not have permission to act on this match")
         }
 
+        if (existingMatch.servedAt == null) {
+            throw ConflictException("Cannot act on a match that has not been served yet")
+        }
+
         // Check if user has already taken action
         if (existingMatch.hasUserActed()) {
             // Prevent like→pass (cannot unmatch)
@@ -69,9 +70,8 @@ class MatchService(
             }
 
             // Prevent pass→like after 24 hours (pass becomes permanent)
-            if (!existingMatch.isLiked() && like) {
+            if (existingMatch.isPassed() && like) {
                 val servedAt = existingMatch.servedAt
-                    ?: throw ConflictException("Cannot change action on unserved match")
 
                 val twentyFourHoursAgo = Instant.now(clock).minusSeconds(24 * 60 * 60)
                 if (servedAt.isBefore(twentyFourHoursAgo)) {
@@ -178,18 +178,27 @@ class MatchService(
             throw NoMatchesAvailableException("No unserved matches available for user $userId")
         }
 
-        // Mark matches as served
+        // Build lightweight profile responses first to ensure they're returnable
         val servedAt = Instant.now(clock)
-        val matchIds = unservedMatches.map { it.matchId }
-        matchRepository.markAsServed(matchIds, servedAt)
-
-        // Increment batch count
-        dailyBatchRepository.incrementBatchCount(userId, today)
-
-        // Build lightweight profile responses
-        val profiles = unservedMatches.mapNotNull { match ->
-            buildUserMatchProfile(match, servedAt)
+        val successfulResults = unservedMatches.mapNotNull { match ->
+            buildUserMatchProfile(match, servedAt)?.let { profile ->
+                match.matchId to profile
+            }
         }
+
+        // Only mark matches as served if we have successful profiles to return
+        if (successfulResults.isEmpty()) {
+            throw NoMatchesAvailableException("No valid user profiles available for matches")
+        }
+
+        val successfulMatchIds = successfulResults.map { it.first }
+        val profiles = successfulResults.map { it.second }
+
+        // Mark only successful matches as served
+        matchRepository.markAsServed(successfulMatchIds, servedAt)
+
+        // Increment batch count only by the number of successfully served profiles
+        dailyBatchRepository.incrementBatchCount(userId, today)
 
         // Calculate batch metadata
         val batchNumber = batchCount + 1
@@ -261,8 +270,8 @@ class MatchService(
 
         // Check if match was served today
         val servedAt = match.servedAt ?: return@execute false
-        val today = LocalDate.now(ZoneId.of("UTC"))
-        val servedDate = LocalDate.ofInstant(servedAt, ZoneId.of("UTC"))
+        val today = LocalDate.now(clock)
+        val servedDate = LocalDate.ofInstant(servedAt, clock.zone)
 
         servedDate.isAfter(today.minusDays(1))  && servedDate.isBefore(today.plusDays(1))
     }

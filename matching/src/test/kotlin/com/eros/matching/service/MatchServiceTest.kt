@@ -1,5 +1,6 @@
 package com.eros.matching.service
 
+import com.eros.common.errors.NotFoundException
 import com.eros.matching.models.DailyBatch
 import com.eros.matching.models.Match
 import com.eros.matching.repository.DailyBatchRepository
@@ -16,6 +17,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
@@ -63,7 +65,7 @@ class MatchServiceTest {
         matchId: Long = 1L,
         user1Id: String = "user1",
         user2Id: String = "user2",
-        liked: Boolean = false,
+        liked: Boolean? = null,
         createdAt: Instant = fixedInstant,
         updatedAt: Instant = fixedInstant,
         servedAt: Instant? = null
@@ -93,7 +95,7 @@ class MatchServiceTest {
 
     private fun createTestDailyBatch(
         userId: String = "user1",
-        batchDate: LocalDate = LocalDate.now(),
+        batchDate: LocalDate = LocalDate.ofInstant(fixedInstant, ZoneId.of("UTC")),
         batchCount: Int = 1
     ) = DailyBatch(
         userId = userId,
@@ -116,7 +118,7 @@ class MatchServiceTest {
                 matchId = 1L,
                 user1Id = "user1",
                 user2Id = "user2",
-                liked = false,
+                liked = null,
                 servedAt = fixedInstant
             )
             val updatedMatch = match.recordAction(true, fixedInstant.plusSeconds(60))
@@ -128,7 +130,7 @@ class MatchServiceTest {
 
             // Assert on the outcome, not the implementation
             assertNotNull(result)
-            assertTrue(result.liked)
+            assertEquals(true, result.liked)
             assertEquals(1L, result.matchId)
             assertEquals("user1", result.user1Id)
             assertEquals("user2", result.user2Id)
@@ -140,7 +142,7 @@ class MatchServiceTest {
                 matchId = 1L,
                 user1Id = "user1",
                 user2Id = "user2",
-                liked = false,
+                liked = null,
                 servedAt = fixedInstant
             )
             val updatedMatch = match.recordAction(false, fixedInstant.plusSeconds(60))
@@ -152,7 +154,7 @@ class MatchServiceTest {
 
             // Assert on the outcome
             assertNotNull(result)
-            assertFalse(result.liked)
+            assertEquals(false, result.liked)
             assertEquals(1L, result.matchId)
         }
 
@@ -160,7 +162,7 @@ class MatchServiceTest {
         fun `should throw NotFoundException when match does not exist`() = runTest {
             coEvery { matchRepository.findById(999L) } returns null
 
-            val exception = assertThrows<com.eros.common.errors.NotFoundException> {
+            val exception = assertThrows<NotFoundException> {
                 matchService.matchAction(999L, "user1", true)
             }
 
@@ -232,7 +234,7 @@ class MatchServiceTest {
 
             // Assert user can change from pass to like
             assertNotNull(result)
-            assertTrue(result.liked)
+            assertEquals(true, result.liked)
         }
 
         @Test
@@ -241,7 +243,7 @@ class MatchServiceTest {
                 matchId = 1L,
                 user1Id = "user1",
                 user2Id = "user2",
-                liked = false,
+                liked = null,
                 createdAt = fixedInstant,
                 updatedAt = fixedInstant,
                 servedAt = fixedInstant
@@ -255,7 +257,27 @@ class MatchServiceTest {
 
             // Assert first action is allowed
             assertNotNull(result)
-            assertTrue(result.liked)
+            assertEquals(true, result.liked)
+        }
+
+        @Test
+        fun `should not allow action on unserved match`() = runTest {
+            val match = createTestMatch(
+                matchId = 1L,
+                user1Id = "user1",
+                user2Id = "user2",
+                liked = null,
+                servedAt = null  // Match has not been served yet
+            )
+
+            coEvery { matchRepository.findById(1L) } returns match
+
+            val exception = assertThrows<com.eros.common.errors.ConflictException> {
+                matchService.matchAction(1L, "user1", true)
+            }
+
+            // Assert on the exception behavior - cannot act on unserved match
+            assertTrue(exception.message!!.contains("Cannot act on a match that has not been served yet"))
         }
     }
 
@@ -339,7 +361,7 @@ class MatchServiceTest {
                 matchId = 1L,
                 user1Id = "user1",
                 user2Id = "user2",
-                liked = false,
+                liked = null,
                 servedAt = fixedInstant
             )
             val updatedMatch = match.recordAction(true, fixedInstant.plusSeconds(60))
@@ -366,7 +388,7 @@ class MatchServiceTest {
                 matchId = 1L,
                 user1Id = "user1",
                 user2Id = "user2",
-                liked = false,
+                liked = null,
                 servedAt = fixedInstant
             )
             val updatedMatch = match.recordAction(true, fixedInstant.plusSeconds(60))
@@ -388,7 +410,7 @@ class MatchServiceTest {
                 matchId = 1L,
                 user1Id = "user1",
                 user2Id = "user2",
-                liked = false,
+                liked = null,
                 servedAt = fixedInstant
             )
             val updatedMatch = match.recordAction(false, fixedInstant.plusSeconds(60))
@@ -406,7 +428,7 @@ class MatchServiceTest {
         fun `should throw NotFoundException when match does not exist`() = runTest {
             coEvery { matchRepository.findById(999L) } returns null
 
-            val exception = assertThrows<com.eros.common.errors.NotFoundException> {
+            val exception = assertThrows<NotFoundException> {
                 matchService.matchUser(999L, "user1", true)
             }
 

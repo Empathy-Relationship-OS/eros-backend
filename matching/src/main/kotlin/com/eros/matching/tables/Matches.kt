@@ -2,6 +2,7 @@ package com.eros.matching.tables
 
 import com.eros.users.table.Users
 import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.core.neq
 import org.jetbrains.exposed.v1.javatime.timestamp
 import java.time.Instant
 
@@ -37,13 +38,12 @@ object Matches : Table("matches") {
     override val primaryKey = PrimaryKey(matchId)
 
     init {
-        require(user1Id != user2Id) {"Cannot have the same user in a match"}
+        check("matches_different_users") { user1Id neq user2Id }
         // Unique constraint on (user1_id, user2_id) pair
         uniqueIndex("matches_user_pair_unique", user1Id, user2Id)
 
         // Additional indexes for query optimization (defined in migration)
         index("idx_matches_user1_id", false, user1Id)
         index("idx_matches_user2_id", false, user2Id)
-        index("idx_matches_user_pair", true, user1Id, user2Id)
     }
 }
