@@ -8,11 +8,13 @@ import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.greaterEq
+import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.core.isNotNull
 import org.jetbrains.exposed.v1.core.isNull
 import org.jetbrains.exposed.v1.core.less
 import org.jetbrains.exposed.v1.core.statements.UpdateBuilder
 import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.update
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
@@ -73,15 +75,12 @@ class MatchRepositoryImpl(
     }
 
     override suspend fun markAsServed(matchIds: List<Long>, servedAt: Instant): Int {
-        var count = 0
-        matchIds.forEach { matchId ->
-            val updated = update(matchId,
-                findById(matchId)?.copy(servedAt = servedAt)
-                    ?: return@forEach
-            )
-            if (updated != null) count++
+        if (matchIds.isEmpty()) return 0
+
+        return Matches.update({ Matches.matchId inList matchIds }) {
+            it[Matches.servedAt] = servedAt
+            it[Matches.updatedAt] = Instant.now(clock)
         }
-        return count
     }
 
     override suspend fun countServedToday(userId: String, date: LocalDate): Int {
