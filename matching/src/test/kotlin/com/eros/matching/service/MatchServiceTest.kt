@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
@@ -94,7 +95,7 @@ class MatchServiceTest {
 
     private fun createTestDailyBatch(
         userId: String = "user1",
-        batchDate: LocalDate = LocalDate.now(),
+        batchDate: LocalDate = LocalDate.ofInstant(fixedInstant, ZoneId.of("UTC")),
         batchCount: Int = 1
     ) = DailyBatch(
         userId = userId,
