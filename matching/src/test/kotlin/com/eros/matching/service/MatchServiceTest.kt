@@ -1,5 +1,6 @@
 package com.eros.matching.service
 
+import com.eros.common.errors.NotFoundException
 import com.eros.matching.models.DailyBatch
 import com.eros.matching.models.Match
 import com.eros.matching.repository.DailyBatchRepository
@@ -160,7 +161,7 @@ class MatchServiceTest {
         fun `should throw NotFoundException when match does not exist`() = runTest {
             coEvery { matchRepository.findById(999L) } returns null
 
-            val exception = assertThrows<com.eros.common.errors.NotFoundException> {
+            val exception = assertThrows<NotFoundException> {
                 matchService.matchAction(999L, "user1", true)
             }
 
@@ -256,6 +257,26 @@ class MatchServiceTest {
             // Assert first action is allowed
             assertNotNull(result)
             assertEquals(true, result.liked)
+        }
+
+        @Test
+        fun `should not allow action on unserved match`() = runTest {
+            val match = createTestMatch(
+                matchId = 1L,
+                user1Id = "user1",
+                user2Id = "user2",
+                liked = null,
+                servedAt = null  // Match has not been served yet
+            )
+
+            coEvery { matchRepository.findById(1L) } returns match
+
+            val exception = assertThrows<com.eros.common.errors.ConflictException> {
+                matchService.matchAction(1L, "user1", true)
+            }
+
+            // Assert on the exception behavior - cannot act on unserved match
+            assertTrue(exception.message!!.contains("Cannot act on a match that has not been served yet"))
         }
     }
 
@@ -406,7 +427,7 @@ class MatchServiceTest {
         fun `should throw NotFoundException when match does not exist`() = runTest {
             coEvery { matchRepository.findById(999L) } returns null
 
-            val exception = assertThrows<com.eros.common.errors.NotFoundException> {
+            val exception = assertThrows<NotFoundException> {
                 matchService.matchUser(999L, "user1", true)
             }
 

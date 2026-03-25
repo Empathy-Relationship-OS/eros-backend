@@ -58,6 +58,10 @@ class MatchService(
             throw ForbiddenException("You do not have permission to act on this match")
         }
 
+        if (existingMatch.servedAt == null) {
+            throw ConflictException("Cannot act on a match that has not been served yet")
+        }
+
         // Check if user has already taken action
         if (existingMatch.hasUserActed()) {
             // Prevent like→pass (cannot unmatch)
@@ -68,7 +72,6 @@ class MatchService(
             // Prevent pass→like after 24 hours (pass becomes permanent)
             if (existingMatch.isPassed() && like) {
                 val servedAt = existingMatch.servedAt
-                    ?: throw ConflictException("Cannot change action on unserved match")
 
                 val twentyFourHoursAgo = Instant.now(clock).minusSeconds(24 * 60 * 60)
                 if (servedAt.isBefore(twentyFourHoursAgo)) {
