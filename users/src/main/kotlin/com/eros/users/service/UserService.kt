@@ -36,12 +36,12 @@ class UserService(
      * @param request CreateUserRequest containing all required user profile data
      * @return The created User
      * @throws IllegalArgumentException if input validation fails
-     * @throws IllegalStateException if user already exists
+     * @throws ConflictException if user already exists
      */
     suspend fun createUser(request: CreateUserRequest): User = dbQuery {
         // Check if user already exists
         if (userRepository.doesExist(request.userId)) {
-            throw IllegalStateException("User with ID ${request.userId} already exists")
+            throw ConflictException("User with ID ${request.userId} already exists")
         }
 
         val now = Instant.now(clock)
