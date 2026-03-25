@@ -43,6 +43,7 @@ interface DailyBatchRepository {
      * @param userId The user's unique identifier
      * @param date The date to increment (UTC)
      * @return The updated daily batch record
+     * @throws IllegalStateException when upsert returns null
      */
     suspend fun incrementBatchCount(userId: String, date: LocalDate): DailyBatch
 
