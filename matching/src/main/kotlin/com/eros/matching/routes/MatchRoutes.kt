@@ -142,7 +142,7 @@ fun Route.matchRoutes(matchService: MatchService, clock: Clock = Clock.systemUTC
          * - 403 Forbidden: User doesn't own this match
          * - 409 Conflict: User already took action on this match
          */
-        patch("action/{matchId}") {
+        patch("/action/{matchId}") {
             val principal = call.requireFirebasePrincipal()
             val request = call.receive<MatchActionRequest>()
 
