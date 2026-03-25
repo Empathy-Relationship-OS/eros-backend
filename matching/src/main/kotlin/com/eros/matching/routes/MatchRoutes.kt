@@ -30,7 +30,7 @@ fun Route.matchRoutes(matchService: MatchService, clock: Clock = Clock.systemUTC
 
         // TODO implement admin endpoints
         get("/user/{uid}") {
-            // get all matchs for user
+            // get all matches for user
             // query params here allow pagination
             call.respond(HttpStatusCode.NotImplemented, "Not yet implemented")
         }
