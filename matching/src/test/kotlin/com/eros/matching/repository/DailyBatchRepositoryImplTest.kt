@@ -17,13 +17,16 @@ import org.jetbrains.exposed.v1.jdbc.insert
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
+import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import kotlin.test.assertEquals
 import kotlin.test.assertFails
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 @Testcontainers
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -41,6 +44,20 @@ class DailyBatchRepositoryImplTest {
     private lateinit var repository: DailyBatchRepositoryImpl
     private val fixedInstant = Instant.parse("2024-01-15T10:00:00Z")
     private val testDate = LocalDate.of(2024, 1, 15)
+    private lateinit var testClock: TestClock
+
+    /**
+     * A mutable clock for testing that allows advancing time deterministically.
+     */
+    private class TestClock(private var instant: Instant, private val zone: ZoneId = ZoneId.of("UTC")) : Clock() {
+        override fun instant(): Instant = instant
+        override fun getZone(): ZoneId = zone
+        override fun withZone(zone: ZoneId): Clock = TestClock(instant, zone)
+
+        fun advanceBy(seconds: Long) {
+            instant = instant.plusSeconds(seconds)
+        }
+    }
 
     @BeforeAll
     fun setup() {
@@ -58,7 +75,8 @@ class DailyBatchRepositoryImplTest {
 
     @BeforeEach
     fun setupEach() {
-        repository = DailyBatchRepositoryImpl()
+        testClock = TestClock(fixedInstant)
+        repository = DailyBatchRepositoryImpl(testClock)
 
         transaction {
             UserDailyBatches.deleteAll()
@@ -405,17 +423,17 @@ class DailyBatchRepositoryImplTest {
         fun `should update updatedAt when incrementing`() = runTest {
             val batch = createDailyBatch("user1", testDate, batchCount = 1)
 
-            // Wait a bit to ensure timestamp difference (in real scenario)
-            fixedInstant.plusSeconds(3600)
-            Thread.sleep(10) // Small delay to ensure time passes
+            // Advance the clock by 1 hour to ensure timestamp difference
+            testClock.advanceBy(3600)
 
             val incremented = dbQuery {
                 repository.incrementBatchCount("user1", testDate)
             }
 
             assertEquals(batch.createdAt, incremented.createdAt) // createdAt unchanged
-            // updatedAt should be updated (we can't test exact value but it should exist)
-            assertNotNull(incremented.updatedAt)
+            assertTrue(incremented.updatedAt.isAfter(batch.updatedAt),
+                "updatedAt should be after the original timestamp (original: ${batch.updatedAt}, updated: ${incremented.updatedAt})")
+            assertEquals(fixedInstant.plusSeconds(3600), incremented.updatedAt) // Should match advanced clock
         }
 
         @Test
