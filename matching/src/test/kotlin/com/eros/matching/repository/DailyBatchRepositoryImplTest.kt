@@ -4,6 +4,8 @@ import com.eros.database.dbQuery
 import com.eros.matching.models.DailyBatch
 import com.eros.matching.tables.UserDailyBatches
 import com.eros.users.table.Users
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.jetbrains.exposed.v1.jdbc.Database
@@ -444,6 +446,63 @@ class DailyBatchRepositoryImplTest {
             assertEquals(1, batch2.batchCount)
             assertEquals(testDate, batch1.batchDate)
             assertEquals(testDate.plusDays(1), batch2.batchDate)
+        }
+
+        @Test
+        fun `should handle concurrent increments atomically without race conditions`() = runTest {
+            // This test verifies the upsert implementation prevents race conditions
+            // by simulating 3 concurrent increment requests for the same user/date
+            val concurrentRequests = 3
+
+            val results = (1..concurrentRequests).map {
+                async {
+                    dbQuery {
+                        repository.incrementBatchCount("user1", testDate)
+                    }
+                }
+            }.awaitAll()
+
+            // All operations should succeed
+            assertEquals(concurrentRequests, results.size)
+
+            // Final count should be exactly 3 (no lost updates)
+            val finalCount = dbQuery {
+                repository.getBatchCount("user1", testDate)
+            }
+            assertEquals(concurrentRequests, finalCount)
+
+            // Verify no duplicate primary key violations occurred
+            val batch = dbQuery {
+                repository.findByUserAndDate("user1", testDate)
+            }
+            assertNotNull(batch)
+            assertEquals(concurrentRequests, batch.batchCount)
+        }
+
+        @Test
+        fun `should handle concurrent increments for multiple users simultaneously`() = runTest {
+            // Test concurrent operations across different users
+            val users = listOf("user1", "user2", "user3")
+            val incrementsPerUser = 2
+
+            val allResults = users.flatMap { userId ->
+                (1..incrementsPerUser).map {
+                    async {
+                        dbQuery {
+                            repository.incrementBatchCount(userId, testDate)
+                        }
+                    }
+                }
+            }.awaitAll()
+
+            // All operations should succeed
+            assertEquals(users.size * incrementsPerUser, allResults.size)
+
+            // Each user should have exactly 2 increments
+            users.forEach { userId ->
+                val count = dbQuery { repository.getBatchCount(userId, testDate) }
+                assertEquals(incrementsPerUser, count, "User $userId should have $incrementsPerUser increments")
+            }
         }
     }
 
