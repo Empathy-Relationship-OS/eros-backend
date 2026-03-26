@@ -12,7 +12,9 @@ import com.eros.users.routes.*
 import com.eros.users.service.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
+import io.ktor.server.plugins.openapi.*
 import io.ktor.server.plugins.requestvalidation.*
+import io.ktor.server.plugins.swagger.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
@@ -58,6 +60,21 @@ fun Application.configureRouting() {
             call.respondText("Hello World!")
         }
 
+        // Swagger UI endpoint
+        swaggerUI(path = "swagger", swaggerFile = "openapi/documentation.yaml") {
+            version = "4.15.5"
+        }
+
+        // OpenAPI documentation endpoint
+        openAPI(path = "openapi", swaggerFile = "openapi/documentation.yaml")
+
+        /***
+         * New (Automatic Discovery):
+         *   swaggerUI(path = "swagger") {
+         *       version = "4.15.5"
+         *   }
+         *   openAPI(path = "openapi")
+         */
         // All routes require Firebase authentication
         authenticate("firebase-auth") {
             // User profile routes (handles role requirements internally)
