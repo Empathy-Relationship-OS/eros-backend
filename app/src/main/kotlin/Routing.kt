@@ -62,19 +62,12 @@ fun Application.configureRouting() {
 
         // Swagger UI endpoint
         swaggerUI(path = "swagger", swaggerFile = "openapi/documentation.yaml") {
-            version = "4.15.5"
+            version = "5.32.1"
         }
 
         // OpenAPI documentation endpoint
         openAPI(path = "openapi", swaggerFile = "openapi/documentation.yaml")
 
-        /***
-         * New (Automatic Discovery):
-         *   swaggerUI(path = "swagger") {
-         *       version = "4.15.5"
-         *   }
-         *   openAPI(path = "openapi")
-         */
         // All routes require Firebase authentication
         authenticate("firebase-auth") {
             // User profile routes (handles role requirements internally)

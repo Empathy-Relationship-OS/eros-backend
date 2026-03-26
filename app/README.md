@@ -173,12 +173,14 @@ components:
 #### Step 4: Verify Documentation
 
 1. Build and run the application:
+
    ```bash
    ./gradlew run
    ```
 
 2. Open Swagger UI:
-   ```
+
+   ```text
    http://localhost:8080/swagger
    ```
 
@@ -274,7 +276,7 @@ After updating the OpenAPI spec, frontend teams can regenerate API clients:
 ```bash
 # TypeScript/Axios
 npx @openapitools/openapi-generator-cli generate \
-  -i http://localhost:8080/openapi/documentation.yaml \
+  -i http://localhost:8080/openapi \
   -g typescript-axios \
   -o ./frontend/src/api
 

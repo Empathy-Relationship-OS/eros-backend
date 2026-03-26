@@ -271,6 +271,7 @@ components:
           description: Maximum distance in kilometers
         genderPreference:
           type: array
+          maxItems: 4
           items:
             type: string
             enum: [MALE, FEMALE, NON_BINARY, OTHER]
@@ -351,11 +352,11 @@ components:
     MatchActionRequest:
       type: object
       required:
-        - action
+        - liked
       properties:
-        action:
-          type: string
-          enum: [LIKE, PASS]
+        liked:
+          type: boolean
+          description: Whether the user liked the match (true) or passed (false)
 
     MutualMatchInfo:
       type: object
