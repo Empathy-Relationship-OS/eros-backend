@@ -211,7 +211,7 @@ class UserService(
      *
      * @param userId Firebase UID of the user to update
      * @param request AdminUpdateUserRequest containing admin-level fields to update
-     * @return The updated User, or [NotFoundException] if user not found
+     * @return The updated User
      * @throws IllegalArgumentException if input validation fails
      * @throws NotFoundException if no user with id of [userId] is found
      */

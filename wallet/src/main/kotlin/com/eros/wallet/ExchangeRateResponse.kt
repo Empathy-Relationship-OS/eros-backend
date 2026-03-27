@@ -2,6 +2,7 @@ package com.eros.wallet
 
 import com.google.gson.Gson
 import java.math.BigDecimal
+import java.math.RoundingMode
 import java.net.URL
 
 data class ExchangeRateResponse(
@@ -24,5 +25,5 @@ fun convertToUserCurrency(amountInGBP: BigDecimal, targetCurrency: String): BigD
     }
 
     val rate = getExchangeRate("GBP", targetCurrency).toBigDecimal()
-    return (amountInGBP * rate)
+    return (amountInGBP * rate).setScale(2, RoundingMode.HALF_UP)
 }

@@ -424,9 +424,6 @@ data class DisplayableField<T>(val field: T, val display: Boolean)
 
 
 /**
- * Function to create a test user, with every field being able to altered.
- */
-/**
  * The following function is used in test classes to get a centralized User object, available to alter as required.
  * Avoids each test class having their own version that will need to be updated in the event of changes to User.
  */

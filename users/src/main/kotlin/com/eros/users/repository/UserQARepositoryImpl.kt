@@ -143,6 +143,9 @@ class UserQARepositoryImpl(
      * Override to add Questions join after update.
      */
     override suspend fun update(id: UserQAId, entity: UserQAItem): UserQAItem? {
+        require(id.userId == entity.userId && id.questionId == entity.question.questionId) {
+            "Updating UserQA composite keys is not supported"
+        }
         super.update(id, entity)
         return findById(id)
     }

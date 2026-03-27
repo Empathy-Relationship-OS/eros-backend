@@ -74,7 +74,7 @@ class WalletTest {
         @Test
         fun `pendingBalance calculates sum with decimal values`() {
             val wallet = wallet()
-            val pending = listOf(1.50.toBigDecimal(), 2.75.toBigDecimal(), 3.25.toBigDecimal())
+            val pending = listOf(BigDecimal("1.50"), BigDecimal("2.75"), BigDecimal("3.25"))
 
             assertEquals(BigDecimal("7.50"), wallet.pendingBalance(pending))
         }

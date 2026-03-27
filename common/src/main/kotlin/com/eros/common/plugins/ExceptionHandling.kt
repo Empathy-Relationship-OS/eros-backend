@@ -71,7 +71,7 @@ fun Application.configureExceptionHandling() {
             call.respond(
                 HttpStatusCode.Conflict, ApiError(
                     error = "insufficient_balance",
-                    message = "Balance ${cause.currentBalance} is less than required ${cause.requiredAmount}"
+                    message = "Balance is less than the required ${cause.requiredAmount} tokens"
                 )
             )
         }
