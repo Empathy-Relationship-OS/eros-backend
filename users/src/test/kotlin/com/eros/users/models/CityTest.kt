@@ -124,6 +124,22 @@ class CityTest {
             assertEquals("Longitude must be between -180 and 180", exception.message)
         }
 
+        @Test
+        fun `should throw exception with invalid longitude 4`(){
+            val exception = assertThrows<IllegalArgumentException> {
+                UpdateCityRequest(1L,"Blah",-180.1,5.0)
+            }
+            assertEquals("Longitude must be between -180 and 180", exception.message)
+        }
+
+        @Test
+        fun `should throw exception with invalid longitude 5`(){
+            val exception = assertThrows<IllegalArgumentException> {
+                UpdateCityRequest(1L,"Blah",180.1,5.0)
+            }
+            assertEquals("Longitude must be between -180 and 180", exception.message)
+        }
+
     }
 
     @Nested

@@ -5,6 +5,7 @@ import com.eros.database.repository.BaseDAOImpl
 import com.eros.users.models.City
 import com.eros.users.table.Cities
 import com.eros.users.table.toCity
+import com.eros.users.table.toCity
 import org.jetbrains.exposed.v1.core.CustomFunction
 import org.jetbrains.exposed.v1.core.DoubleColumnType
 import org.jetbrains.exposed.v1.core.ResultRow

@@ -1,5 +1,6 @@
 package com.eros
 
+import com.eros.auth.extensions.requireFirebasePrincipal
 import com.eros.common.config.S3Config
 import com.eros.matching.repository.DailyBatchRepositoryImpl
 import com.eros.matching.repository.MatchRepositoryImpl
@@ -7,13 +8,43 @@ import com.eros.matching.routes.matchRoutes
 import com.eros.matching.service.MatchService
 import com.eros.matching.transaction.DatabaseTransactionManager
 import com.eros.users.ProfileAccessControl
+import com.eros.users.repository.PhotoRepositoryImpl
+import com.eros.users.repository.PreferenceRepositoryImpl
+import com.eros.users.repository.QuestionRepositoryImpl
+import com.eros.users.repository.UserQARepositoryImpl
+import com.eros.users.repository.UserRepositoryImpl
+import com.eros.users.routes.qaRoutes
+import com.eros.users.routes.cityRoutes
+import com.eros.users.routes.questionRoutes
+import com.eros.users.routes.userPhotoRoutes
+import com.eros.users.routes.userPreferenceRoutes
+import com.eros.users.routes.userProfileRoutes
+import com.eros.users.service.CityService
+import com.eros.users.service.PhotoService
+import com.eros.users.service.PreferenceService
+import com.eros.users.service.QAService
+import com.eros.users.service.UserService
+import com.eros.wallet.models.PurchaseRequest
+import com.eros.wallet.models.toDTO
+import com.eros.wallet.repository.TransactionRepositoryImpl
+import com.eros.wallet.repository.WalletRepositoryImpl
+import com.eros.wallet.routes.walletRoutes
+import com.eros.wallet.routes.webhookRoute
+import com.eros.wallet.services.PaymentService
+import com.eros.wallet.services.TransactionService
+import com.eros.wallet.services.WalletService
+import com.eros.wallet.stripe.StripeService
+import com.eros.wallet.stripe.StripeWebhookHandler
+import io.ktor.http.HttpStatusCode
 import com.eros.users.repository.*
 import com.eros.users.routes.*
 import com.eros.users.service.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.plugins.requestvalidation.*
+import io.ktor.server.request.receive
 import io.ktor.server.response.*
+import io.ktor.server.response.respond
 import io.ktor.server.routing.*
 
 fun Application.configureRouting() {
@@ -36,6 +67,8 @@ fun Application.configureRouting() {
 
     val qaRepository = UserQARepositoryImpl()
     val questionRepository = QuestionRepositoryImpl()
+    val transactionRepository = TransactionRepositoryImpl()
+    val walletRepository = WalletRepositoryImpl()
 
     val matchRepository = MatchRepositoryImpl()
     val dailyBatchRepository = DailyBatchRepositoryImpl()
@@ -49,6 +82,11 @@ fun Application.configureRouting() {
     val cityService = CityService(cityRepositoryImpl)
     val preferenceService = PreferenceService(preferenceRepositoryImpl, userService)
     val qaService = QAService(questionRepository, qaRepository)
+    val transactionService = TransactionService(transactionRepository)
+    val walletService = WalletService(walletRepository, transactionService)
+    val stripeService = StripeService()
+    val paymentService = PaymentService(walletService,transactionService,stripeService)
+    val webhookHandler = StripeWebhookHandler(walletService, transactionService)
     val matchService = MatchService(matchRepository, dailyBatchRepository, userService, transactionManager)
 
     val matchAccessChecker = MatchAccessCheckerImpl(matchService)
@@ -57,6 +95,9 @@ fun Application.configureRouting() {
         get("/") {
             call.respondText("Hello World!")
         }
+
+        // placed outside the firebase-auth due to external token use.
+        webhookRoute(webhookHandler)
 
         // All routes require Firebase authentication
         authenticate("firebase-auth") {
@@ -73,6 +114,8 @@ fun Application.configureRouting() {
             qaRoutes(qaService,profileAccessControl)
 
             questionRoutes(qaService)
+
+            walletRoutes(paymentService)
 
             matchRoutes(matchService)
         }

@@ -143,11 +143,7 @@ class UserQARepositoryImpl(
      * Override to add Questions join after update.
      */
     override suspend fun update(id: UserQAId, entity: UserQAItem): UserQAItem? {
-        UserQA.updateReturning(
-            where = { buildKeyCondition(id) },
-            body = { toStatement(it, entity) }
-        ).singleOrNull() ?: return null
-
+        super.update(id, entity)
         return findById(id)
     }
 }

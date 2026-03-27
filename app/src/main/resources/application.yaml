@@ -33,3 +33,8 @@ aws:
   s3BucketName: ${AWS_S3_BUCKET_NAME:eros-photos}
   cdnBaseUrl: ${AWS_CDN_BASE_URL:}
   presignedUrlTtlMinutes: ${AWS_PRESIGNED_URL_TTL_MINUTES:15}
+
+stripe:
+  secretKey: ${STIPE_SECRET_KEY}
+  publishableKey: ${STIPE_PUBLISHABLE_KEY}
+  webhookSecret: ${WEBHOOK_SECRET_KEY}

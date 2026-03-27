@@ -20,7 +20,7 @@ class ProfileCompletenessTest {
         val userQA = createQAList(2, user.userId)
         val userQACollection = UserQACollection(user.userId, userQA, userQA.size)
         val completeness = ProfileCompleteness().calculateCompleteness(user, userMediaCollection, userQACollection)
-        assertEquals(completeness, 65)
+        assertEquals( 65, completeness)
     }
 
     // Helper function to create test users with defaults

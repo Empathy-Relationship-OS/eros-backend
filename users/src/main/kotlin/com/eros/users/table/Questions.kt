@@ -7,7 +7,7 @@ import java.time.Instant
 object Questions : Table("questions") {
 
     // Primary key.
-    val questionId = long("id").autoIncrement()
+    val questionId = long("question_id").autoIncrement()
 
     // Question
     val question = varchar("question", 100)

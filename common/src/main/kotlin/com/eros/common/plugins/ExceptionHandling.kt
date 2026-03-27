@@ -6,6 +6,7 @@ import com.eros.common.errors.ConflictException
 import com.eros.common.errors.DatabaseException
 import com.eros.common.errors.ForbiddenException
 import com.eros.common.errors.UnauthorizedException
+import com.eros.common.errors.InsufficientBalanceException
 import com.eros.common.errors.NotFoundException
 import io.ktor.server.plugins.BadRequestException as KtorBadRequestException
 import org.jetbrains.exposed.v1.exceptions.ExposedSQLException
@@ -16,7 +17,6 @@ import io.ktor.server.application.log
 import io.ktor.server.plugins.ContentTransformationException
 import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.response.respond
-import kotlinx.serialization.SerializationException
 import java.sql.SQLException
 
 /**
@@ -49,17 +49,14 @@ fun Application.configureExceptionHandling() {
         exception<BadRequestException> { call, cause ->
             call.respond(HttpStatusCode.BadRequest, ApiError("bad_request", cause.message ?: "Bad request"))
         }
-        exception<SerializationException> { call, cause ->
-            call.respond(
-                HttpStatusCode.BadRequest,
-                ApiError("invalid_request_body", cause.message ?: "Invalid request body")
-            )
-        }
         exception<IllegalArgumentException> { call, cause ->
             call.respond(HttpStatusCode.BadRequest, ApiError("invalid_input", cause.message ?: "Invalid input"))
         }
         exception<ContentTransformationException> { call, cause ->
-            call.respond(HttpStatusCode.BadRequest, ApiError("malformed_request", cause.message ?: "Malformed request body"))
+            call.respond(
+                HttpStatusCode.BadRequest,
+                ApiError("malformed_request", cause.message ?: "Malformed request body")
+            )
         }
         exception<DatabaseException> { call, cause ->
             call.application.log.error("Database error", cause)
@@ -68,6 +65,15 @@ fun Application.configureExceptionHandling() {
         exception<ExposedSQLException> { call, cause ->
             call.application.log.error("Exposed SQL error", cause)
             call.respond(HttpStatusCode.InternalServerError, ApiError("database_error", "Database operation failed"))
+        }
+        exception<InsufficientBalanceException> { call, cause ->
+            call.application.log.error("Insufficient balance error", cause)
+            call.respond(
+                HttpStatusCode.Conflict, ApiError(
+                    error = "insufficient_balance",
+                    message = "Balance ${cause.currentBalance} is less than required ${cause.requiredAmount}"
+                )
+            )
         }
         exception<SQLException> { call, cause ->
             call.application.log.error("SQL error", cause)
