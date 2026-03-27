@@ -1,6 +1,5 @@
 package com.eros
 
-import com.eros.auth.extensions.requireFirebasePrincipal
 import com.eros.common.config.S3Config
 import com.eros.matching.repository.DailyBatchRepositoryImpl
 import com.eros.matching.repository.MatchRepositoryImpl
@@ -24,8 +23,6 @@ import com.eros.users.service.PhotoService
 import com.eros.users.service.PreferenceService
 import com.eros.users.service.QAService
 import com.eros.users.service.UserService
-import com.eros.wallet.models.PurchaseRequest
-import com.eros.wallet.models.toDTO
 import com.eros.wallet.repository.TransactionRepositoryImpl
 import com.eros.wallet.repository.WalletRepositoryImpl
 import com.eros.wallet.routes.walletRoutes
@@ -35,16 +32,11 @@ import com.eros.wallet.services.TransactionService
 import com.eros.wallet.services.WalletService
 import com.eros.wallet.stripe.StripeService
 import com.eros.wallet.stripe.StripeWebhookHandler
-import io.ktor.http.HttpStatusCode
 import com.eros.users.repository.*
-import com.eros.users.routes.*
-import com.eros.users.service.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.plugins.requestvalidation.*
-import io.ktor.server.request.receive
 import io.ktor.server.response.*
-import io.ktor.server.response.respond
 import io.ktor.server.routing.*
 
 fun Application.configureRouting() {
@@ -85,7 +77,7 @@ fun Application.configureRouting() {
     val transactionService = TransactionService(transactionRepository)
     val walletService = WalletService(walletRepository, transactionService)
     val stripeService = StripeService()
-    val paymentService = PaymentService(walletService,transactionService,stripeService)
+    val paymentService = PaymentService(walletService,transactionService, stripeService)
     val webhookHandler = StripeWebhookHandler(walletService, transactionService)
     val matchService = MatchService(matchRepository, dailyBatchRepository, userService, transactionManager)
 

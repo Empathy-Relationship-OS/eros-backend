@@ -11,12 +11,8 @@ import com.eros.wallet.models.RefundTokenRequest
 import com.eros.wallet.models.SpendTokenRequest
 import com.eros.wallet.models.toDTO
 import com.eros.wallet.services.PaymentService
-import com.eros.wallet.stripe.InvalidWebhookSignatureException
-import com.eros.wallet.stripe.StripeWebhookHandler
-import com.eros.wallet.stripe.WebhookResult
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
-import io.ktor.server.request.receiveText
 import io.ktor.server.response.respond
 import io.ktor.server.routing.post
 
@@ -46,8 +42,8 @@ fun Route.walletRoutes(paymentService: PaymentService) {
          */
         get("/transactions"){
             // Get the params from the query.
-            val limit = call.request.queryParameters["limit"]?.toInt() ?: throw BadRequestException("Limit requires an integer")
-            val offset = call.request.queryParameters["offset"]?.toLong() ?: throw BadRequestException("Offset requires an integer")
+            val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: throw BadRequestException("Limit requires a valid integer")
+            val offset = call.request.queryParameters["offset"]?.toLongOrNull() ?: throw BadRequestException("Offset requires a valid integer")
             val type = call.request.queryParameters["type"]
 
             // Get the user id.
@@ -85,9 +81,11 @@ fun Route.walletRoutes(paymentService: PaymentService) {
 
         }
 
-        //todo:
-        post("/refund"){
 
+        /**
+         * Route for refunding token purchases.
+         */
+        post("/refund"){
             // Get user and request.
             val principal = call.requireFirebasePrincipal()
             val request = call.receive<RefundTokenRequest>()

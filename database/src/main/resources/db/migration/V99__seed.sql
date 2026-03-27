@@ -134,4 +134,5 @@ INSERT INTO wallets (user_id, token_balance, lifetime_spent, lifetime_purchased,
 VALUES
     ('test-user-123', 0, 0, 0, 'GBP'),
     ('test-user-456', 100, 50, 150, 'GBP'),
-    ('firebase-uid-test-1', 500, 200, 700, 'GBP');
+    ('firebase-uid-test-1', 500, 200, 700, 'GBP')
+ON CONFLICT (user_id) DO NOTHING;

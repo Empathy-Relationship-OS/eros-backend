@@ -1,4 +1,4 @@
--- V8 Wallet Transactions table.
+-- V11 Wallet Transactions table.
 
 -- Transactions table stores all wallet-related financial operations including:
 -- - PURCHASE: Token purchases via Stripe payment processing
@@ -33,4 +33,6 @@ CREATE TABLE IF NOT EXISTS transactions (
 );
 
 -- Indexes for query optimization
+CREATE INDEX idx_transactions_wallet_created ON transactions(wallet_id, created_at DESC);
 CREATE INDEX idx_transactions_stripe_payment_intent ON transactions(stripe_payment_intent_id);
+CREATE INDEX idx_transactions_status ON transactions(status) WHERE status = 'PENDING';

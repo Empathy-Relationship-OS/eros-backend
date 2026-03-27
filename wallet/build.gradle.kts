@@ -1,5 +1,3 @@
-import org.gradle.kotlin.dsl.project
-
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.plugin.serialization)

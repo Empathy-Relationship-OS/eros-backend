@@ -2,7 +2,6 @@ package com.eros.wallet.models
 
 import kotlinx.serialization.Serializable
 import java.math.BigDecimal
-import kotlin.String
 
 /**
  * Request DTO for purchasing tokens.
@@ -22,6 +21,7 @@ data class PurchaseRequest(
         require(packageType.isNotBlank()) { "Package type cannot be blank" }
         require(paymentMethodId.isNotBlank()) { "Payment method ID cannot be blank" }
         require(idempotencyKey.isNotBlank()) { "Idempotency key cannot be blank" }
+        require(acceptedTerms) { "Terms must be accepted to make a purchase" }
     }
 }
 

@@ -10,7 +10,7 @@ import java.math.BigDecimal
 import java.time.Instant
 
 object Wallets : Table("wallets") {
-    val walletId = long("wallet_id")
+    val walletId = long("wallet_id").autoIncrement()
     val userId = varchar("user_id", 128).references(Users.userId)
     val tokenBalance = decimal("token_balance", 10, 2).default(BigDecimal.ZERO)
     val lifetimeSpent = decimal("lifetime_spent", 10, 2).default(BigDecimal.ZERO)
@@ -23,9 +23,7 @@ object Wallets : Table("wallets") {
     override val primaryKey = PrimaryKey(walletId)
 
     init {
-        // Ensure balance is never negative
-        check("balance_non_negative") {
-            tokenBalance greaterEq BigDecimal.ZERO
-        }
+        uniqueIndex(userId)
+        check("balance_non_negative") { tokenBalance greaterEq BigDecimal.ZERO }
     }
 }
