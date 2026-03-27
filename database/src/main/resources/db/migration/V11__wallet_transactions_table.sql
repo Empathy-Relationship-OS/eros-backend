@@ -23,12 +23,13 @@ CREATE TABLE IF NOT EXISTS transactions (
     amount_paid_gbp NUMERIC(10, 2),
     idempotency_key VARCHAR(255),
     metadata TEXT,
+    accepted_terms BOOLEAN,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT unique_idempotency_key UNIQUE (idempotency_key),
     CONSTRAINT valid_transaction_type CHECK (type IN ('PURCHASE', 'SPEND', 'REFUND', 'ADJUSTMENT')),
-    CONSTRAINT valid_transaction_status CHECK (status IN ('PENDING', 'COMPLETED', 'FAILED', 'CANCELLED'))
+    CONSTRAINT valid_transaction_status CHECK (status IN ('PENDING', 'COMPLETED', 'FAILED', 'CANCELLED','REFUNDED','REFUND_FAILED'))
 );
 
 -- Indexes for query optimization

@@ -1,5 +1,6 @@
 package com.eros.wallet.services
 
+import com.eros.common.errors.ConflictException
 import com.eros.common.errors.NotFoundException
 import com.eros.database.dbQuery
 import com.eros.wallet.models.Transaction
@@ -32,7 +33,7 @@ class TransactionService(
     /**
      * Service to find all the pending transactions for a user.
      */
-    suspend fun findUserPendingTransactions(userId: String) : List<Transaction>{
+    suspend fun findUserPendingTransactions(userId: String): List<Transaction> {
         return transactionRepository.findPendingByUserId(userId)
     }
 
@@ -40,7 +41,7 @@ class TransactionService(
     /**
      * Service to find all the pending transactions for a user.
      */
-    suspend fun findUserTransactionsForDate(userId: String, relatedDateId: Long) : List<Transaction>{
+    suspend fun findUserTransactionsForDate(userId: String, relatedDateId: Long): List<Transaction> {
         return transactionRepository.findByUserIdAndDateId(userId, relatedDateId)
     }
 
@@ -58,11 +59,17 @@ class TransactionService(
     suspend fun updateTransactionStatus(
         idempotencyKey: String,
         status: TransactionStatus,
-        stripePaymentIntentId : String?,
-        reason : String?,
-        balanceAfter : BigDecimal?
-    ) : Transaction? {
-        return transactionRepository.updateTransactionStatus(idempotencyKey, status, stripePaymentIntentId, reason, balanceAfter)
+        stripePaymentIntentId: String?,
+        reason: String?,
+        balanceAfter: BigDecimal?
+    ): Transaction? {
+        return transactionRepository.updateTransactionStatus(
+            idempotencyKey,
+            status,
+            stripePaymentIntentId,
+            reason,
+            balanceAfter
+        )
     }
 
 
@@ -82,7 +89,8 @@ class TransactionService(
         stripePaymentIntentId: String?,
         idempotencyKey: String,
         status: TransactionStatus = TransactionStatus.PENDING,
-        metadata: Map<String, String> = emptyMap()
+        metadata: Map<String, String> = emptyMap(),
+        acceptedTerms: Boolean
     ): Transaction {
         val transaction = Transaction(
             walletId = walletId,
@@ -98,6 +106,7 @@ class TransactionService(
             amountPaidGBP = amountPaidGBP,
             idempotencyKey = idempotencyKey,
             metadata = metadata,
+            acceptedTerms = acceptedTerms,
             createdAt = Instant.now(clock),
             updatedAt = Instant.now(clock)
         )
@@ -125,7 +134,6 @@ class TransactionService(
     }
 
 
-
     /**
      * Service to spend credits. This is NOT wrapped in a dbQuery so is used within a dbQuery.
      *
@@ -139,7 +147,7 @@ class TransactionService(
         relatedDateId: Long?,
         idempotencyKey: String,
         newBalance: BigDecimal,
-        metadata: Map<String, String>
+        metadata: Map<String, String>,
     ): Transaction {
         val transaction = Transaction(
             walletId = walletId,
@@ -155,6 +163,7 @@ class TransactionService(
             amountPaidGBP = null,
             idempotencyKey = idempotencyKey,
             metadata = metadata,
+            acceptedTerms = null,
             createdAt = Instant.now(clock),
             updatedAt = Instant.now(clock)
         )
@@ -174,7 +183,11 @@ class TransactionService(
         relatedDateId: Long?,
         relatedTransactionId: Long,
         newBalance: BigDecimal,
-        metadata: Map<String, String>
+        metadata: Map<String, String>,
+        acceptedTerms: Boolean?,
+        refundIntent: String?,
+        idempotencyKey: String?,
+        status: TransactionStatus = TransactionStatus.PENDING
     ): Transaction {
         val transaction = Transaction(
             walletId = walletId,
@@ -183,13 +196,14 @@ class TransactionService(
             amount = amount,
             balanceAfter = newBalance,
             description = description,
-            status = TransactionStatus.COMPLETED,
+            status = status,
             relatedDateId = relatedDateId,
             relatedTransactionId = relatedTransactionId,
-            stripePaymentIntentId = null,
+            stripePaymentIntentId = refundIntent,
             amountPaidGBP = null,
-            idempotencyKey = null,
+            idempotencyKey = idempotencyKey,
             metadata = metadata,
+            acceptedTerms = acceptedTerms,
             createdAt = Instant.now(clock),
             updatedAt = Instant.now(clock)
         )
@@ -221,4 +235,56 @@ class TransactionService(
             hasMore = hasMore
         )
     }
+
+
+    suspend fun getTransaction(transactionId: Long): Transaction? {
+        return transactionRepository.getTransaction(transactionId)
+    }
+
+
+    suspend fun isRefundable(transaction: Transaction, userId: String): Boolean {
+        // Check transaction isn't already refunded.
+        if (transactionRepository.hasBeenRefunded(transaction.transactionId)) {
+            return false
+        }
+
+        // Fetch users history.
+        val allTransactions = transactionRepository.findByUserId(userId, 10000, 0)
+
+        // Clean the history of all completed refund-loop pairs
+        val refundRelatedIds = allTransactions
+            .filter { it.type == TransactionType.REFUND && it.status == TransactionStatus.REFUNDED }
+            .flatMap { listOfNotNull(it.transactionId, it.relatedTransactionId) }
+            .toSet()
+        val activeHistory = allTransactions
+            .filterNot { it.transactionId in refundRelatedIds }
+            .filterNot { it.type == TransactionType.REFUND && it.status == TransactionStatus.REFUNDED }
+        if (activeHistory.isEmpty()) return false
+
+        println("===========")
+        println(activeHistory)
+
+        if (transaction.type != TransactionType.PURCHASE) return false
+
+        // Total spent in the wallet's history (using filtered activeHistory)
+        val totalSpent = activeHistory
+            .filter { it.type == TransactionType.SPEND }
+            .sumOf { it.amount.abs() }
+
+        // Sum of all purchases that happened BEFORE this specific one (using filtered activeHistory)
+        val purchasesBeforeThisOne = activeHistory
+            .filter { it.type == TransactionType.PURCHASE && it.createdAt < transaction.createdAt }
+            .sumOf { it.amount }
+
+        println("total spend: $totalSpent")
+        println("purchasesBeforeThisOne:  $purchasesBeforeThisOne")
+
+        return totalSpent <= purchasesBeforeThisOne
+    }
+
+
+    //suspend fun getTransactionsByStripeKey(stripeIntentId: String) : List<Transaction> {
+    //    return transactionRepository.findByStripePaymentIntentId(stripeIntentId)
+    //}
+
 }

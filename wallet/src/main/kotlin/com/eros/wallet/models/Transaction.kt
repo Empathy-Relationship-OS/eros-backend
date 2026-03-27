@@ -25,6 +25,7 @@ data class Transaction(
     val amountPaidGBP: BigDecimal? = null,
     val idempotencyKey: String? = null,
     val metadata: Map<String, String> = emptyMap(),
+    val acceptedTerms: Boolean?,
     val createdAt: Instant,
     val updatedAt: Instant,
 )
@@ -71,6 +72,7 @@ data class TransactionResponse(
     val stripePaymentIntentId: String? = null,
     @Serializable(with = BigDecimalSerializer::class)
     val amountPaid: BigDecimal? = null,
+    val acceptedTerms: Boolean?,
     val createdAt: String,
     val updatedAt: String
 )
@@ -84,6 +86,7 @@ fun Transaction.toDTO() = TransactionResponse(
     relatedDateId = this.relatedDateId,
     stripePaymentIntentId = this.stripePaymentIntentId,
     amountPaid = this.amountPaidGBP,
+    acceptedTerms = this.acceptedTerms,
     createdAt = this.createdAt.toString(),
     updatedAt = this.updatedAt.toString()
 )
@@ -103,6 +106,7 @@ fun ResultRow.toTransactionDomain(): Transaction {
         amountPaidGBP = this[Transactions.amountPaidGbp],
         idempotencyKey = this[Transactions.idempotencyKey],
         metadata = parseMetadata(this[Transactions.metadata]),
+        acceptedTerms = this[Transactions.acceptedTerms],
         createdAt = this[Transactions.createdAt],
         updatedAt = this[Transactions.updatedAt],
     )

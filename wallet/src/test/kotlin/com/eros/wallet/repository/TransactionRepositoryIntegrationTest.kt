@@ -702,7 +702,8 @@ class TransactionRepositoryImplTest {
         stripePaymentIntentId: String? = null,
         amountPaidGBP: BigDecimal? = null,
         idempotencyKey: String? = null,
-        metadata: Map<String, String> = emptyMap()
+        metadata: Map<String, String> = emptyMap(),
+        acceptedTerms : Boolean? = true
     ) = Transaction(
         transactionId = transactionId,
         walletId = walletId,
@@ -717,6 +718,7 @@ class TransactionRepositoryImplTest {
         amountPaidGBP = amountPaidGBP,
         idempotencyKey = idempotencyKey,
         metadata = metadata,
+        acceptedTerms = acceptedTerms,
         createdAt = fixedInstant,
         updatedAt = fixedInstant
     )

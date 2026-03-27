@@ -1,10 +1,13 @@
 package com.eros.wallet.services
 
 import com.eros.common.DateActivity
+import com.eros.common.errors.BadRequestException
 import com.eros.common.errors.ConflictException
 import com.eros.database.dbQuery
 import com.eros.wallet.models.Purchase
 import com.eros.wallet.models.PurchaseRequest
+import com.eros.wallet.models.Refund
+import com.eros.wallet.models.RefundTokenRequest
 import com.eros.wallet.models.SpendTokenRequest
 import com.eros.wallet.models.TokenPackage
 import com.eros.wallet.models.Transaction
@@ -42,10 +45,115 @@ class PaymentService(
 
 
     /**
-     * This function is for refunding
+     * This function is for refunding token packages from the user.
      */
-    suspend fun refundTokens(userId: String) {
-        throw NotImplementedError("No refund in PaymentService.kt")
+    suspend fun refundTokens(userId: String, refundTokenRequest: RefundTokenRequest) : Refund {
+
+        // Check the key for duplicate calls.
+        val existing = transactionService.findByIdempotencyKey(refundTokenRequest.idempotencyKey)
+        if (existing != null) return Refund(
+            existing.transactionId,
+            clientSecret = existing.stripePaymentIntentId ?: "",
+            "string"
+        )
+
+        val (wallet, transaction) = dbQuery {
+            val wallet = walletService.getWallet(userId)
+                ?: throw NotFoundException("Wallet not found")
+
+            val transaction = transactionService.getTransaction(refundTokenRequest.transactionId)
+                ?: throw NotFoundException("Transaction not found")
+
+            wallet to transaction
+        }
+
+        val refundable = dbQuery {transactionService.isRefundable(transaction, userId)}
+        if (!refundable) {
+            // Create failed refund in its own transaction
+            dbQuery {
+                transactionService.createRefundTransaction(
+                    wallet.walletId,
+                    userId,
+                    transaction.amount,
+                    "Refund of ${transaction.amount}",
+                    null,
+                    transaction.transactionId,
+                    wallet.tokenBalance,  // Don't subtract - refund failed
+                    mapOf("reason" to "Tokens already refunded or spent."),
+                    null,
+                    refundIntent = "error",
+                    idempotencyKey = refundTokenRequest.idempotencyKey,
+                    status = TransactionStatus.REFUND_FAILED
+                )
+            }
+            throw ConflictException("Transaction has already been refunded or not refundable.")
+        }
+
+        // Check balance OUTSIDE the transaction
+        if (wallet.tokenBalance < transaction.amount) {
+            // Create failed refund in its own transaction
+            dbQuery {
+                transactionService.createRefundTransaction(
+                    wallet.walletId,
+                    userId,
+                    transaction.amount,
+                    "Refund of ${transaction.amount}",
+                    null,
+                    transaction.transactionId,
+                    wallet.tokenBalance,  // Current balance (don't subtract)
+                    mapOf("reason" to "Insufficient tokens. Need ${transaction.amount}, have ${wallet.tokenBalance}"),
+                    null,
+                    refundIntent = "error",
+                    idempotencyKey = refundTokenRequest.idempotencyKey,
+                    status = TransactionStatus.REFUND_FAILED
+                )
+            }
+            throw BadRequestException(
+                "Insufficient tokens in wallet. Need ${transaction.amount}, have ${wallet.tokenBalance}"
+            )
+        }
+
+
+        // Create Stripe refund
+        val stripeRefund = stripeService.createRefund(
+            paymentIntentId = transaction.stripePaymentIntentId ?: "error",
+            amount = null,
+            metadata = mapOf(
+                "transactionId" to transaction.transactionId.toString(),
+                "userId" to wallet.userId,
+                "tokenAmount" to transaction.amount.toString()
+            ),
+            reason = "User requested refund.",
+            idempotencyKey = refundTokenRequest.idempotencyKey
+        )
+
+
+        val refundTransaction = dbQuery {
+            // Deduct tokens from wallet
+            walletService.debitBalance(
+                wallet.userId,
+                transaction.amount
+            )
+            // Create refund record
+            transactionService.createRefundTransaction(
+                wallet.walletId,
+                userId,
+                transaction.amount,
+                "Refund of ${transaction.amount}",
+                null,
+                transaction.transactionId,
+                wallet.tokenBalance - transaction.amount,
+                emptyMap(),
+                null,
+                refundIntent = stripeRefund.id,
+                idempotencyKey = refundTokenRequest.idempotencyKey
+            )
+        }
+
+        return Refund(refundTransaction.transactionId,stripeRefund.id,stripeRefund.status)
+
+        // Create discord notification of a refund request.
+
     }
 
 
@@ -64,7 +172,8 @@ class PaymentService(
             currency = "gbp",
             tokenAmount = existing.amount,
             status = existing.status.name,
-            transactionId = existing.transactionId
+            transactionId = existing.transactionId,
+            acceptedTerms = request.acceptedTerms
         )
 
         val tokenPackage = TokenPackage.valueOf(request.packageType)
@@ -80,7 +189,8 @@ class PaymentService(
                 wallet.tokenBalance + tokenPackage.tokens,
                 amountPaidGBP = tokenPackage.priceGBP,
                 stripePaymentIntentId = null,
-                idempotencyKey = request.idempotencyKey
+                idempotencyKey = request.idempotencyKey,
+                acceptedTerms = request.acceptedTerms
             )
             transaction to wallet
         }
@@ -110,7 +220,8 @@ class PaymentService(
                     wallet.currency,
                     tokenPackage.tokens,
                     paymentIntent.status,
-                    transactionId = transaction.transactionId
+                    transactionId = transaction.transactionId,
+                    acceptedTerms = request.acceptedTerms
                 )
 
             }
@@ -173,7 +284,7 @@ class PaymentService(
                     "activity" to request.activity,
                     "relatedDateId" to request.relatedDateId.toString(),
                     "cost" to cost.toString()
-                )
+                ),
             )
         }
     }

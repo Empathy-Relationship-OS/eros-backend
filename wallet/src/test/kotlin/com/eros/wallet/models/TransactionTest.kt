@@ -23,12 +23,13 @@ class TransactionTest {
         amountPaidGBP: BigDecimal? = null,
         idempotencyKey: String? = null,
         metadata: Map<String, String> = emptyMap(),
+        acceptedTerms : Boolean? = true,
         createdAt: Instant = Instant.now(),
         updatedAt: Instant = Instant.now(),
     ) = Transaction(
         transactionId, walletId, type, amount, balanceAfter, description,
         status, relatedDateId, relatedTransactionId, stripePaymentIntentId,
-        amountPaidGBP, idempotencyKey, metadata, createdAt, updatedAt
+        amountPaidGBP, idempotencyKey, metadata, acceptedTerms,createdAt, updatedAt
     )
 
     @Nested

@@ -33,7 +33,8 @@ class PurchaseFlowTest {
         val request = PurchaseRequest(
             packageType = "GOLD_PACK",
             paymentMethodId = "pm_card_visa",
-            idempotencyKey = "unique-key-123"
+            idempotencyKey = "unique-key-123",
+            acceptedTerms = true
         )
         val mockIntent = mockk<PaymentIntent> {
             every { id } returns "pi_test_123"
@@ -52,7 +53,7 @@ class PurchaseFlowTest {
 
         // 4. Mock the final DB save
         val expectedTx = mockk<Transaction>()
-        coEvery { transactionService.createPurchaseTransaction(any(), any(), any(), any(), any(), any()) } returns expectedTx
+        coEvery { transactionService.createPurchaseTransaction(any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns expectedTx
 
         // WHEN
         val result = orchestrator.purchaseTokens(userId, request)
@@ -71,7 +72,8 @@ class PurchaseFlowTest {
                 newBalance = BigDecimal("50.00"),
                 stripePaymentIntentId = "pi_test_123", // The ID from our mock
                 idempotencyKey = "unique-key-123",
-                amountPaidGBP = any()
+                amountPaidGBP = any(),
+                acceptedTerms = true
             )
         }
     }

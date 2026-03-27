@@ -4,7 +4,9 @@ import com.eros.wallet.convertToUserCurrency
 import com.eros.wallet.models.TokenPackage
 import com.stripe.exception.StripeException
 import com.stripe.model.PaymentIntent
+import com.stripe.model.Refund
 import com.stripe.param.PaymentIntentCreateParams
+import com.stripe.param.RefundCreateParams
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -45,6 +47,34 @@ class StripeService {
             .build()
 
         return PaymentIntent.create(params)
+    }
+
+    /**
+     * Create a refund in stripe.
+     */
+    fun createRefund(
+        paymentIntentId: String,
+        amount: Long? = null,
+        reason: String? = null,
+        metadata: Map<String, String> = emptyMap(),
+        idempotencyKey: String
+    ): Refund {
+        val paramsBuilder = RefundCreateParams.builder()
+            .setPaymentIntent(paymentIntentId)
+
+        // Partial refund if amount specified
+        amount?.let { paramsBuilder.setAmount(it) }
+
+        // Optional refund reason
+        reason?.let { paramsBuilder.setReason(RefundCreateParams.Reason.REQUESTED_BY_CUSTOMER) }
+
+        // Add metadata for tracking
+        metadata.forEach { (key, value) ->
+            paramsBuilder.putMetadata(key, value)
+        }
+        paramsBuilder.putMetadata("idempotencyKey", idempotencyKey)
+
+        return Refund.create(paramsBuilder.build())
     }
 
 

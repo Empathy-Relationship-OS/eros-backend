@@ -36,6 +36,7 @@ class TransactionServiceTest {
                 status = TransactionStatus.COMPLETED,
                 relatedDateId = 123L,
                 idempotencyKey = "key-123",
+                acceptedTerms = true,
                 createdAt = Instant.parse("2024-01-15T10:00:00Z"),
                 updatedAt = Instant.parse("2024-01-15T10:00:00Z"),
             )
@@ -85,6 +86,7 @@ class TransactionServiceTest {
                 stripePaymentIntentId = "pi_123",
                 amountPaidGBP = 45.00.toBigDecimal(),
                 idempotencyKey = "key-123",
+                acceptedTerms = true,
                 createdAt = Instant.parse("2024-01-15T10:00:00Z"),
                 updatedAt = Instant.parse("2024-01-15T10:00:00Z"),
             )
@@ -98,6 +100,7 @@ class TransactionServiceTest {
                 amountPaidGBP = 45.00.toBigDecimal(),
                 stripePaymentIntentId = "pi_123",
                 idempotencyKey = "key-123",
+                acceptedTerms = true,
                 metadata = emptyMap()
             )
 
@@ -124,6 +127,7 @@ class TransactionServiceTest {
                 status = TransactionStatus.COMPLETED,
                 relatedDateId = 123L,
                 relatedTransactionId = 1L,
+                acceptedTerms = true,
                 createdAt = Instant.parse("2024-01-15T10:00:00Z"),
                 updatedAt = Instant.parse("2024-01-15T10:00:00Z"),
             )
@@ -138,10 +142,13 @@ class TransactionServiceTest {
                 description = "Refund for cancelled date",
                 relatedDateId = 123L,
                 relatedTransactionId = 1L,
-                metadata = emptyMap()
+                metadata = emptyMap(),
+                acceptedTerms = true,
+                refundIntent = "wad",
+                idempotencyKey = "wdaawd"
             )
 
-            assertEquals(50.0.toBigDecimal(), result.amount)  // Positive for refund
+            assertEquals(50.0.toBigDecimal(), result.amount)
             assertEquals(TransactionType.REFUND, result.type)
             assertEquals(123L, result.relatedDateId)
             assertEquals(1L, result.relatedTransactionId)

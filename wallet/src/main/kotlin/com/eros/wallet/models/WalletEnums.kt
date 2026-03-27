@@ -10,10 +10,10 @@ enum class TokenPackage(
     val tokens: BigDecimal,
     val priceGBP: BigDecimal,
 ) {
-    STARTER(5.0.toBigDecimal(), 2500.toBigDecimal()),      // £25 - £5/$6 per token
-    POPULAR(10.0.toBigDecimal(), 4500.toBigDecimal()),     // £45 - £4.50/$5.40 per token
-    PREMIUM(20.0.toBigDecimal(), 8000.toBigDecimal()),     // £80 - £4/$4.80 per token
-    MEGA(50.0.toBigDecimal(), 18000.toBigDecimal())       // £180 - £3.60/$4.20 per token
+    STARTER(1.0.toBigDecimal(), 700.toBigDecimal()),      // £
+    POPULAR(3.0.toBigDecimal(), 2000.toBigDecimal()),     // £
+    PREMIUM(5.0.toBigDecimal(), 3250.toBigDecimal()),     // £
+    MEGA(10.0.toBigDecimal(), 4500.toBigDecimal())        // £
 }
 
 
@@ -35,7 +35,9 @@ enum class TransactionStatus {
     PENDING,      // Payment intent created, awaiting confirmation
     COMPLETED,    // Successfully processed
     FAILED,       // Payment failed
-    CANCELLED     // Payment cancelled
+    CANCELLED,    // Payment cancelled
+    REFUNDED,     // Payment Refunded
+    REFUND_FAILED // Refund failed
 }
 
 

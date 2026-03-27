@@ -62,65 +62,6 @@ class WalletService(
 
 
     /**
-     * Creates a purchase intent for token purchase.
-     * Does NOT credit balance - that happens when Stripe webhook confirms payment.
-     */
-    suspend fun createPurchase(userId: String, request: PurchaseRequest): Purchase = dbQuery {
-        // 1. Check idempotency
-        transactionService.findByIdempotencyKey(request.idempotencyKey)?.let { existing ->
-            // Already processed - return existing response
-            return@dbQuery Purchase(
-                clientSecret = existing.stripePaymentIntentId ?: "",
-                paymentIntentId = existing.stripePaymentIntentId ?: "",
-                amount = existing.amountPaidGBP ?: 0.toBigDecimal(),
-                currency = "gbp",
-                tokenAmount = existing.amount,
-                status = existing.status.name,
-                newBalance = if (existing.status == TransactionStatus.COMPLETED) {
-                    walletRepository.findById(userId)?.tokenBalance
-                } else null,
-                transactionId = existing.transactionId
-            )
-        }
-
-        // 2. Get wallet - with lock.
-        val wallet = walletRepository.findByIdForUpdate(userId)
-            ?: throw NotFoundException("Can't find user $userId's wallet.")
-
-        // 3. Validate package type
-        val pack = try {
-            TokenPackage.valueOf(request.packageType)
-        } catch (e: IllegalArgumentException) {
-            throw IllegalArgumentException("Invalid package type: ${request.packageType}")
-        }
-
-        // 4. Create pending transaction
-        val transaction = transactionService.createPurchaseTransaction(
-            walletId = wallet.walletId,
-            tokenAmount = pack.tokens,
-            newBalance = wallet.tokenBalance,
-            amountPaidGBP = pack.priceGBP,
-            stripePaymentIntentId = request.paymentMethodId,
-            idempotencyKey = request.idempotencyKey,
-            status = TransactionStatus.PENDING,
-            metadata = emptyMap()
-        )
-
-        // 5. Return purchase
-        Purchase(
-            clientSecret = transaction.stripePaymentIntentId ?: "",
-            paymentIntentId = transaction.stripePaymentIntentId ?: "",
-            amount = pack.priceGBP,
-            currency = "gbp",
-            tokenAmount = pack.tokens,
-            status = "pending",
-            newBalance = null,  // Not credited yet
-            transactionId = transaction.transactionId
-        )
-    }
-
-
-    /**
      * Credits wallet balance (called by Stripe webhook or refund processing).
      */
     suspend fun creditBalance(
@@ -158,6 +99,26 @@ class WalletService(
 
 
     /**
+     * Function to remove credit from a wallet.
+     */
+    suspend fun debitBalance(
+        userId: String,
+        amount: BigDecimal
+    ): Wallet {
+
+        // Lock wallet
+        val wallet = walletRepository.findById(userId)
+            ?: throw NotFoundException("Wallet not found")
+
+        // Update and return new wallet
+        return walletRepository.update(userId, wallet.copy(
+            tokenBalance = wallet.tokenBalance - amount,
+            updatedAt = Instant.now(clock)
+        )) ?: throw Exception("Failed to update wallet")
+    }
+
+
+    /**
      * Spends tokens (for date commitments).
      */
     suspend fun spendTokens(
@@ -189,10 +150,11 @@ class WalletService(
         )) ?: throw Exception("Failed to update wallet")
     }
 
+
     /**
      * Refunds tokens for cancelled dates.
      */
-    suspend fun refundTokens(
+    suspend fun refundTokensFromDate(
         userId: String,
         relatedDateId: Long,
         refundPolicy: RefundPolicy
@@ -244,7 +206,10 @@ class WalletService(
                 description = "Refund for cancelled date $relatedDateId (${refundPolicy.name})",
                 relatedTransactionId = transactions.last().transactionId,
                 newBalance = newBalance,
-                metadata = mapOf("refund_policy" to refundPolicy.name)
+                metadata = mapOf("refund_policy" to refundPolicy.name),
+                acceptedTerms = null,
+                refundIntent = "placeholder",
+                idempotencyKey = null
             )
 
             // Update wallet
@@ -270,6 +235,7 @@ class WalletService(
             currency = updatedWallet.currency
         )
     }
+
 
     /**
      * Gets wallet balance with pending commitments calculated.

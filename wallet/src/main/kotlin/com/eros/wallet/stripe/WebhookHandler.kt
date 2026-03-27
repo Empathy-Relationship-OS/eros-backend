@@ -1,6 +1,7 @@
 package com.eros.wallet.stripe
 
 import com.eros.database.dbQuery
+import com.eros.wallet.models.Refund
 import com.eros.wallet.models.TransactionStatus
 import com.eros.wallet.models.TransactionType
 import com.eros.wallet.services.TransactionService
@@ -14,6 +15,7 @@ import io.ktor.server.plugins.NotFoundException
 import io.ktor.util.logging.error
 import org.slf4j.LoggerFactory
 import java.math.BigDecimal
+import kotlin.text.toBigDecimalOrNull
 
 private val logger = LoggerFactory.getLogger(StripeWebhookHandler::class.java)
 
@@ -45,10 +47,54 @@ class StripeWebhookHandler(
             "payment_intent.succeeded" -> handlePaymentSuccess(event)
             "payment_intent.payment_failed" -> handlePaymentFailure(event)
             "payment_intent.canceled" -> handlePaymentCancelled(event)
+            "charge.refund.updated" -> handleRefundUpdate(event)
             else -> {
                 logger.warn ( "Unhandled Stripe event type: ${event.type}" )
                 WebhookResult.Ignored(event.type)
             }
+        }
+    }
+
+    private suspend fun handleRefundUpdate(event: Event) : WebhookResult{
+        val dataObject = event.dataObjectDeserializer.rawJson
+
+        // Parse as Refund object
+        val refund = ApiResource.GSON.fromJson(dataObject, com.stripe.model.Refund::class.java)
+            ?: return WebhookResult.Error("Failed to parse raw JSON to Refund")
+
+        val transactionId = refund.metadata["transactionId"]?.toLongOrNull()
+            ?: return WebhookResult.Error("Missing transactionId in refund metadata")
+
+        val idempotencyKey = refund.metadata["idempotencyKey"]
+            ?: return WebhookResult.Error("Missing idempotencyKey in metadata")
+
+        val userId = refund.metadata["userId"]
+            ?: return WebhookResult.Error("Missing userId in metadata")
+
+        val tokenAmount = refund.metadata["tokenAmount"]?.toBigDecimalOrNull()
+            ?: return WebhookResult.Error("Missing or invalid tokenAmount in metadata")
+
+        // Update the transaction and add the credit back if the transaction failed.
+        return try {
+            val transaction = dbQuery {
+                transactionService.updateTransactionStatus(
+                    idempotencyKey,
+                    TransactionStatus.REFUNDED, null, null, null
+                ) ?: throw NotFoundException("Can't find transaction.")
+            }
+
+            logger.info ( "Refund succeeded for user $userId: $tokenAmount tokens credited" )
+            WebhookResult.Success(transaction.transactionId)
+
+        } catch (e: Exception) {
+            logger.error("Failed to process refund success for user $userId" )
+            val transaction = dbQuery {
+                transactionService.updateTransactionStatus(
+                    idempotencyKey,
+                    TransactionStatus.REFUND_FAILED, null, null, null
+                ) ?: throw NotFoundException("Can't find transaction.")
+            }
+            WebhookResult.Error("Failed to refund user: ${e.message}")
         }
     }
 

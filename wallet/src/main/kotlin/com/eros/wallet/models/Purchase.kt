@@ -15,7 +15,8 @@ import kotlin.String
 data class PurchaseRequest(
     val packageType: String,
     val paymentMethodId: String,
-    val idempotencyKey: String
+    val idempotencyKey: String,
+    val acceptedTerms: Boolean
 ) {
     init {
         require(packageType.isNotBlank()) { "Package type cannot be blank" }
@@ -36,7 +37,8 @@ data class Purchase(
     val tokenAmount: BigDecimal,
     val status: String,
     val newBalance: BigDecimal? = null,
-    val transactionId: Long? = null
+    val transactionId: Long? = null,
+    val acceptedTerms: Boolean
 )
 
 
@@ -64,7 +66,8 @@ data class PurchaseResponse(
     val status: String,
     @Serializable(with = BigDecimalSerializer::class)
     val newBalance: BigDecimal? = null,
-    val transactionId: Long? = null
+    val transactionId: Long? = null,
+    val acceptedTerms: Boolean?
 )
 
 fun Purchase.toDTO() = PurchaseResponse(
@@ -75,7 +78,8 @@ fun Purchase.toDTO() = PurchaseResponse(
     tokenAmount = tokenAmount,
     status = status,
     newBalance = newBalance,
-    transactionId = transactionId
+    transactionId = transactionId,
+    acceptedTerms = acceptedTerms
 )
 
 
@@ -85,3 +89,33 @@ data class SpendTokenRequest(
     val activity: String,
     val idempotencyKey : String
 )
+
+@Serializable
+data class RefundTokenRequest(
+    val transactionId: Long,
+    val stripePaymentIntent: String,
+    val idempotencyKey : String
+)
+
+
+data class Refund(
+    val transactionId: Long,
+    val clientSecret: String,
+    val status: String
+)
+
+@Serializable
+data class RefundResponse(
+    val transactionId: Long,
+    val clientSecret: String,
+    val status: String
+)
+
+fun Refund.toDTO() = RefundResponse(
+    transactionId = this.transactionId,
+    clientSecret = this.clientSecret,
+    status = this.status
+)
+
+
+

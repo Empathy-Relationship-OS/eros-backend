@@ -5,6 +5,7 @@ import com.eros.wallet.models.Transaction
 import com.eros.wallet.models.TransactionStatus
 import com.eros.wallet.models.TransactionType
 import java.math.BigDecimal
+import java.time.Instant
 
 interface TransactionRepository : IBaseDAO<Long, Transaction> {
 
@@ -18,6 +19,15 @@ interface TransactionRepository : IBaseDAO<Long, Transaction> {
     suspend fun findByStripePaymentIntentId(stripePaymentIntentId: String): Transaction?
     suspend fun hasUserAlreadyPaid(userId: String, dateId: Long): Boolean
 
+    suspend fun findUserTransactionsAfterTime(createdAt: Instant, userId: String, type: TransactionType) : List<Transaction>
+
+    suspend fun findByUserIdAndDateId(userId: String): List<Transaction>
+
+    fun findMasterTransaction(allTransactions: List<Transaction>): Transaction?
+
+    suspend fun hasBeenRefunded(transactionId: Long) : Boolean
+
+    suspend fun getTransaction(transactionId: Long) : Transaction?
 
     suspend fun updateTransactionStatus(
         idempotencyKey: String,

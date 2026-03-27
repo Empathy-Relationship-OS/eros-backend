@@ -7,6 +7,7 @@ import io.ktor.server.routing.route
 import com.eros.auth.extensions.requireRoles
 import com.eros.common.errors.BadRequestException
 import com.eros.wallet.models.PurchaseRequest
+import com.eros.wallet.models.RefundTokenRequest
 import com.eros.wallet.models.SpendTokenRequest
 import com.eros.wallet.models.toDTO
 import com.eros.wallet.services.PaymentService
@@ -86,6 +87,14 @@ fun Route.walletRoutes(paymentService: PaymentService) {
 
         //todo:
         post("/refund"){
+
+            // Get user and request.
+            val principal = call.requireFirebasePrincipal()
+            val request = call.receive<RefundTokenRequest>()
+
+            val refund = paymentService.refundTokens(principal.uid, request)
+
+            call.respond(HttpStatusCode.Created, refund.toDTO())
 
         }
 

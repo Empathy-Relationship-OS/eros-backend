@@ -8,6 +8,7 @@ import com.eros.wallet.models.TransactionType
 import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.core.booleanParam
 import org.jetbrains.exposed.v1.javatime.timestamp
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.time.Instant
@@ -27,6 +28,7 @@ object Transactions : Table("transactions") {
     val amountPaidGbp = decimal("amount_paid_gbp", 10, 2).nullable()
     val idempotencyKey = varchar("idempotency_key", 255).nullable().uniqueIndex()
     val metadata = text("metadata").nullable() // JSON
+    val acceptedTerms = bool("accepted_terms").nullable()
     val createdAt = timestamp("created_at").clientDefault { Instant.now() }
     val updatedAt = timestamp("updated_at").clientDefault { Instant.now() }
 
