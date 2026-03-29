@@ -1,29 +1,77 @@
 package com.eros.wallet
 
-import com.google.gson.Gson
+// 1. Fixed the import to the CLIENT version
+import com.eros.common.errors.ExchangeRateException
+import io.ktor.client.*
+import io.ktor.client.engine.apache.Apache
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.*
+import io.ktor.serialization.kotlinx.json.*
+import io.ktor.client.request.*
+import io.ktor.client.statement.*
+import io.ktor.client.call.*
+import io.ktor.http.*
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import java.time.Instant
+import java.time.Duration
+import java.util.concurrent.ConcurrentHashMap
 import java.math.BigDecimal
 import java.math.RoundingMode
-import java.net.URL
 
+// Use Ktor HttpClient for non-blocking I/O with timeout
+private val client = HttpClient(Apache) {
+    install(ContentNegotiation) {
+        json(Json {
+            ignoreUnknownKeys = true
+            prettyPrint = true
+            isLenient = true
+        })
+    }
+    install(HttpTimeout) {
+        requestTimeoutMillis = 5000
+        connectTimeoutMillis = 2000
+    }
+}
+
+@Serializable
 data class ExchangeRateResponse(
     val rates: Map<String, Double>
 )
 
-fun getExchangeRate(fromCurrency: String, toCurrency: String): Double {
-    // Using exchangerate-api.com (free tier: 1,500 requests/month)
-    val url = "https://api.exchangerate-api.com/v4/latest/$fromCurrency"
-    val response = URL(url).readText()
-    val data = Gson().fromJson(response, ExchangeRateResponse::class.java)
+private val rateCache = ConcurrentHashMap<String, Pair<Instant, Map<String, Double>>>()
+private val cacheTtl = Duration.ofHours(1)
 
-    return data.rates[toCurrency.uppercase()]
-        ?: throw IllegalArgumentException("Currency $toCurrency not found")
+suspend fun getExchangeRate(fromCurrency: String, toCurrency: String): Double {
+    val cached = rateCache[fromCurrency.uppercase()]
+    if (cached != null && Instant.now().isBefore(cached.first.plus(cacheTtl))) {
+        val rate = cached.second[toCurrency.uppercase()]
+        if (rate != null) return rate
+    }
+
+    try {
+        val response: HttpResponse = client.get("https://api.exchangerate-api.com/v4/latest/${fromCurrency.uppercase()}")
+
+        if (!response.status.isSuccess()) {
+            throw ExchangeRateException("Failed to fetch rates: ${response.status}")
+        }
+
+        val data: ExchangeRateResponse = response.body()
+        rateCache[fromCurrency.uppercase()] = Pair(Instant.now(), data.rates)
+
+        return data.rates[toCurrency.uppercase()]
+            ?: throw IllegalArgumentException("Currency $toCurrency not found")
+
+    } catch (e: Exception) {
+        throw ExchangeRateException("Error fetching exchange rate: ${e.message}")
+    }
 }
 
-fun convertToUserCurrency(amountInGBP: BigDecimal, targetCurrency: String): BigDecimal {
+suspend fun convertToUserCurrency(amountInGBP: BigDecimal, targetCurrency: String): BigDecimal {
     if (targetCurrency.equals("gbp", ignoreCase = true)) {
         return amountInGBP
     }
 
-    val rate = getExchangeRate("GBP", targetCurrency).toBigDecimal()
-    return (amountInGBP * rate).setScale(2, RoundingMode.HALF_UP)
+    val rate = BigDecimal.valueOf(getExchangeRate("GBP", targetCurrency))
+    return (amountInGBP.multiply(rate)).setScale(2, RoundingMode.HALF_UP)
 }

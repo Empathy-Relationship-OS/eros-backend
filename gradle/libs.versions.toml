@@ -17,6 +17,7 @@ mockk = "1.13.13"
 aws-sdk = "2.41.34"
 logstash = "7.4"
 stripe-java = "31.4.1"
+apache = "2.3.7"
 
 [libraries]
 logstash-logback-encoder = {module = "net.logstash.logback:logstash-logback-encoder", version.ref = "logstash"}
@@ -60,6 +61,7 @@ twilio = {module = "com.twilio.sdk:twilio", version.ref = "twilio"}
 mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
 aws-s3 = { module = "software.amazon.awssdk:s3", version.ref = "aws-sdk" }
 stripe-java = {module ="com.stripe:stripe-java", version.ref = "stripe-java" }
+apache = {module = "io.ktor:ktor-client-apache", version.ref = "apache"}
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
