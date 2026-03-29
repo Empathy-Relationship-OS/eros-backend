@@ -4,6 +4,7 @@ import com.eros.common.errors.ApiError
 import com.eros.common.errors.BadRequestException
 import com.eros.common.errors.ConflictException
 import com.eros.common.errors.DatabaseException
+import com.eros.common.errors.ExchangeRateException
 import com.eros.common.errors.ForbiddenException
 import com.eros.common.errors.UnauthorizedException
 import com.eros.common.errors.InsufficientBalanceException
@@ -71,13 +72,17 @@ fun Application.configureExceptionHandling() {
             call.respond(
                 HttpStatusCode.Conflict, ApiError(
                     error = "insufficient_balance",
-                    message = "Balance ${cause.currentBalance} is less than required ${cause.requiredAmount}"
+                    message = "Balance is less than the required ${cause.requiredAmount} tokens"
                 )
             )
         }
         exception<SQLException> { call, cause ->
             call.application.log.error("SQL error", cause)
             call.respond(HttpStatusCode.InternalServerError, ApiError("database_error", "Database operation failed"))
+        }
+        exception<ExchangeRateException> { call, cause ->
+            call.application.log.error("SQL error", cause)
+            call.respond(HttpStatusCode.InternalServerError, ApiError("currency_exchange_error", cause.message ?: "Failed to retrieve currency"))
         }
         exception<Throwable> { call, cause ->
             call.application.log.error("Unhandled error", cause)

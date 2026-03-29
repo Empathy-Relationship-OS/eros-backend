@@ -1,5 +1,3 @@
-import org.gradle.kotlin.dsl.project
-
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.plugin.serialization)
@@ -23,6 +21,8 @@ dependencies {
     implementation(libs.ktor.server.auth.jwt)
     implementation(libs.ktor.server.content.negotiation)
     implementation(libs.ktor.server.config.yaml)
+    implementation(libs.ktor.client.apache)
+    implementation(libs.ktor.client.content.negotiation)
 
     // DB Dependencies
     implementation(libs.exposed.core)

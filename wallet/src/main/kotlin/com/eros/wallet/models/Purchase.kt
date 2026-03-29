@@ -2,7 +2,6 @@ package com.eros.wallet.models
 
 import kotlinx.serialization.Serializable
 import java.math.BigDecimal
-import kotlin.String
 
 /**
  * Request DTO for purchasing tokens.
@@ -22,6 +21,7 @@ data class PurchaseRequest(
         require(packageType.isNotBlank()) { "Package type cannot be blank" }
         require(paymentMethodId.isNotBlank()) { "Payment method ID cannot be blank" }
         require(idempotencyKey.isNotBlank()) { "Idempotency key cannot be blank" }
+        require(acceptedTerms) { "Terms must be accepted to make a purchase" }
     }
 }
 
@@ -85,17 +85,27 @@ fun Purchase.toDTO() = PurchaseResponse(
 
 @Serializable
 data class SpendTokenRequest(
-    val relatedDateId : Long,
+    val relatedDateId: Long,
     val activity: String,
-    val idempotencyKey : String
-)
+    val idempotencyKey: String
+) {
+    init {
+        require(activity.isNotBlank()) { "Activity cannot be blank" }
+        require(idempotencyKey.isNotBlank()) { "Idempotency key cannot be blank" }
+    }
+}
 
 @Serializable
 data class RefundTokenRequest(
     val transactionId: Long,
     val stripePaymentIntent: String,
-    val idempotencyKey : String
-)
+    val idempotencyKey: String
+) {
+    init {
+        require(stripePaymentIntent.isNotBlank()) { "Stripe payment intent cannot be blank" }
+        require(idempotencyKey.isNotBlank()) { "Idempotency key cannot be blank" }
+    }
+}
 
 
 data class Refund(

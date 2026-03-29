@@ -35,6 +35,6 @@ aws:
   presignedUrlTtlMinutes: ${AWS_PRESIGNED_URL_TTL_MINUTES:15}
 
 stripe:
-  secretKey: ${STIPE_SECRET_KEY}
-  publishableKey: ${STIPE_PUBLISHABLE_KEY}
+  secretKey: ${STRIPE_SECRET_KEY}
+  publishableKey: ${STRIPE_PUBLISHABLE_KEY}
   webhookSecret: ${WEBHOOK_SECRET_KEY}

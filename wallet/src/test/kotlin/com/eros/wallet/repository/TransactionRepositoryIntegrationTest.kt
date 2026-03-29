@@ -11,7 +11,7 @@ import com.eros.wallet.models.TransactionType
 import com.eros.wallet.models.Wallet
 import com.eros.wallet.table.Transactions
 import com.eros.wallet.table.Wallets
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.deleteAll
@@ -81,7 +81,7 @@ class TransactionRepositoryImplTest {
     inner class CreateTests {
 
         @Test
-        fun `create should insert transaction and return it`() = runBlocking {
+        fun `create should insert transaction and return it`() = runTest {
             
             val user = testUser("user-1")
             val wallet = testWallet("user-1")
@@ -104,7 +104,7 @@ class TransactionRepositoryImplTest {
         }
 
         @Test
-        fun `create should set timestamp from clock`() = runBlocking {
+        fun `create should set timestamp from clock`() = runTest {
             
             val user = testUser("user-1")
             val wallet = testWallet("user-1")
@@ -122,7 +122,7 @@ class TransactionRepositoryImplTest {
         }
 
         @Test
-        fun `create with all transaction types should work`() = runBlocking {
+        fun `create with all transaction types should work`() = runTest {
             
             val user = testUser("user-1")
             val wallet = testWallet("user-1")
@@ -153,7 +153,7 @@ class TransactionRepositoryImplTest {
         }
 
         @Test
-        fun `create with all transaction statuses should work`() = runBlocking {
+        fun `create with all transaction statuses should work`() = runTest {
             
             val user = testUser("user-1")
             val wallet = testWallet("user-1")
@@ -184,7 +184,7 @@ class TransactionRepositoryImplTest {
         }
 
         @Test
-        fun `create with metadata should serialize correctly`() = runBlocking {
+        fun `create with metadata should serialize correctly`() = runTest {
             
             val user = testUser("user-1")
             val wallet = testWallet("user-1")
@@ -208,7 +208,7 @@ class TransactionRepositoryImplTest {
         }
 
         @Test
-        fun `create with empty metadata should work`() = runBlocking {
+        fun `create with empty metadata should work`() = runTest {
             
             val user = testUser("user-1")
             val wallet = testWallet("user-1")
@@ -226,7 +226,7 @@ class TransactionRepositoryImplTest {
         }
 
         @Test
-        fun `create with stripe payment intent should work`() = runBlocking {
+        fun `create with stripe payment intent should work`() = runTest {
             
             val user = testUser("user-1")
             val wallet = testWallet("user-1")
@@ -249,7 +249,7 @@ class TransactionRepositoryImplTest {
         }
 
         @Test
-        fun `create with idempotency key should work`() = runBlocking {
+        fun `create with idempotency key should work`() = runTest {
             
             val user = testUser("user-1")
             val wallet = testWallet("user-1")
@@ -274,7 +274,7 @@ class TransactionRepositoryImplTest {
     inner class FindByIdTests {
 
         @Test
-        fun `findById should return transaction when exists`() = runBlocking {
+        fun `findById should return transaction when exists`() = runTest {
             
             val user = testUser("user-1")
             val wallet = testWallet("user-1")
@@ -296,7 +296,7 @@ class TransactionRepositoryImplTest {
         }
 
         @Test
-        fun `findById should return null when transaction does not exist`() = runBlocking {
+        fun `findById should return null when transaction does not exist`() = runTest {
             
             val found = dbQuery { transactionRepository.findById(999L) }
 
@@ -305,7 +305,7 @@ class TransactionRepositoryImplTest {
         }
 
         @Test
-        fun `findById should return correct transaction when multiple exist`() = runBlocking {
+        fun `findById should return correct transaction when multiple exist`() = runTest {
             
             val user = testUser("user-1")
             val wallet = testWallet("user-1")
@@ -336,7 +336,7 @@ class TransactionRepositoryImplTest {
     inner class FindAllTests {
 
         @Test
-        fun `findAll should return all transactions`() = runBlocking {
+        fun `findAll should return all transactions`() = runTest {
             
             val user = testUser("user-1")
             val wallet = testWallet("user-1")
@@ -360,7 +360,7 @@ class TransactionRepositoryImplTest {
         }
 
         @Test
-        fun `findAll should return empty list when no transactions exist`() = runBlocking {
+        fun `findAll should return empty list when no transactions exist`() = runTest {
             
             val transactions = dbQuery { transactionRepository.findAll() }
 
@@ -373,7 +373,7 @@ class TransactionRepositoryImplTest {
     inner class FindByUserIdTests {
 
         @Test
-        fun `findByUserId should return all transactions for user`() = runBlocking {
+        fun `findByUserId should return all transactions for user`() = runTest {
             
             val user1 = testUser("user-1")
             val user2 = testUser("user-2", email = "test@test1.com")
@@ -399,7 +399,7 @@ class TransactionRepositoryImplTest {
         }
 
         @Test
-        fun `findByUserId should return empty list when user has no transactions`() = runBlocking {
+        fun `findByUserId should return empty list when user has no transactions`() = runTest {
             
             val transactions = dbQuery { transactionRepository.findByUserId("user-1",5,0) }
 
@@ -408,7 +408,7 @@ class TransactionRepositoryImplTest {
         }
 
         @Test
-        fun `findByUserId should return transactions in correct order`() = runBlocking {
+        fun `findByUserId should return transactions in correct order`() = runTest {
             
             val user = testUser("user-1")
             val wallet = testWallet("user-1")
@@ -433,7 +433,7 @@ class TransactionRepositoryImplTest {
     inner class FindByIdempotencyKeyTests {
 
         @Test
-        fun `findByIdempotencyKey should return transaction when exists`() = runBlocking {
+        fun `findByIdempotencyKey should return transaction when exists`() = runTest {
             
             val user = testUser("user-1")
             val wallet = testWallet("user-1")
@@ -458,7 +458,7 @@ class TransactionRepositoryImplTest {
         }
 
         @Test
-        fun `findByIdempotencyKey should return null when key does not exist`() = runBlocking {
+        fun `findByIdempotencyKey should return null when key does not exist`() = runTest {
             
             val found = dbQuery { transactionRepository.findByIdempotencyKey("nonexistent") }
 
@@ -467,7 +467,7 @@ class TransactionRepositoryImplTest {
         }
 
         @Test
-        fun `findByIdempotencyKey should return correct transaction when multiple exist`() = runBlocking {
+        fun `findByIdempotencyKey should return correct transaction when multiple exist`() = runTest {
             
             val user = testUser("user-1")
             val wallet = testWallet("user-1")
@@ -489,7 +489,7 @@ class TransactionRepositoryImplTest {
         }
 
         @Test
-        fun `findByIdempotencyKey should work with null idempotency key`() = runBlocking {
+        fun `findByIdempotencyKey should work with null idempotency key`() = runTest {
             
             val user = testUser("user-1")
             val wallet = testWallet("user-1")
@@ -513,7 +513,7 @@ class TransactionRepositoryImplTest {
     inner class UpdateTests {
 
         @Test
-        fun `update should modify transaction and return updated version`() = runBlocking {
+        fun `update should modify transaction and return updated version`() = runTest {
             
             val user = testUser("user-1")
             val wallet = testWallet("user-1")
@@ -536,7 +536,7 @@ class TransactionRepositoryImplTest {
         }
 
         @Test
-        fun `update should return null when transaction does not exist`() = runBlocking {
+        fun `update should return null when transaction does not exist`() = runTest {
             
             val transaction = testTransaction(walletId = 1L, transactionId = 999L)
 
@@ -548,7 +548,7 @@ class TransactionRepositoryImplTest {
         }
 
         @Test
-        fun `update should persist changes to database`() = runBlocking {
+        fun `update should persist changes to database`() = runTest {
             
             val user = testUser("user-1")
             val wallet = testWallet("user-1")
@@ -575,7 +575,7 @@ class TransactionRepositoryImplTest {
     inner class DeleteTests {
 
         @Test
-        fun `delete should remove transaction and return 1`() = runBlocking {
+        fun `delete should remove transaction and return 1`() = runTest {
             
             val user = testUser("user-1")
             val wallet = testWallet("user-1")
@@ -597,7 +597,7 @@ class TransactionRepositoryImplTest {
         }
 
         @Test
-        fun `delete should return 0 when transaction does not exist`() = runBlocking {
+        fun `delete should return 0 when transaction does not exist`() = runTest {
             
             val deleted = dbQuery { transactionRepository.delete(999L) }
 
@@ -606,7 +606,7 @@ class TransactionRepositoryImplTest {
         }
 
         @Test
-        fun `delete should not affect other transactions`() = runBlocking {
+        fun `delete should not affect other transactions`() = runTest {
             
             val user = testUser("user-1")
             val wallet = testWallet("user-1")
@@ -622,23 +622,21 @@ class TransactionRepositoryImplTest {
                 )
             }
 
-            
             dbQuery { transactionRepository.delete(created[0].transactionId) }
-
             
             val found1 = dbQuery { transactionRepository.findById(created[0].transactionId) }
             val found2 = dbQuery { transactionRepository.findById(created[1].transactionId) }
             assertNull(found1)
-            assertNotNull(found2)
-            Unit
+            assertNotEquals(null, found2)
         }
+
     }
 
     @Nested
     inner class DoesExistTests {
 
         @Test
-        fun `doesExist should return true when transaction exists`() = runBlocking {
+        fun `doesExist should return true when transaction exists`() = runTest {
             
             val user = testUser("user-1")
             val wallet = testWallet("user-1")
@@ -658,7 +656,7 @@ class TransactionRepositoryImplTest {
         }
 
         @Test
-        fun `doesExist should return false when transaction does not exist`() = runBlocking {
+        fun `doesExist should return false when transaction does not exist`() = runTest {
             
             val exists = dbQuery { transactionRepository.doesExist(999L) }
 
@@ -667,7 +665,7 @@ class TransactionRepositoryImplTest {
         }
 
         @Test
-        fun `doesExist should return false after transaction is deleted`() = runBlocking {
+        fun `doesExist should return false after transaction is deleted`() = runTest {
             
             val user = testUser("user-1")
             val wallet = testWallet("user-1")

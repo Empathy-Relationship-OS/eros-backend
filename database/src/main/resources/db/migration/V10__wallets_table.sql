@@ -1,8 +1,8 @@
--- V7: Wallet Table
+-- V10: Wallet Table
 
 CREATE TABLE IF NOT EXISTS wallets (
     wallet_id BIGSERIAL PRIMARY KEY,
-    user_id varchar(128) REFERENCES users(user_id) ON DELETE CASCADE,
+    user_id varchar(128) NOT NULL UNIQUE REFERENCES users(user_id) ON DELETE CASCADE,
     token_balance NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
     lifetime_spent NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
     lifetime_purchased NUMERIC(10, 2) NOT NULL DEFAULT 0.00,

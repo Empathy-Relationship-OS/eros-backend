@@ -251,7 +251,7 @@ class PaymentService(
 
         return dbQuery {
             // Check the balance of the user is sufficient.
-            val cost = DateActivity.valueOf(request.activity).tokenCost.toBigDecimal()
+            val cost = DateActivity.valueOf(request.activity).tokenCost
             val wallet = walletService.getWallet(userId) ?: throw NotFoundException("Can't find user $userId wallet.")
             if (wallet.tokenBalance < cost) {
                 //todo: Change to correct exception

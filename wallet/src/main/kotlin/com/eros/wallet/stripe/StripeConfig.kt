@@ -7,7 +7,10 @@ import org.slf4j.LoggerFactory
 
 object StripeConfig {
     private val logger = LoggerFactory.getLogger(StripeConfig::class.java)
+
+    @Volatile
     private var initialized = false
+    private val initLock = Any()
 
     lateinit var secretKey: String
         private set
@@ -21,16 +24,18 @@ object StripeConfig {
 
     fun initialize(config: ApplicationConfig) {
         if (initialized) return
+        synchronized(initLock) {
+            if (initialized) return
+            secretKey = config.property("stripe.secretKey").getString()
+            webhookSecret = config.property("stripe.webhookSecret").getString()
+            publishableKey = config.property("stripe.publishableKey").getString()
 
-        secretKey = config.property("stripe.secretKey").getString()
-        webhookSecret = config.property("stripe.webhookSecret").getString()
-        publishableKey = config.property("stripe.publishableKey").getString()
+            logger.info("Initializing Stripe SDK...")
+            Stripe.apiKey = secretKey
 
-        logger.info("Initializing Stripe SDK...")
-        Stripe.apiKey = secretKey
-
-        validateKeyConsistency()
-        initialized = true
+            validateKeyConsistency()
+            initialized = true
+        }
 
         logger.info("Stripe initialized in ${if (isTestMode) "TEST" else "LIVE"} mode")
     }
