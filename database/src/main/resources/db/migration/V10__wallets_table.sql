@@ -14,4 +14,4 @@ CREATE TABLE IF NOT EXISTS wallets (
 );
 
 -- Index for common queries
-CREATE INDEX idx_wallets_balance ON wallets(token_balance);
+CREATE INDEX idx_wallets_user_id ON wallets(user_id);

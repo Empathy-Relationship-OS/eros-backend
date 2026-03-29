@@ -70,6 +70,9 @@ class WalletService(
         type: TransactionType,
         idempotencyKey: String,
     ): Wallet {
+        if (amount < BigDecimal(0.0)){
+            throw ConflictException("Amount must be positive")
+        }
         // Check idempotency and return wallet if already found.
         val existingTx = transactionService.findByIdempotencyKey(idempotencyKey)
         if (existingTx != null && existingTx.status == TransactionStatus.COMPLETED) {
@@ -105,7 +108,9 @@ class WalletService(
         userId: String,
         amount: BigDecimal
     ): Wallet {
-
+        if (amount < BigDecimal(0.0)){
+            throw ConflictException("Amount must be positive")
+        }
         // Lock wallet
         val wallet = walletRepository.findById(userId)
             ?: throw NotFoundException("Wallet not found")
@@ -125,7 +130,9 @@ class WalletService(
         userId: String,
         amount: BigDecimal,
     ): Wallet{
-
+        if (amount < BigDecimal(0.0)){
+            throw ConflictException("Amount must be positive")
+        }
         // Lock wallet
         val wallet = walletRepository.findByIdForUpdate(userId)
             ?: throw NotFoundException("Can't find user $userId's wallet.")

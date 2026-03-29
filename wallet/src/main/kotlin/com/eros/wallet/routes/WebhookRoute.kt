@@ -48,10 +48,9 @@ fun Route.webhookRoute(webhookHandler: StripeWebhookHandler) {
 
                     is WebhookResult.Error -> {
                         logger.error("Webhook error: ${result.message}")
-                        call.respond(HttpStatusCode.InternalServerError, result.message)
+                        call.respond(HttpStatusCode.InternalServerError, "Webhook processing error")
                     }
                 }
-
             } catch (e: InvalidWebhookSignatureException) {
                 logger.error("Invalid signature", e)
                 call.respond(HttpStatusCode.BadRequest, "Invalid signature")

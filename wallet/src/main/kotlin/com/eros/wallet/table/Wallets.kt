@@ -1,8 +1,6 @@
 package com.eros.wallet.table
 
 import com.eros.users.table.Users
-import com.eros.wallet.models.Wallet
-import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.greaterEq
 import org.jetbrains.exposed.v1.javatime.timestamp

@@ -50,7 +50,8 @@ suspend fun getExchangeRate(fromCurrency: String, toCurrency: String): Double {
     }
 
     try {
-        val response: HttpResponse = client.get("https://api.exchangerate-api.com/v4/latest/${fromCurrency.uppercase()}")
+        val response: HttpResponse =
+            client.get("https://api.exchangerate-api.com/v4/latest/${fromCurrency.uppercase()}")
 
         if (!response.status.isSuccess()) {
             throw ExchangeRateException("Failed to fetch rates: ${response.status}")
@@ -59,10 +60,12 @@ suspend fun getExchangeRate(fromCurrency: String, toCurrency: String): Double {
         val data: ExchangeRateResponse = response.body()
         rateCache[fromCurrency.uppercase()] = Pair(Instant.now(), data.rates)
 
-        return data.rates[toCurrency.uppercase()]
+        val rate = data.rates[toCurrency.uppercase()]
             ?: throw IllegalArgumentException("Currency $toCurrency not found")
+        return rate
 
     } catch (e: Exception) {
+        if (e is IllegalArgumentException) throw e
         throw ExchangeRateException("Error fetching exchange rate: ${e.message}")
     }
 }

@@ -54,7 +54,7 @@ class PaymentService(
         if (existing != null) return Refund(
             existing.transactionId,
             clientSecret = existing.stripePaymentIntentId ?: "",
-            "string"
+            existing.status.toString()
         )
 
         val (wallet, transaction) = dbQuery {
@@ -113,21 +113,6 @@ class PaymentService(
             )
         }
 
-
-        // Create Stripe refund
-        val stripeRefund = stripeService.createRefund(
-            paymentIntentId = transaction.stripePaymentIntentId ?: "error",
-            amount = null,
-            metadata = mapOf(
-                "transactionId" to transaction.transactionId.toString(),
-                "userId" to wallet.userId,
-                "tokenAmount" to transaction.amount.toString()
-            ),
-            reason = "User requested refund.",
-            idempotencyKey = refundTokenRequest.idempotencyKey
-        )
-
-
         val refundTransaction = dbQuery {
             // Deduct tokens from wallet
             walletService.debitBalance(
@@ -145,14 +130,33 @@ class PaymentService(
                 wallet.tokenBalance - transaction.amount,
                 emptyMap(),
                 null,
-                refundIntent = stripeRefund.id,
+                refundIntent = null,
                 idempotencyKey = refundTokenRequest.idempotencyKey
             )
         }
 
-        return Refund(refundTransaction.transactionId,stripeRefund.id,stripeRefund.status)
+        // Create Stripe refund
+        val stripeRefund = stripeService.createRefund(
+            paymentIntentId = transaction.stripePaymentIntentId ?: "error",
+            amount = null,
+            metadata = mapOf(
+                "transactionId" to transaction.transactionId.toString(),
+                "userId" to wallet.userId,
+                "tokenAmount" to transaction.amount.toString()
+            ),
+            reason = "User requested refund.",
+            idempotencyKey = refundTokenRequest.idempotencyKey
+        )
 
-        // Create discord notification of a refund request.
+        dbQuery { transactionService.updateTransactionStatus(
+            refundTokenRequest.idempotencyKey,
+            transaction.status,
+            stripePaymentIntentId = stripeRefund.id,
+            reason = null,
+            balanceAfter = null)
+        }
+
+        return Refund(refundTransaction.transactionId,stripeRefund.id,stripeRefund.status)
 
     }
 
