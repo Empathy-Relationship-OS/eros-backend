@@ -20,13 +20,13 @@ class StripeService {
      * @param paymentMethodId ?
      * @return Stripe PaymentIntent
      */
-    fun createPaymentIntent(
+    suspend fun createPaymentIntent(
         userId: String,
         tokenPackage: TokenPackage,
         paymentMethodId: String,
         idempotencyKey: String,
         userCurrency: String
-    ): PaymentIntent {
+    ): PaymentIntent = withContext(Dispatchers.IO){
         val amount = convertToUserCurrency(tokenPackage.priceGBP, userCurrency)
 
         val params = PaymentIntentCreateParams.builder()
@@ -46,19 +46,19 @@ class StripeService {
             .setDescription("Purchase ${tokenPackage.tokens} tokens")
             .build()
 
-        return PaymentIntent.create(params)
+        PaymentIntent.create(params)
     }
 
     /**
      * Create a refund in stripe.
      */
-    fun createRefund(
+    suspend fun createRefund(
         paymentIntentId: String,
         amount: Long? = null,
         reason: String? = null,
         metadata: Map<String, String> = emptyMap(),
         idempotencyKey: String
-    ): Refund {
+    ): Refund = withContext(Dispatchers.IO){
         val paramsBuilder = RefundCreateParams.builder()
             .setPaymentIntent(paymentIntentId)
 
@@ -74,7 +74,7 @@ class StripeService {
         }
         paramsBuilder.putMetadata("idempotencyKey", idempotencyKey)
 
-        return Refund.create(paramsBuilder.build())
+        Refund.create(paramsBuilder.build())
     }
 
 

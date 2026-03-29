@@ -144,8 +144,8 @@ class TransactionServiceTest {
                 relatedTransactionId = 1L,
                 metadata = emptyMap(),
                 acceptedTerms = true,
-                refundIntent = "wad",
-                idempotencyKey = "wdaawd"
+                refundIntent = "ri_20002dawadwefwaeswfsref",
+                idempotencyKey = "ik__awawdgrDRGdrm54EFS3F"
             )
 
             assertEquals(50.0.toBigDecimal(), result.amount)

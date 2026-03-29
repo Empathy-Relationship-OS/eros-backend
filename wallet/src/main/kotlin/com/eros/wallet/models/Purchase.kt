@@ -85,17 +85,27 @@ fun Purchase.toDTO() = PurchaseResponse(
 
 @Serializable
 data class SpendTokenRequest(
-    val relatedDateId : Long,
+    val relatedDateId: Long,
     val activity: String,
-    val idempotencyKey : String
-)
+    val idempotencyKey: String
+) {
+    init {
+        require(activity.isNotBlank()) { "Activity cannot be blank" }
+        require(idempotencyKey.isNotBlank()) { "Idempotency key cannot be blank" }
+    }
+}
 
 @Serializable
 data class RefundTokenRequest(
     val transactionId: Long,
     val stripePaymentIntent: String,
-    val idempotencyKey : String
-)
+    val idempotencyKey: String
+) {
+    init {
+        require(stripePaymentIntent.isNotBlank()) { "Stripe payment intent cannot be blank" }
+        require(idempotencyKey.isNotBlank()) { "Idempotency key cannot be blank" }
+    }
+}
 
 
 data class Refund(
