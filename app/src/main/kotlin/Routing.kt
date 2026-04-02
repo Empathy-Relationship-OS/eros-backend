@@ -25,7 +25,7 @@ import com.eros.users.service.QAService
 import com.eros.users.service.UserService
 import com.eros.wallet.repository.TransactionRepositoryImpl
 import com.eros.wallet.repository.WalletRepositoryImpl
-import com.eros.wallet.routes.walletRoutes
+import com.eros.wallet.routes.paymentRoutes
 import com.eros.wallet.routes.webhookRoute
 import com.eros.wallet.services.PaymentService
 import com.eros.wallet.services.TransactionService
@@ -117,7 +117,7 @@ fun Application.configureRouting() {
 
             questionRoutes(qaService)
 
-            walletRoutes(paymentService)
+            paymentRoutes(paymentService)
 
             matchRoutes(matchService)
         }

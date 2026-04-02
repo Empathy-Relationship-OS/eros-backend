@@ -81,7 +81,7 @@ fun Application.configureExceptionHandling() {
             call.respond(HttpStatusCode.InternalServerError, ApiError("database_error", "Database operation failed"))
         }
         exception<ExchangeRateException> { call, cause ->
-            call.application.log.error("SQL error", cause)
+            call.application.log.error("Exchange rate error", cause)
             call.respond(HttpStatusCode.InternalServerError, ApiError("currency_exchange_error", cause.message ?: "Failed to retrieve currency"))
         }
         exception<Throwable> { call, cause ->

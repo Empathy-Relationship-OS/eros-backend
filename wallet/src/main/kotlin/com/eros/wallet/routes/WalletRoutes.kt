@@ -9,6 +9,7 @@ import com.eros.common.errors.BadRequestException
 import com.eros.wallet.models.PurchaseRequest
 import com.eros.wallet.models.RefundTokenRequest
 import com.eros.wallet.models.SpendTokenRequest
+import com.eros.wallet.models.TransactionType
 import com.eros.wallet.models.toDTO
 import com.eros.wallet.services.PaymentService
 import io.ktor.http.HttpStatusCode
@@ -16,8 +17,7 @@ import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.post
 
-//todo - Rename to payment routes.
-fun Route.walletRoutes(paymentService: PaymentService) {
+fun Route.paymentRoutes(paymentService: PaymentService) {
 
     route("/wallet") {
         requireRoles("USER", "ADMIN", "EMPLOYEE")
@@ -40,17 +40,25 @@ fun Route.walletRoutes(paymentService: PaymentService) {
         /**
          * Simple retrieval of a users transaction history with pagination.
          */
-        get("/transactions"){
+        get("/transactions") {
             // Get the params from the query.
-            val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: throw BadRequestException("Limit requires a valid integer")
-            val offset = call.request.queryParameters["offset"]?.toLongOrNull() ?: throw BadRequestException("Offset requires a valid integer")
+            val limit = call.request.queryParameters["limit"]?.toIntOrNull()
+                ?.takeIf { it in 1..100 }
+                ?: throw BadRequestException("Limit requires a valid integer between 1 and 100")
+            val offset = call.request.queryParameters["offset"]?.toLongOrNull()
+                ?.takeIf { it >= 0 }
+                ?: throw BadRequestException("Offset requires a non-negative integer")
             val type = call.request.queryParameters["type"]
+                ?.let { t ->
+                    TransactionType.entries.find { it.name == t }
+                        ?: throw BadRequestException("Invalid transaction type")
+                }
 
             // Get the user id.
             val principal = call.requireFirebasePrincipal()
 
             // Find the transactions.
-            val transactions = paymentService.getTransactionHistory(principal.uid, limit, offset, type)
+            val transactions = paymentService.getTransactionHistory(principal.uid, limit, offset, type?.name)
 
             // Return to the user.
             call.respond(HttpStatusCode.OK, transactions.toDTO())
@@ -66,7 +74,7 @@ fun Route.walletRoutes(paymentService: PaymentService) {
          * paymentMethodId is the
          * idempotencyKey is the client generated key relating to this unique action.
          */
-        post("/purchase"){
+        post("/purchase") {
 
             // Get user and request.
             val principal = call.requireFirebasePrincipal()
@@ -85,7 +93,7 @@ fun Route.walletRoutes(paymentService: PaymentService) {
         /**
          * Route for refunding token purchases.
          */
-        post("/refund"){
+        post("/refund") {
             // Get user and request.
             val principal = call.requireFirebasePrincipal()
             val request = call.receive<RefundTokenRequest>()
@@ -99,7 +107,7 @@ fun Route.walletRoutes(paymentService: PaymentService) {
         /**
          * Route for a user to spend their tokens.
          */
-        post("/spend"){
+        post("/spend") {
 
             // Get user and request.
             val principal = call.requireFirebasePrincipal()
@@ -109,7 +117,7 @@ fun Route.walletRoutes(paymentService: PaymentService) {
             val transaction = paymentService.spendToken(principal.uid, request)
 
             // Return the transaction to the user.
-            call.respond(HttpStatusCode.OK,transaction.toDTO())
+            call.respond(HttpStatusCode.OK, transaction.toDTO())
 
         }
 

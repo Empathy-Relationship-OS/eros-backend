@@ -3,6 +3,7 @@ package com.eros.wallet.models
 import com.eros.wallet.table.Transactions
 import com.fasterxml.jackson.annotation.JsonFormat
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.v1.core.ResultRow
 import java.math.BigDecimal
@@ -74,8 +75,10 @@ data class TransactionResponse(
     val amountPaid: BigDecimal? = null,
     val acceptedTerms: Boolean?,
     val createdAt: String,
-    val updatedAt: String
+    val updatedAt: String,
+    val status: String
 )
+
 
 fun Transaction.toDTO() = TransactionResponse(
     transactionId = this.transactionId,
@@ -88,8 +91,10 @@ fun Transaction.toDTO() = TransactionResponse(
     amountPaid = this.amountPaidGBP,
     acceptedTerms = this.acceptedTerms,
     createdAt = this.createdAt.toString(),
-    updatedAt = this.updatedAt.toString()
+    updatedAt = this.updatedAt.toString(),
+    status = this.status.toString()
 )
+
 
 fun ResultRow.toTransactionDomain(): Transaction {
     return Transaction(
@@ -112,14 +117,15 @@ fun ResultRow.toTransactionDomain(): Transaction {
     )
 }
 
+
 private fun parseMetadata(json: String?): Map<String, String> {
     return if (json.isNullOrBlank()) {
         emptyMap()
     } else {
         try {
             Json.decodeFromString<Map<String, String>>(json)
-        } catch (e: Exception) {
-            emptyMap()
+        } catch (e: SerializationException) {
+            throw IllegalArgumentException("Invalid metadata JSON format", e)
         }
     }
 }

@@ -70,16 +70,20 @@ class WalletService(
         type: TransactionType,
         idempotencyKey: String,
     ): Wallet {
+        if (amount < BigDecimal(0.0)){
+            throw ConflictException("Amount must be positive")
+        }
+
+        // Lock wallet
+        val wallet = walletRepository.findByIdForUpdate(userId)
+            ?: throw NotFoundException("Wallet not found")
+
         // Check idempotency and return wallet if already found.
         val existingTx = transactionService.findByIdempotencyKey(idempotencyKey)
         if (existingTx != null && existingTx.status == TransactionStatus.COMPLETED) {
             return walletRepository.findById(userId)
                 ?: throw NotFoundException("Wallet not found")
         }
-
-        // Lock wallet
-        val wallet = walletRepository.findByIdForUpdate(userId)
-            ?: throw NotFoundException("Wallet not found")
 
         // Calculate new values
         val newBalance = wallet.tokenBalance + amount
@@ -105,9 +109,11 @@ class WalletService(
         userId: String,
         amount: BigDecimal
     ): Wallet {
-
+        if (amount < BigDecimal(0.0)){
+            throw ConflictException("Amount must be positive")
+        }
         // Lock wallet
-        val wallet = walletRepository.findById(userId)
+        val wallet = walletRepository.findByIdForUpdate(userId)
             ?: throw NotFoundException("Wallet not found")
 
         // Update and return new wallet
@@ -125,7 +131,9 @@ class WalletService(
         userId: String,
         amount: BigDecimal,
     ): Wallet{
-
+        if (amount < BigDecimal(0.0)){
+            throw ConflictException("Amount must be positive")
+        }
         // Lock wallet
         val wallet = walletRepository.findByIdForUpdate(userId)
             ?: throw NotFoundException("Can't find user $userId's wallet.")
@@ -154,6 +162,7 @@ class WalletService(
     /**
      * Refunds tokens for cancelled dates.
      */
+    //todo: Old code - look over when integrating dates.
     suspend fun refundTokensFromDate(
         userId: String,
         relatedDateId: Long,
@@ -209,7 +218,8 @@ class WalletService(
                 metadata = mapOf("refund_policy" to refundPolicy.name),
                 acceptedTerms = null,
                 refundIntent = "placeholder",
-                idempotencyKey = null
+                idempotencyKey = null,
+                status = TransactionStatus.COMPLETED
             )
 
             // Update wallet

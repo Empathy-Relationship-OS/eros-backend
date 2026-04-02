@@ -5,6 +5,7 @@ import com.eros.wallet.models.TokenPackage
 import com.stripe.exception.StripeException
 import com.stripe.model.PaymentIntent
 import com.stripe.model.Refund
+import com.stripe.net.RequestOptions
 import com.stripe.param.PaymentIntentCreateParams
 import com.stripe.param.RefundCreateParams
 import kotlinx.coroutines.Dispatchers
@@ -42,11 +43,12 @@ class StripeService {
             .putMetadata("userId", userId)
             .putMetadata("tokenAmount", tokenPackage.tokens.toString())
             .putMetadata("packageType", tokenPackage.name)
-            .putMetadata("idempotencyKey", idempotencyKey)
             .setDescription("Purchase ${tokenPackage.tokens} tokens")
             .build()
 
-        PaymentIntent.create(params)
+        val options = RequestOptions.builder().setIdempotencyKey(idempotencyKey).build()
+        PaymentIntent.create(params, options)
+        
     }
 
     /**
@@ -72,9 +74,11 @@ class StripeService {
         metadata.forEach { (key, value) ->
             paramsBuilder.putMetadata(key, value)
         }
-        paramsBuilder.putMetadata("idempotencyKey", idempotencyKey)
 
-        Refund.create(paramsBuilder.build())
+        paramsBuilder.putMetadata("idempotencyKey", idempotencyKey)
+        val options = RequestOptions.builder().setIdempotencyKey(idempotencyKey).build()
+
+        Refund.create(paramsBuilder.build(), options)
     }
 
 

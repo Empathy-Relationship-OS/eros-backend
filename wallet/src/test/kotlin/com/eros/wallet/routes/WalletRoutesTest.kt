@@ -2,25 +2,14 @@ package com.eros.wallet.routes
 
 import com.eros.auth.firebase.FirebaseUserPrincipal
 import com.eros.common.plugins.configureExceptionHandling
-import com.eros.users.models.createTestUser
-import com.eros.wallet.models.WalletResponse
-import com.eros.wallet.models.WalletWithPending
-import com.eros.wallet.models.createTestWallet
 import com.eros.wallet.services.PaymentService
 import com.eros.wallet.services.TransactionService
 import com.eros.wallet.services.WalletService
 import com.eros.wallet.stripe.StripeWebhookHandler
 import com.google.firebase.auth.FirebaseToken
-import io.ktor.client.call.body
 import io.ktor.client.request.HttpRequestBuilder
-import io.ktor.client.request.get
 import io.ktor.client.request.header
-import io.ktor.client.request.post
-import io.ktor.client.request.setBody
-import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
-import io.ktor.http.HttpStatusCode
-import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.install
 import io.ktor.server.auth.Authentication
@@ -28,13 +17,9 @@ import io.ktor.server.auth.authenticate
 import io.ktor.server.auth.bearer
 import io.ktor.server.routing.routing
 import io.ktor.server.testing.ApplicationTestBuilder
-import io.ktor.server.testing.testApplication
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.serialization.json.Json
-import org.junit.jupiter.api.Nested
-import org.junit.jupiter.api.Test
-import kotlin.test.assertEquals
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation as ClientContentNegotiation
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation as ServerContentNegotiation
 
@@ -134,7 +119,7 @@ class WalletRoutesTest {
 
             routing {
                 authenticate("firebase-auth") {
-                    walletRoutes(mockPaymentService)
+                    paymentRoutes(mockPaymentService)
                 }
             }
         }

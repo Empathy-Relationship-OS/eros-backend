@@ -4,6 +4,8 @@ import com.eros.common.DateActivity
 import com.eros.common.errors.BadRequestException
 import com.eros.common.errors.ConflictException
 import com.eros.database.dbQuery
+import com.eros.wallet.convertToUserCurrency
+import com.eros.wallet.getExchangeRate
 import com.eros.wallet.models.Purchase
 import com.eros.wallet.models.PurchaseRequest
 import com.eros.wallet.models.Refund
@@ -14,9 +16,9 @@ import com.eros.wallet.models.Transaction
 import com.eros.wallet.models.TransactionHistory
 import com.eros.wallet.models.TransactionStatus
 import com.eros.wallet.models.TransactionType
-import com.eros.wallet.models.Wallet
 import com.eros.wallet.models.WalletWithPending
 import com.eros.wallet.stripe.StripeService
+import com.stripe.service.ExchangeRateService
 import io.ktor.server.plugins.NotFoundException
 
 /**
@@ -54,7 +56,7 @@ class PaymentService(
         if (existing != null) return Refund(
             existing.transactionId,
             clientSecret = existing.stripePaymentIntentId ?: "",
-            "string"
+            existing.status.toString()
         )
 
         val (wallet, transaction) = dbQuery {
@@ -113,21 +115,6 @@ class PaymentService(
             )
         }
 
-
-        // Create Stripe refund
-        val stripeRefund = stripeService.createRefund(
-            paymentIntentId = transaction.stripePaymentIntentId ?: "error",
-            amount = null,
-            metadata = mapOf(
-                "transactionId" to transaction.transactionId.toString(),
-                "userId" to wallet.userId,
-                "tokenAmount" to transaction.amount.toString()
-            ),
-            reason = "User requested refund.",
-            idempotencyKey = refundTokenRequest.idempotencyKey
-        )
-
-
         val refundTransaction = dbQuery {
             // Deduct tokens from wallet
             walletService.debitBalance(
@@ -145,14 +132,33 @@ class PaymentService(
                 wallet.tokenBalance - transaction.amount,
                 emptyMap(),
                 null,
-                refundIntent = stripeRefund.id,
+                refundIntent = null,
                 idempotencyKey = refundTokenRequest.idempotencyKey
             )
         }
 
-        return Refund(refundTransaction.transactionId,stripeRefund.id,stripeRefund.status)
+        // Create Stripe refund
+        val stripeRefund = stripeService.createRefund(
+            paymentIntentId = transaction.stripePaymentIntentId ?: "error",
+            amount = null,
+            metadata = mapOf(
+                "transactionId" to transaction.transactionId.toString(),
+                "userId" to wallet.userId,
+                "tokenAmount" to transaction.amount.toString()
+            ),
+            reason = "User requested refund.",
+            idempotencyKey = refundTokenRequest.idempotencyKey
+        )
 
-        // Create discord notification of a refund request.
+        dbQuery { transactionService.updateTransactionStatus(
+            refundTokenRequest.idempotencyKey,
+            transaction.status,
+            stripePaymentIntentId = stripeRefund.id,
+            reason = null,
+            balanceAfter = null)
+        }
+
+        return Refund(refundTransaction.transactionId,stripeRefund.id,stripeRefund.status)
 
     }
 
@@ -163,26 +169,35 @@ class PaymentService(
      * Note: DB Query is done separate so createPaymentIntent avoids blocking.
      */
     suspend fun purchaseTokens(userId: String, request: PurchaseRequest): Purchase {
+
+        // Get wallet
+        val wallet = dbQuery {
+            walletService.getWallet(userId)
+            ?: throw NotFoundException("Wallet not found")
+        }
+
         // Idempotency Check - Avoid duplicates.
         val existing = transactionService.findByIdempotencyKey(request.idempotencyKey)
+        //todo: Add the price paid / currency to transaction, so it can be returned exactly + audit correctly
         if (existing != null) return Purchase(
             clientSecret = existing.stripePaymentIntentId ?: "",
             paymentIntentId = existing.stripePaymentIntentId ?: "",
-            amount = existing.amountPaidGBP ?: 0.toBigDecimal(),
-            currency = "gbp",
+            amountPaid = convertToUserCurrency(existing.amountPaidGBP ?: 0.toBigDecimal(), wallet.currency),
+            currency = wallet.currency,
             tokenAmount = existing.amount,
             status = existing.status.name,
             transactionId = existing.transactionId,
             acceptedTerms = request.acceptedTerms
         )
 
-        val tokenPackage = TokenPackage.valueOf(request.packageType)
+        val tokenPackage = try {
+            TokenPackage.valueOf(request.packageType)
+        } catch (_: IllegalArgumentException) {
+            throw BadRequestException("Invalid package type: ${request.packageType}")
+        }
 
-        // Create a pending transaction and return.
-        val (transaction, wallet) = dbQuery {
-            val wallet = walletService.getWallet(userId)
-                ?: throw NotFoundException("Wallet not found")
-
+        // Create a pending transaction.
+        val transaction = dbQuery {
             val transaction = transactionService.createPurchaseTransaction(
                 walletId = wallet.walletId,
                 tokenPackage.tokens,
@@ -192,7 +207,7 @@ class PaymentService(
                 idempotencyKey = request.idempotencyKey,
                 acceptedTerms = request.acceptedTerms
             )
-            transaction to wallet
+            transaction
         }
 
         // Try-catch to alter the transaction to failed if an error occurs
@@ -216,16 +231,15 @@ class PaymentService(
                 Purchase(
                     paymentIntent.clientSecret,
                     paymentIntent.id,
-                    tokenPackage.priceGBP,
+                    paymentIntent.amount.toBigDecimal(),
                     wallet.currency,
                     tokenPackage.tokens,
-                    paymentIntent.status,
+                    transaction.status.toString(),
                     transactionId = transaction.transactionId,
                     acceptedTerms = request.acceptedTerms
                 )
 
             }
-            //todo: I don't know what error paymentIntend might throw
         }catch(e: Exception){
             dbQuery {
                 transactionService.updateTransactionStatus(

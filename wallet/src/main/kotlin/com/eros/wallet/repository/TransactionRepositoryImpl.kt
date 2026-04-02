@@ -49,7 +49,7 @@ class TransactionRepositoryImpl(
             this[Transactions.idempotencyKey] = entity.idempotencyKey
             this[Transactions.metadata] = serializeMetadata(entity.metadata)
             this[Transactions.acceptedTerms] = entity.acceptedTerms
-            this[Transactions.createdAt] = Instant.now(clock)
+            this[Transactions.createdAt] = entity.createdAt
             this[Transactions.updatedAt] = Instant.now(clock)
         }
     }
@@ -126,39 +126,6 @@ class TransactionRepositoryImpl(
 
 
     /**
-     * Function for finding by userId.
-     */
-    override suspend fun findByUserIdAndDateId(userId: String): List<Transaction> {
-        return (table innerJoin Wallets)
-            .selectAll().where {
-                (Wallets.userId eq userId)
-            }
-            .map { it.toTransactionDomain() }
-    }
-
-
-    override fun findMasterTransaction(allTransactions: List<Transaction>): Transaction? {
-        // Calculate total tokens ever spent (using BigDecimal for precision)
-        val totalSpent = allTransactions
-            .filter { it.type == TransactionType.SPEND }
-            .map { it.amount }
-            .fold(BigDecimal.ZERO, BigDecimal::add)
-
-        // Track cumulative purchases
-        var cumulativePurchased = BigDecimal.ZERO
-
-        // Find the first purchase that hasn't been fully consumed
-        return allTransactions
-            .filter { it.type == TransactionType.PURCHASE }
-            .sortedBy { it.createdAt }
-            .find { purchase ->
-                cumulativePurchased = cumulativePurchased.add(purchase.amount)
-                cumulativePurchased > totalSpent
-            }
-    }
-
-
-    /**
      * Function for finding a transaction based on stripe payment intent id.
      */
     override suspend fun findByStripePaymentIntentId(stripePaymentIntentId: String): Transaction? {
@@ -167,6 +134,7 @@ class TransactionRepositoryImpl(
         }
             .singleOrNull()?.toTransactionDomain()
     }
+
 
     /**
      * Function to determine if a user has paid for a date or not.
@@ -179,6 +147,7 @@ class TransactionRepositoryImpl(
                     (Transactions.status eq TransactionStatus.COMPLETED)
         }.empty().not()
     }
+
 
     /**
      * Function to update a transaction.

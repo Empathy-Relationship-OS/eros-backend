@@ -32,7 +32,7 @@ data class PurchaseRequest(
 data class Purchase(
     val clientSecret: String,
     val paymentIntentId: String,
-    val amount: BigDecimal,
+    val amountPaid: BigDecimal,
     val currency: String,
     val tokenAmount: BigDecimal,
     val status: String,
@@ -73,7 +73,7 @@ data class PurchaseResponse(
 fun Purchase.toDTO() = PurchaseResponse(
     clientSecret = clientSecret,
     paymentIntentId = paymentIntentId,
-    amount = amount,
+    amount = amountPaid,
     currency = currency,
     tokenAmount = tokenAmount,
     status = status,

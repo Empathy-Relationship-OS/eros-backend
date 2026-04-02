@@ -21,10 +21,6 @@ interface TransactionRepository : IBaseDAO<Long, Transaction> {
 
     suspend fun findUserTransactionsAfterTime(createdAt: Instant, userId: String, type: TransactionType) : List<Transaction>
 
-    suspend fun findByUserIdAndDateId(userId: String): List<Transaction>
-
-    fun findMasterTransaction(allTransactions: List<Transaction>): Transaction?
-
     suspend fun hasBeenRefunded(transactionId: Long) : Boolean
 
     suspend fun getTransaction(transactionId: Long) : Transaction?

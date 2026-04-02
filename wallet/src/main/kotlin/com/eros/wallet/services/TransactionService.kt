@@ -215,7 +215,7 @@ class TransactionService(
      */
     suspend fun getTransactionHistory(
         userId: String,
-        limit: Int = 0,
+        limit: Int = 20,
         offset: Long = 0L,
         type: String? = null
     ): TransactionHistory {
@@ -261,9 +261,6 @@ class TransactionService(
             .filterNot { it.type == TransactionType.REFUND && it.status == TransactionStatus.REFUNDED }
         if (activeHistory.isEmpty()) return false
 
-        println("===========")
-        println(activeHistory)
-
         if (transaction.type != TransactionType.PURCHASE) return false
 
         // Total spent in the wallet's history (using filtered activeHistory)
@@ -275,9 +272,6 @@ class TransactionService(
         val purchasesBeforeThisOne = activeHistory
             .filter { it.type == TransactionType.PURCHASE && it.createdAt < transaction.createdAt }
             .sumOf { it.amount }
-
-        println("total spend: $totalSpent")
-        println("purchasesBeforeThisOne:  $purchasesBeforeThisOne")
 
         return totalSpent <= purchasesBeforeThisOne
     }
