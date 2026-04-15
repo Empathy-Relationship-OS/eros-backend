@@ -5,7 +5,6 @@ import com.eros.common.errors.BadRequestException
 import com.eros.common.errors.ConflictException
 import com.eros.database.dbQuery
 import com.eros.wallet.convertToUserCurrency
-import com.eros.wallet.getExchangeRate
 import com.eros.wallet.models.Purchase
 import com.eros.wallet.models.PurchaseRequest
 import com.eros.wallet.models.Refund
@@ -18,7 +17,6 @@ import com.eros.wallet.models.TransactionStatus
 import com.eros.wallet.models.TransactionType
 import com.eros.wallet.models.WalletWithPending
 import com.eros.wallet.stripe.StripeService
-import com.stripe.service.ExchangeRateService
 import io.ktor.server.plugins.NotFoundException
 
 /**

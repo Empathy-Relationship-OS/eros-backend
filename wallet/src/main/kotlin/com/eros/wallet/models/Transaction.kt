@@ -1,7 +1,6 @@
 package com.eros.wallet.models
 
 import com.eros.wallet.table.Transactions
-import com.fasterxml.jackson.annotation.JsonFormat
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
