@@ -159,7 +159,8 @@ class UserServiceTest {
             presignedUrlTtlMinutes = 15L
         )
         photoService = PhotoService(mockRepository, s3Config, mockS3Client, mockS3Presigner)
-        service = UserService(userRepository, photoService)
+        val mockQAService = mockk<QAService>()
+        service = UserService(userRepository, photoService, mockQAService)
 
         transaction {
             Users.deleteAll()

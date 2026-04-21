@@ -664,7 +664,7 @@ class UserRoutesTest {
         return PublicProfile.from(user, UserMediaCollection(
             user.userId,
             createMediaList(3),
-            3), listOf("trait1","trait2"))
+            3), listOf("trait1","trait2"), emptyList())
     }
 
     private fun createValidUserRequest(userId: String = "test-user-id"): CreateUserRequest {

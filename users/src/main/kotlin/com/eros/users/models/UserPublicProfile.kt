@@ -19,7 +19,8 @@ data class PublicProfile(
         fun from(
             user: User,
             userMediaCollection: UserMediaCollection,
-            sharedInterests: List<String>
+            sharedInterests: List<String>,
+            userQAs: List<UserQAItem>
         ): PublicProfile {
             return PublicProfile(
                 userId = user.userId,
@@ -31,7 +32,7 @@ data class PublicProfile(
                 occupation = user.occupation,
                 badges = user.badges?.map { it.name }?.toSet(),
                 language = user.preferredLanguage.name,
-                profile = PublicProfileDetails.from(user, sharedInterests,userMediaCollection)
+                profile = PublicProfileDetails.from(user, sharedInterests, userMediaCollection, userQAs)
             )
         }
     }
@@ -123,9 +124,11 @@ data class PublicProfileDetails(
     val brainDescription: String?,
     val bodyAttribute: List<String>?,
     val bodyDescription: String?,
+
+    val qas: List<PublicQAItemDTO>
 ) {
     companion object {
-        fun from(user: User, sharedInterests: List<String>, userMediaCollection: UserMediaCollection): PublicProfileDetails {
+        fun from(user: User, sharedInterests: List<String>, userMediaCollection: UserMediaCollection, userQAs: List<UserQAItem>): PublicProfileDetails {
             return PublicProfileDetails(
                 coverPhoto = userMediaCollection.getPrimaryMedia()?.mediaUrl,
                 photos = userMediaCollection.media.map { it.mediaUrl },
@@ -146,7 +149,8 @@ data class PublicProfileDetails(
                 brainDescription = user.brainDescription.let { if (it.display) it.field else null },
                 bodyAttribute = user.bodyAttributes.let { if (it.display) it.field?.map { it.name } else null },
                 bodyDescription = user.bodyDescription.let { if (it.display) it.field else null },
-                sharedInterests = sharedInterests
+                sharedInterests = sharedInterests,
+                qas = userQAs.sortedBy { it.displayOrder }.map { it.toPublicDTO() }
             )
         }
     }
@@ -175,6 +179,8 @@ data class PublicProfileDetailsDTO(
     val brainDescription: String?,
     val bodyAttribute: List<String>?,
     val bodyDescription: String?,
+
+    val qas: List<PublicQAItemDTO>
 )
 
 fun PublicProfileDetails.toDTO() = PublicProfileDetailsDTO(
@@ -186,7 +192,7 @@ fun PublicProfileDetails.toDTO() = PublicProfileDetailsDTO(
     habits = this.habits,
     relationshipGoals = this.relationshipGoals,
     sharedInterests = this.sharedInterests,
-    
+
     spokenLanguages = this.spokenLanguages,
     religion = this.religion,
     politicalView  = this.politicalView,
@@ -194,11 +200,12 @@ fun PublicProfileDetails.toDTO() = PublicProfileDetailsDTO(
     pronouns  = this.pronouns,
     starSign  = this.starSign,
     ethnicity  = this.ethnicity,
-    
+
     brainAttribute = this.brainAttribute,
     brainDescription = this.brainDescription,
     bodyAttribute = this.bodyAttribute,
     bodyDescription = this.bodyDescription,
+    qas = this.qas
 )
 
 

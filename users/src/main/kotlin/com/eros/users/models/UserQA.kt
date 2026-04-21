@@ -150,3 +150,25 @@ data class UserQAId(
         else questionId.compareTo(other.questionId)
     }
 }
+
+/**
+ * Lightweight Q&A DTO for public profiles.
+ *
+ * Excludes sensitive fields like userId and timestamps that aren't needed
+ * when viewing another user's profile.
+ */
+@Serializable
+data class PublicQAItemDTO(
+    val question: String,
+    val answer: String,
+    val displayOrder: Int
+)
+
+/**
+ * Convert UserQAItem to PublicQAItemDTO for public profile display.
+ */
+fun UserQAItem.toPublicDTO() = PublicQAItemDTO(
+    question = this.question.question,
+    answer = this.answer,
+    displayOrder = this.displayOrder
+)
