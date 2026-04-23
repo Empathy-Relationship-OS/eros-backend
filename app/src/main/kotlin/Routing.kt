@@ -1,6 +1,9 @@
 package com.eros
 
 import com.eros.common.config.S3Config
+import com.eros.marketing.repository.MarketingRepositoryImpl
+import com.eros.marketing.routes.marketingRoutes
+import com.eros.marketing.service.MarketingPreferenceService
 import com.eros.matching.repository.DailyBatchRepositoryImpl
 import com.eros.matching.repository.MatchRepositoryImpl
 import com.eros.matching.routes.matchRoutes
@@ -42,6 +45,8 @@ fun Application.configureRouting() {
     val matchRepository = MatchRepositoryImpl()
     val dailyBatchRepository = DailyBatchRepositoryImpl()
 
+    val marketingRepository = MarketingRepositoryImpl()
+
     // Initialize configs
     val s3Config = S3Config.fromApplicationConfig(environment.config)
 
@@ -52,6 +57,7 @@ fun Application.configureRouting() {
     val cityService = CityService(cityRepositoryImpl)
     val preferenceService = PreferenceService(preferenceRepositoryImpl, userService)
     val matchService = MatchService(matchRepository, dailyBatchRepository, userService, transactionManager)
+    val marketingPreferenceService = MarketingPreferenceService(marketingRepository)
 
     val matchAccessChecker = MatchAccessCheckerImpl(matchService)
     val profileAccessControl = ProfileAccessControl(matchAccessChecker)
@@ -85,6 +91,8 @@ fun Application.configureRouting() {
             questionRoutes(qaService)
 
             matchRoutes(matchService)
+
+            marketingRoutes(marketingPreferenceService)
         }
     }
 }

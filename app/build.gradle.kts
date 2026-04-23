@@ -21,6 +21,7 @@ dependencies {
     implementation(project(":matching"))
     implementation(project(":dates"))
     implementation(project(":notifications"))
+    implementation(project(":marketing"))
 
     // Ktor server
     implementation(libs.ktor.server.content.negotiation)

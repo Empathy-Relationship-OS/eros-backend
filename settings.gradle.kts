@@ -9,5 +9,6 @@ include(
     "matching",
     "notifications",
     "users",
-    "wallet"
+    "wallet",
+    "marketing"
 )
