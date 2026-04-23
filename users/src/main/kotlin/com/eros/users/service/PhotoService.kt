@@ -184,18 +184,31 @@ class PhotoService(
 
         val mediaUrl = s3Config.publicUrlFor(request.objectKey)
 
-        return dbQuery {
+        // Data class to hold URLs to delete and the result
+        data class DbResult(
+            val newItem: UserMediaItem,
+            val urlsToDelete: List<String>
+        )
+
+        // Perform all DB operations in a single transaction and collect URLs to delete
+        val result = dbQuery {
+            val urlsToDelete = mutableListOf<String>()
+
             // Check if this display-order slot is already occupied
-            photoRepository.findByDisplayOrder(userId, request.displayOrder)?.let {
-                deleteFromS3(it.mediaUrl)
-                it.thumbnailUrl?.let { url -> deleteFromS3(url) }
-                if (photoRepository.deleteById(it.id) == 0) {
-                    throw IllegalStateException("Photo with id ${it.id} wasn't deleted")
+            photoRepository.findByDisplayOrder(userId, request.displayOrder)?.let { oldPhoto ->
+                // Collect URLs for deletion (done after transaction commits)
+                urlsToDelete.add(oldPhoto.mediaUrl)
+                oldPhoto.thumbnailUrl?.let { url -> urlsToDelete.add(url) }
+
+                // Delete the old photo record from DB
+                if (photoRepository.deleteById(oldPhoto.id) == 0) {
+                    throw IllegalStateException("Photo with id ${oldPhoto.id} wasn't deleted")
                 } else {
-                    logger.info("Successfully deleted media: ${it.mediaUrl}")
+                    logger.info("Successfully deleted DB record for media: ${oldPhoto.mediaUrl}")
                 }
             }
 
+            // Insert the new photo record
             val item = photoRepository.insert(
                 userId       = userId,
                 mediaUrl     = mediaUrl,
@@ -205,12 +218,21 @@ class PhotoService(
             )
 
             // If this is the first photo or explicitly marked primary, set it as primary
-            if (request.isPrimary) {
+            val finalItem = if (request.isPrimary) {
                 photoRepository.setPrimary(userId, item.id) ?: item
             } else {
                 item
             }
+
+            DbResult(finalItem, urlsToDelete)
         }
+
+        // Only delete from S3 after the DB transaction has successfully committed
+        result.urlsToDelete.forEach { url ->
+            deleteFromS3(url)
+        }
+
+        return result.newItem
     }
 
     // -------------------------------------------------------------------------

@@ -159,7 +159,7 @@ class UserServiceTest {
             presignedUrlTtlMinutes = 15L
         )
         photoService = PhotoService(mockRepository, s3Config, mockS3Client, mockS3Presigner)
-        val mockQAService = mockk<QAService>()
+        val mockQAService = mockk<QAService>(relaxed = true)
         service = UserService(userRepository, photoService, mockQAService)
 
         transaction {
