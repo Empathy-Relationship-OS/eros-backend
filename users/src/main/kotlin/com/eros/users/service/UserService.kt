@@ -25,6 +25,7 @@ import java.time.Instant
 class UserService(
     private val userRepository: UserRepository,
     private val photoService: PhotoService,
+    private val qaService: QAService,
     private val clock: Clock = Clock.systemUTC()
 ) {
 
@@ -264,8 +265,9 @@ class UserService(
             targetUser to principalUser
         }
         val media = photoService.getUserMedia(targetUserId)
+        val qas = qaService.getAllUserQAs(targetUserId)
         val sharedInterests = getSharedInterests(principalUser.interests, targetUser.interests)
-        return PublicProfile.from(targetUser, media, sharedInterests)
+        return PublicProfile.from(targetUser, media, sharedInterests, qas)
     }
 
 

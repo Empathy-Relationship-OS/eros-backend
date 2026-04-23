@@ -47,10 +47,10 @@ fun Application.configureRouting() {
 
     // Initialize services
     val photoService = PhotoService(photoRepository, s3Config)
-    val userService = UserService(userRepository, photoService)
+    val qaService = QAService(questionRepository, qaRepository)
+    val userService = UserService(userRepository, photoService, qaService)
     val cityService = CityService(cityRepositoryImpl)
     val preferenceService = PreferenceService(preferenceRepositoryImpl, userService)
-    val qaService = QAService(questionRepository, qaRepository)
     val matchService = MatchService(matchRepository, dailyBatchRepository, userService, transactionManager)
 
     val matchAccessChecker = MatchAccessCheckerImpl(matchService)
