@@ -104,8 +104,11 @@ class PhotoService(
                     "(received ${request.fileSizeBytes} bytes)."
         }
 
-        val currentCount = photoRepository.countByUserId(userId)
-        val slotOccupied = photoRepository.findByDisplayOrder(userId, request.displayOrder) != null
+        val (currentCount, slotOccupied) = dbQuery {
+            val count = photoRepository.countByUserId(userId)
+            val occupied = photoRepository.findByDisplayOrder(userId, request.displayOrder) != null
+            count to occupied
+        }
 
         // If the slot is not occupied and user already has max photos, reject
         if (!slotOccupied && currentCount >= MediaConstants.MAX_PHOTOS_PER_USER) {
@@ -181,31 +184,33 @@ class PhotoService(
 
         val mediaUrl = s3Config.publicUrlFor(request.objectKey)
 
-        // Check if this display-order slot is already occupied
-        photoRepository.findByDisplayOrder(userId, request.displayOrder)?.let {
-            deleteFromS3(it.mediaUrl)
-            it.thumbnailUrl?.let { url -> deleteFromS3(url) }
-            if (photoRepository.deleteById(it.id) == 0) {
-                throw IllegalStateException("Photo with id ${it.id} wasn't deleted")
+        return dbQuery {
+            // Check if this display-order slot is already occupied
+            photoRepository.findByDisplayOrder(userId, request.displayOrder)?.let {
+                deleteFromS3(it.mediaUrl)
+                it.thumbnailUrl?.let { url -> deleteFromS3(url) }
+                if (photoRepository.deleteById(it.id) == 0) {
+                    throw IllegalStateException("Photo with id ${it.id} wasn't deleted")
+                } else {
+                    logger.info("Successfully deleted media: ${it.mediaUrl}")
+                }
+            }
+
+            val item = photoRepository.insert(
+                userId       = userId,
+                mediaUrl     = mediaUrl,
+                mediaType    = MediaType.PHOTO,
+                displayOrder = request.displayOrder,
+                isPrimary    = request.isPrimary
+            )
+
+            // If this is the first photo or explicitly marked primary, set it as primary
+            if (request.isPrimary) {
+                photoRepository.setPrimary(userId, item.id) ?: item
             } else {
-                logger.info("Successfully deleted media: ${it.mediaUrl}")
+                item
             }
         }
-
-        val item = photoRepository.insert(
-            userId       = userId,
-            mediaUrl     = mediaUrl,
-            mediaType    = MediaType.PHOTO,
-            displayOrder = request.displayOrder,
-            isPrimary    = request.isPrimary
-        )
-
-        // If this is the first photo or explicitly marked primary, set it as primary
-        if (request.isPrimary) {
-            return photoRepository.setPrimary(userId, item.id) ?: item
-        }
-
-        return item
     }
 
     // -------------------------------------------------------------------------
@@ -235,15 +240,15 @@ class PhotoService(
      *
      * @return The deleted [UserMediaItem], or null if it was not found / did not belong to [userId].
      */
-    suspend fun deletePhoto(userId: String, photoId: Long): UserMediaItem? {
-        val item = photoRepository.findById(photoId) ?: return null
-        if (item.userId != userId) return null // ownership check
+    suspend fun deletePhoto(userId: String, photoId: Long): UserMediaItem? = dbQuery {
+        val item = photoRepository.findById(photoId) ?: return@dbQuery null
+        if (item.userId != userId) return@dbQuery null // ownership check
 
         deleteFromS3(item.mediaUrl) // We either wrap this in a transaction such that they all roll back on failure. OR we add some cleanup script to the s3 to detect orphans
         item.thumbnailUrl?.let { deleteFromS3(it) }
 
         photoRepository.deleteById(photoId)
-        return item
+        item
     }
 
     // -------------------------------------------------------------------------
@@ -255,10 +260,10 @@ class PhotoService(
      *
      * @return The updated [UserMediaItem], or null if [photoId] not found / not owned by [userId].
      */
-    suspend fun setPrimaryPhoto(userId: String, photoId: Long): UserMediaItem? {
-        val item = photoRepository.findById(photoId) ?: return null
-        if (item.userId != userId) return null
-        return photoRepository.setPrimary(userId, photoId)
+    suspend fun setPrimaryPhoto(userId: String, photoId: Long): UserMediaItem? = dbQuery {
+        val item = photoRepository.findById(photoId) ?: return@dbQuery null
+        if (item.userId != userId) return@dbQuery null
+        photoRepository.setPrimary(userId, photoId)
     }
 
     // -------------------------------------------------------------------------
@@ -270,8 +275,9 @@ class PhotoService(
      *
      * @return The updated [UserMediaItem], or null if [photoId] not found.
      */
-    suspend fun updateThumbnail(photoId: Long, thumbnailUrl: String): UserMediaItem? =
+    suspend fun updateThumbnail(photoId: Long, thumbnailUrl: String): UserMediaItem? = dbQuery {
         photoRepository.updateThumbnailUrl(photoId, thumbnailUrl)
+    }
 
     // -------------------------------------------------------------------------
     // Private helpers
