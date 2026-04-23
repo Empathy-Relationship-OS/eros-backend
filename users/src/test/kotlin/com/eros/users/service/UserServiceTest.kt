@@ -250,7 +250,7 @@ class UserServiceTest {
             presignedUrlTtlMinutes = 15L
         )
         photoService = PhotoService(mockPhotoRepository, s3Config, mockS3Client, mockS3Presigner)
-        mockQAService = mockk<QAService>()
+        mockQAService = mockk<QAService>(relaxed = true)
         service = UserService(userRepository, photoService, mockQAService)
 
         transaction {
