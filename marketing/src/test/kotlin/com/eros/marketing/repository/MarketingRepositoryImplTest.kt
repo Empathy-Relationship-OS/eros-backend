@@ -301,7 +301,7 @@ class MarketingRepositoryImplTest {
 
             val count = dbQuery { repository.countConsented() }
 
-            assertEquals(2, count)
+            assertEquals(2L, count)
         }
 
         @Test
@@ -310,7 +310,121 @@ class MarketingRepositoryImplTest {
 
             val count = dbQuery { repository.countConsented() }
 
-            assertEquals(0, count)
+            assertEquals(0L, count)
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Upsert function tests
+    // -------------------------------------------------------------------------
+
+    @Nested
+    inner class `upsert function` {
+
+        @Test
+        fun `should insert new record when none exists`() = runTest {
+            val consent = createTestConsent(userId = "user1", marketingConsent = true)
+
+            val result = dbQuery { repository.upsert(consent) }
+
+            assertNotNull(result)
+            assertEquals("user1", result.userId)
+            assertTrue(result.marketingConsent)
+            assertEquals(fixedInstant, result.createdAt)
+            assertEquals(fixedInstant, result.updatedAt)
+
+            // Verify it was actually persisted
+            val found = dbQuery { repository.findById("user1") }
+            assertNotNull(found)
+            assertTrue(found.marketingConsent)
+        }
+
+        @Test
+        fun `should update existing record when one exists`() = runTest {
+            // Create initial record with consent = false
+            val initial = createTestConsent(userId = "user1", marketingConsent = false)
+            dbQuery { repository.create(initial) }
+
+            // Upsert with consent = true
+            val laterInstant = Instant.parse("2024-01-15T12:00:00Z")
+            val updated = createTestConsent(
+                userId = "user1",
+                marketingConsent = true,
+                createdAt = fixedInstant,
+                updatedAt = laterInstant
+            )
+
+            val result = dbQuery { repository.upsert(updated) }
+
+            assertNotNull(result)
+            assertEquals("user1", result.userId)
+            assertTrue(result.marketingConsent)
+            assertEquals(fixedInstant, result.createdAt) // createdAt should remain unchanged
+            assertEquals(laterInstant, result.updatedAt) // updatedAt should be updated
+
+            // Verify only one record exists
+            val all = dbQuery { repository.findAll() }
+            assertEquals(1, all.size)
+        }
+
+        @Test
+        fun `should be atomic and prevent race conditions`() = runTest {
+            // This test verifies that concurrent upserts don't cause duplicate key errors
+            val consent1 = createTestConsent(userId = "user1", marketingConsent = true)
+            val consent2 = createTestConsent(userId = "user1", marketingConsent = false)
+
+            // First upsert
+            val result1 = dbQuery { repository.upsert(consent1) }
+            assertNotNull(result1)
+
+            // Second upsert on same user (simulating race condition)
+            val result2 = dbQuery { repository.upsert(consent2) }
+            assertNotNull(result2)
+            assertFalse(result2.marketingConsent)
+
+            // Verify only one record exists
+            val all = dbQuery { repository.findAll() }
+            assertEquals(1, all.size)
+            assertEquals("user1", all[0].userId)
+            assertFalse(all[0].marketingConsent)
+        }
+
+        @Test
+        fun `should handle multiple users with upsert`() = runTest {
+            val user1Consent = createTestConsent(userId = "user1", marketingConsent = true)
+            val user2Consent = createTestConsent(userId = "user2", marketingConsent = false)
+
+            // Insert both
+            dbQuery {
+                repository.upsert(user1Consent)
+                repository.upsert(user2Consent)
+            }
+
+            // Update user1
+            val laterInstant = Instant.parse("2024-01-15T12:00:00Z")
+            val user1Updated = createTestConsent(
+                userId = "user1",
+                marketingConsent = false,
+                createdAt = fixedInstant,
+                updatedAt = laterInstant
+            )
+
+            val result = dbQuery { repository.upsert(user1Updated) }
+
+            assertNotNull(result)
+            assertFalse(result.marketingConsent)
+
+            // Verify both records exist with correct values
+            val all = dbQuery { repository.findAll() }
+            assertEquals(2, all.size)
+
+            val user1 = all.find { it.userId == "user1" }
+            assertNotNull(user1)
+            assertFalse(user1.marketingConsent)
+
+            val user2 = all.find { it.userId == "user2" }
+            assertNotNull(user2)
+            assertFalse(user2.marketingConsent)
         }
     }
 }

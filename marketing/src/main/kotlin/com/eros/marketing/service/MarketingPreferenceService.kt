@@ -1,9 +1,11 @@
 package com.eros.marketing.service
 
+import com.eros.common.errors.ConflictException
 import com.eros.common.errors.ForbiddenException
-import com.eros.common.errors.NotFoundException
+import com.eros.database.dbQuery
 import com.eros.marketing.models.UserMarketingConsent
 import com.eros.marketing.repository.MarketingRepository
+import org.slf4j.LoggerFactory
 import java.time.Clock
 import java.time.Instant
 
@@ -16,19 +18,37 @@ class MarketingPreferenceService(
     private val marketingRepository: MarketingRepository,
     private val clock: Clock = Clock.systemUTC()
 ) {
+    private val logger = LoggerFactory.getLogger(MarketingPreferenceService::class.java)
+
+    /**
+     * Finds a user's marketing consent record.
+     *
+     * Business rules:
+     * - Returns existing record if found
+     * - Returns null if user has no record (does not fabricate default)
+     *
+     * Used by admin endpoints to distinguish between users with no consent record.
+     *
+     * @param userId The user's unique identifier
+     * @return UserMarketingConsent record if found, null otherwise
+     */
+    suspend fun findMarketingPreference(userId: String): UserMarketingConsent? = dbQuery {
+        marketingRepository.findById(userId)
+    }
 
     /**
      * Gets a user's marketing consent record.
      *
      * Business rules:
      * - Returns existing record if found
-     * - Returns default record (marketingConsent = false) if user has no record
+     * - Creates and persists default record (marketingConsent = false) if user has no record
+     * - Logs when default is created (should be rare since consent is required during signup)
      *
      * @param userId The user's unique identifier
-     * @return UserMarketingConsent record (either existing or default)
+     * @return UserMarketingConsent record (either existing or newly created default)
      */
-    suspend fun getMarketingPreference(userId: String): UserMarketingConsent {
-        return marketingRepository.findById(userId) ?: createDefaultConsent(userId)
+    suspend fun getMarketingPreference(userId: String): UserMarketingConsent = dbQuery {
+        marketingRepository.findById(userId) ?: createAndPersistDefaultConsent(userId)
     }
 
     /**
@@ -43,6 +63,7 @@ class MarketingPreferenceService(
      * @param marketingConsent Whether the user consents to marketing communications
      * @return Created UserMarketingConsent record
      * @throws ForbiddenException if requestingUserId doesn't match userId
+     * @throws ConflictException if record already exists for the user
      */
     suspend fun createMarketingPreference(
         userId: String,
@@ -54,15 +75,22 @@ class MarketingPreferenceService(
             throw ForbiddenException("You can only create your own marketing preferences")
         }
 
-        val now = Instant.now(clock)
-        val consent = UserMarketingConsent(
-            userId = userId,
-            marketingConsent = marketingConsent,
-            createdAt = now,
-            updatedAt = now
-        )
+        return dbQuery {
+            // Check if record already exists
+            if (marketingRepository.doesExist(userId)) {
+                throw ConflictException("Marketing preference already exists for user $userId. Use PUT to update.")
+            }
 
-        return marketingRepository.create(consent)
+            val now = Instant.now(clock)
+            val consent = UserMarketingConsent(
+                userId = userId,
+                marketingConsent = marketingConsent,
+                createdAt = now,
+                updatedAt = now
+            )
+
+            marketingRepository.create(consent)
+        }
     }
 
     /**
@@ -71,6 +99,7 @@ class MarketingPreferenceService(
      * Business rules:
      * - User can only update their own consent record
      * - Creates new record if none exists (upsert behavior)
+     * - Uses atomic database upsert to prevent race conditions
      *
      * @param userId The user's unique identifier
      * @param requestingUserId The user making the request (for authorization)
@@ -88,15 +117,7 @@ class MarketingPreferenceService(
             throw ForbiddenException("You can only update your own marketing preferences")
         }
 
-        val existing = marketingRepository.findById(userId)
-
-        return if (existing != null) {
-            // Update existing record
-            val updated = existing.updateConsent(marketingConsent, Instant.now(clock))
-            marketingRepository.update(userId, updated)
-                ?: throw NotFoundException("Marketing preference for user $userId was deleted during update")
-        } else {
-            // Create new record if none exists (upsert behavior)
+        return dbQuery {
             val now = Instant.now(clock)
             val consent = UserMarketingConsent(
                 userId = userId,
@@ -104,7 +125,9 @@ class MarketingPreferenceService(
                 createdAt = now,
                 updatedAt = now
             )
-            marketingRepository.create(consent)
+
+            // Use atomic upsert to prevent race conditions
+            marketingRepository.upsert(consent)
         }
     }
 
@@ -118,8 +141,8 @@ class MarketingPreferenceService(
      * @param userId The user's unique identifier
      * @return True if record was deleted, false if it didn't exist
      */
-    suspend fun deleteMarketingPreference(userId: String): Boolean {
-        return marketingRepository.delete(userId) > 0
+    suspend fun deleteMarketingPreference(userId: String): Boolean = dbQuery {
+        marketingRepository.delete(userId) > 0
     }
 
     /**
@@ -130,23 +153,40 @@ class MarketingPreferenceService(
      *
      * @return List of UserMarketingConsent records where marketingConsent is true
      */
-    suspend fun getAllConsentedUsers(): List<UserMarketingConsent> {
-        return marketingRepository.findAllConsented()
+    suspend fun getAllConsentedUsers(): List<UserMarketingConsent> = dbQuery {
+        marketingRepository.findAllConsented()
     }
 
     /**
-     * Creates a default marketing consent record for a user who has no record.
+     * Creates and persists a default marketing consent record for a user who has no record.
+     *
+     * This should rarely happen since users are required to set their marketing preference
+     * during signup. When it does occur, it indicates either:
+     * - Legacy user from before this feature existed
+     * - Data integrity issue (record was deleted)
+     * - Edge case where signup process didn't complete properly
+     *
+     * We log these occurrences for monitoring and alerting purposes.
      *
      * @param userId The user's unique identifier
-     * @return Default UserMarketingConsent (marketingConsent = false)
+     * @return Default UserMarketingConsent (marketingConsent = false), persisted to database
      */
-    private fun createDefaultConsent(userId: String): UserMarketingConsent {
+    private suspend fun createAndPersistDefaultConsent(userId: String): UserMarketingConsent {
+        logger.warn(
+            "Marketing consent record missing for user {}. Creating default (consent=false). " +
+            "This should be rare - investigate if happening frequently.",
+            userId
+        )
+
         val now = Instant.now(clock)
-        return UserMarketingConsent(
+        val defaultConsent = UserMarketingConsent(
             userId = userId,
             marketingConsent = false,
             createdAt = now,
             updatedAt = now
         )
+
+        // Use upsert to handle race condition where another request might have created it
+        return marketingRepository.upsert(defaultConsent)
     }
 }

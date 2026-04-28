@@ -36,7 +36,7 @@ data class UserMarketingConsent(
      * @param newConsent The new marketing consent value
      * @param timestamp The timestamp of the update (defaults to now)
      */
-    fun updateConsent(newConsent: Boolean, timestamp: Instant = Instant.now()): UserMarketingConsent {
+    fun updateConsent(newConsent: Boolean, timestamp: Instant): UserMarketingConsent {
         return copy(
             marketingConsent = newConsent,
             updatedAt = timestamp

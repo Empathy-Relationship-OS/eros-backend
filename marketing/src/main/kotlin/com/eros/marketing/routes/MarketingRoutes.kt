@@ -2,6 +2,8 @@ package com.eros.marketing.routes
 
 import com.eros.auth.extensions.requireFirebasePrincipal
 import com.eros.auth.extensions.requireRoles
+import com.eros.common.errors.BadRequestException
+import com.eros.common.errors.NotFoundException
 import com.eros.marketing.models.CreateMarketingConsentRequest
 import com.eros.marketing.models.MarketingPreferenceResponse
 import com.eros.marketing.models.UpdateMarketingConsentRequest
@@ -99,26 +101,28 @@ fun Route.marketingRoutes(marketingPreferenceService: MarketingPreferenceService
     }
 
     // Admin/Employee only routes
-    route("marketing/admin") {
+    route("/marketing/admin") {
         requireRoles("ADMIN", "EMPLOYEE")
 
         /**
          * GET /marketing/admin/preference/{userId} - Get user's marketing preference (Admin only)
          *
          * Returns the specified user's marketing consent record.
-         * If no record exists, returns a default record with marketingConsent = false.
+         * Unlike the user-facing endpoint, this returns 404 if no record exists.
          *
          * Responses:
          * - 200 OK: MarketingPreferenceResponse - User's marketing preference
          * - 401 Unauthorized: Not authenticated
          * - 403 Forbidden: Insufficient permissions (not ADMIN or EMPLOYEE)
-         * - 404 Not Found: User not found
+         * - 404 Not Found: No marketing preference record exists for this user
          */
         get("/preference/{userId}") {
             val userId = call.parameters["userId"]
-                ?: return@get call.respond(HttpStatusCode.BadRequest, "userId parameter is required")
+                ?: throw BadRequestException("userId parameter is required")
 
-            val consent = marketingPreferenceService.getMarketingPreference(userId)
+            val consent = marketingPreferenceService.findMarketingPreference(userId)
+                ?: throw NotFoundException("No marketing preference found for user $userId")
+
             val response = MarketingPreferenceResponse.fromDomain(consent)
             call.respond(HttpStatusCode.OK, response)
         }
@@ -136,7 +140,7 @@ fun Route.marketingRoutes(marketingPreferenceService: MarketingPreferenceService
          */
         delete("/preference/{userId}") {
             val userId = call.parameters["userId"]
-                ?: return@delete call.respond(HttpStatusCode.BadRequest, "userId parameter is required")
+                ?: throw BadRequestException("userId parameter is required")
 
             marketingPreferenceService.deleteMarketingPreference(userId)
             call.respond(HttpStatusCode.NoContent)

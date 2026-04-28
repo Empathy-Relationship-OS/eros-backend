@@ -25,7 +25,7 @@ The module follows the standard modular layered architecture:
 
 ### File Structure
 
-```
+```text
 marketing/
 ├── routes/
 │   └── MarketingRoutes.kt
@@ -146,7 +146,6 @@ CREATE TABLE user_marketing_consent (
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_user_marketing_consent_consent ON user_marketing_consent(marketing_consent);
 ```
 
 **Key Design Decisions**:

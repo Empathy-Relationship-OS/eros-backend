@@ -22,7 +22,6 @@ dependencies {
 
     // Testing
     testImplementation(libs.junit.jupiter)
-    testImplementation(libs.kotlin.test.junit)
     testRuntimeOnly(libs.junit.platform.launcher)
     testImplementation(libs.ktor.server.test.host)
     testImplementation(libs.ktor.client.content.negotiation)

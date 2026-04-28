@@ -5,16 +5,29 @@ import com.eros.common.plugins.configureExceptionHandling
 import com.eros.marketing.models.MarketingPreferenceResponse
 import com.eros.marketing.models.UserMarketingConsent
 import com.eros.marketing.service.MarketingPreferenceService
-import io.ktor.client.call.*
-import io.ktor.client.request.*
-import io.ktor.http.*
-import io.ktor.serialization.kotlinx.json.*
-import io.ktor.server.application.*
-import io.ktor.server.auth.*
-import io.ktor.server.routing.*
-import io.ktor.server.testing.*
+import io.ktor.client.call.body
+import io.ktor.client.request.HttpRequestBuilder
+import io.ktor.client.request.delete
+import io.ktor.client.request.get
+import io.ktor.client.request.header
+import io.ktor.client.request.post
+import io.ktor.client.request.put
+import io.ktor.client.request.setBody
+import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
+import io.ktor.http.contentType
+import io.ktor.serialization.kotlinx.json.json
+import io.ktor.server.application.install
+import io.ktor.server.auth.Authentication
+import io.ktor.server.auth.authenticate
+import io.ktor.server.auth.bearer
+import io.ktor.server.routing.routing
+import io.ktor.server.testing.ApplicationTestBuilder
+import io.ktor.server.testing.testApplication
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Nested
@@ -179,7 +192,7 @@ class MarketingRoutesTest {
         }
 
         @Test
-        fun `should return 403 when user tries to create for another user`() = testApplication {
+        fun `should map ForbiddenException to 403`() = testApplication {
             setupTestApp()
             val client = configuredClient()
 
@@ -279,7 +292,7 @@ class MarketingRoutesTest {
         }
 
         @Test
-        fun `should return 403 when user tries to update another user's preference`() = testApplication {
+        fun `should map ForbiddenException to 403`() = testApplication {
             setupTestApp()
             val client = configuredClient()
 
@@ -320,7 +333,7 @@ class MarketingRoutesTest {
                 updatedAt = Instant.parse("2024-01-15T10:00:00Z")
             )
 
-            coEvery { mockMarketingService.getMarketingPreference(targetUserId) } returns consent
+            coEvery { mockMarketingService.findMarketingPreference(targetUserId) } returns consent
 
             val response = client.get("/marketing/admin/preference/$targetUserId") {
                 setAuthenticatedUser(adminId, role = "ADMIN")
@@ -330,6 +343,25 @@ class MarketingRoutesTest {
             val result = response.body<MarketingPreferenceResponse>()
             assertEquals(targetUserId, result.userId)
             assertTrue(result.marketingConsent)
+            coVerify { mockMarketingService.findMarketingPreference(targetUserId) }
+        }
+
+        @Test
+        fun `should return 404 when user has no marketing preference record`() = testApplication {
+            setupTestApp()
+            val client = configuredClient()
+
+            val adminId = "admin1"
+            val targetUserId = "nonexistent"
+
+            coEvery { mockMarketingService.findMarketingPreference(targetUserId) } returns null
+
+            val response = client.get("/marketing/admin/preference/$targetUserId") {
+                setAuthenticatedUser(adminId, role = "ADMIN")
+            }
+
+            assertEquals(HttpStatusCode.NotFound, response.status)
+            coVerify { mockMarketingService.findMarketingPreference(targetUserId) }
         }
 
         @Test
@@ -514,12 +546,16 @@ class MarketingRoutesTest {
                     realm = "test-realm"
                     authenticate { credential ->
                         // Token format: "user-{userId}-role-{role}"
-                        val parts = credential.token.split("-role-")
-                        val userId = parts[0].removePrefix("user-")
-                        val role = parts.getOrElse(1) { "USER" }
+                        // Use regex to safely parse tokens even if userId contains "-role-" or starts with "user-"
+                        val tokenPattern = Regex("^user-(.+?)-role-(.+)$")
+                        val matchResult = tokenPattern.matchEntire(credential.token)
+
+                        val userId = matchResult?.groupValues?.get(1)
+                            ?: credential.token.removePrefix("user-") // Fallback for tokens without role
+                        val role = matchResult?.groupValues?.get(2) ?: "USER"
 
                         val mockToken = mockk<com.google.firebase.auth.FirebaseToken>(relaxed = true) {
-                            coEvery { uid } returns userId
+                            every { uid } returns userId
                         }
                         FirebaseUserPrincipal(
                             uid = userId,

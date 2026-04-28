@@ -3,7 +3,10 @@ package com.eros.marketing.service
 import com.eros.common.errors.ForbiddenException
 import com.eros.marketing.models.UserMarketingConsent
 import com.eros.marketing.repository.MarketingRepository
-import io.mockk.*
+import io.mockk.clearAllMocks
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
@@ -62,6 +65,37 @@ class MarketingPreferenceServiceTest {
     )
 
     // -------------------------------------------------------------------------
+    // findMarketingPreference function tests
+    // -------------------------------------------------------------------------
+
+    @Nested
+    inner class `findMarketingPreference function` {
+
+        @Test
+        fun `should return existing consent record when found`() = runTest {
+            val consent = createTestConsent(userId = "user1", marketingConsent = true)
+            coEvery { marketingRepository.findById("user1") } returns consent
+
+            val result = marketingPreferenceService.findMarketingPreference("user1")
+
+            assertNotNull(result)
+            assertEquals("user1", result.userId)
+            assertTrue(result.marketingConsent)
+            coVerify { marketingRepository.findById("user1") }
+        }
+
+        @Test
+        fun `should return null when no record exists`() = runTest {
+            coEvery { marketingRepository.findById("user1") } returns null
+
+            val result = marketingPreferenceService.findMarketingPreference("user1")
+
+            assertEquals(null, result)
+            coVerify { marketingRepository.findById("user1") }
+        }
+    }
+
+    // -------------------------------------------------------------------------
     // getMarketingPreference function tests
     // -------------------------------------------------------------------------
 
@@ -81,8 +115,11 @@ class MarketingPreferenceServiceTest {
         }
 
         @Test
-        fun `should return default consent when no record exists`() = runTest {
+        fun `should create and persist default consent when no record exists`() = runTest {
+            val defaultConsent = createTestConsent(userId = "user1", marketingConsent = false)
+
             coEvery { marketingRepository.findById("user1") } returns null
+            coEvery { marketingRepository.upsert(any()) } returns defaultConsent
 
             val result = marketingPreferenceService.getMarketingPreference("user1")
 
@@ -91,6 +128,9 @@ class MarketingPreferenceServiceTest {
             assertFalse(result.marketingConsent)
             assertEquals(fixedInstant, result.createdAt)
             assertEquals(fixedInstant, result.updatedAt)
+
+            // Verify it was persisted to the database
+            coVerify { marketingRepository.upsert(any()) }
         }
     }
 
@@ -104,6 +144,7 @@ class MarketingPreferenceServiceTest {
         @Test
         fun `should create consent record when user creates their own preference`() = runTest {
             val consent = createTestConsent(userId = "user1", marketingConsent = true)
+            coEvery { marketingRepository.doesExist("user1") } returns false
             coEvery { marketingRepository.create(any()) } returns consent
 
             val result = marketingPreferenceService.createMarketingPreference(
@@ -135,6 +176,7 @@ class MarketingPreferenceServiceTest {
         @Test
         fun `should create consent with false value`() = runTest {
             val consent = createTestConsent(userId = "user1", marketingConsent = false)
+            coEvery { marketingRepository.doesExist("user1") } returns false
             coEvery { marketingRepository.create(any()) } returns consent
 
             val result = marketingPreferenceService.createMarketingPreference(
@@ -158,11 +200,9 @@ class MarketingPreferenceServiceTest {
 
         @Test
         fun `should update existing consent record`() = runTest {
-            val existingConsent = createTestConsent(userId = "user1", marketingConsent = false)
             val updatedConsent = createTestConsent(userId = "user1", marketingConsent = true)
 
-            coEvery { marketingRepository.findById("user1") } returns existingConsent
-            coEvery { marketingRepository.update("user1", any()) } returns updatedConsent
+            coEvery { marketingRepository.upsert(any()) } returns updatedConsent
 
             val result = marketingPreferenceService.updateMarketingPreference(
                 userId = "user1",
@@ -173,15 +213,14 @@ class MarketingPreferenceServiceTest {
             assertNotNull(result)
             assertEquals("user1", result.userId)
             assertTrue(result.marketingConsent)
-            coVerify { marketingRepository.update("user1", any()) }
+            coVerify { marketingRepository.upsert(any()) }
         }
 
         @Test
         fun `should create new record when none exists (upsert)`() = runTest {
             val newConsent = createTestConsent(userId = "user1", marketingConsent = true)
 
-            coEvery { marketingRepository.findById("user1") } returns null
-            coEvery { marketingRepository.create(any()) } returns newConsent
+            coEvery { marketingRepository.upsert(any()) } returns newConsent
 
             val result = marketingPreferenceService.updateMarketingPreference(
                 userId = "user1",
@@ -192,8 +231,7 @@ class MarketingPreferenceServiceTest {
             assertNotNull(result)
             assertEquals("user1", result.userId)
             assertTrue(result.marketingConsent)
-            coVerify { marketingRepository.create(any()) }
-            coVerify(exactly = 0) { marketingRepository.update(any(), any()) }
+            coVerify { marketingRepository.upsert(any()) }
         }
 
         @Test
@@ -207,16 +245,14 @@ class MarketingPreferenceServiceTest {
             }
 
             assertTrue(exception.message!!.contains("You can only update your own marketing preferences"))
-            coVerify(exactly = 0) { marketingRepository.findById(any()) }
+            coVerify(exactly = 0) { marketingRepository.upsert(any()) }
         }
 
         @Test
         fun `should allow changing consent from true to false`() = runTest {
-            val existingConsent = createTestConsent(userId = "user1", marketingConsent = true)
             val updatedConsent = createTestConsent(userId = "user1", marketingConsent = false)
 
-            coEvery { marketingRepository.findById("user1") } returns existingConsent
-            coEvery { marketingRepository.update("user1", any()) } returns updatedConsent
+            coEvery { marketingRepository.upsert(any()) } returns updatedConsent
 
             val result = marketingPreferenceService.updateMarketingPreference(
                 userId = "user1",
@@ -227,6 +263,7 @@ class MarketingPreferenceServiceTest {
             assertNotNull(result)
             assertEquals("user1", result.userId)
             assertFalse(result.marketingConsent)
+            coVerify { marketingRepository.upsert(any()) }
         }
     }
 
@@ -263,7 +300,7 @@ class MarketingPreferenceServiceTest {
     // -------------------------------------------------------------------------
 
     @Nested
-    inner class `getAllConsentedUsers function` {
+    inner class `GetAllConsentedUsers function` {
 
         @Test
         fun `should return list of users who consented`() = runTest {
