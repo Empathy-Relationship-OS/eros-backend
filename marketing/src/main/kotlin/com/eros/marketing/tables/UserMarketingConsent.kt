@@ -1,6 +1,7 @@
 package com.eros.marketing.tables
 
 import com.eros.users.table.Users
+import org.jetbrains.exposed.v1.core.ReferenceOption
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.javatime.timestamp
 import java.time.Instant
@@ -13,7 +14,7 @@ import java.time.Instant
  */
 object UserMarketingConsent : Table("user_marketing_consent") {
     /** User identifier - primary key and foreign key to users table */
-    val userId = varchar("user_id", 128).references(Users.userId)
+    val userId = varchar("user_id", 128).references(Users.userId, onDelete = ReferenceOption.CASCADE)
 
     /** Whether user has consented to receive marketing communications */
     val marketingConsent = bool("marketing_consent").default(false)
