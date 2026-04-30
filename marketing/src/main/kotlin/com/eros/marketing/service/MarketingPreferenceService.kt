@@ -42,14 +42,17 @@ class MarketingPreferenceService(
      *
      * Business rules:
      * - Returns existing record if found
-     * - Creates and persists default record (marketingConsent = false) if user has no record
-     * - Logs when default is created (should be rare since consent is required during signup)
+     * - Returns non-persisted default record (marketingConsent = false) if user has no record
+     * - GET operations are side-effect free (no database writes)
      *
      * @param userId The user's unique identifier
-     * @return UserMarketingConsent record (either existing or newly created default)
+     * @return UserMarketingConsent record (either existing or non-persisted default)
      */
-    suspend fun getMarketingPreference(userId: String): UserMarketingConsent = dbQuery {
-        marketingRepository.findById(userId) ?: createAndPersistDefaultConsent(userId)
+    suspend fun getMarketingPreference(userId: String): UserMarketingConsent {
+        val existing = dbQuery {
+            marketingRepository.findById(userId)
+        }
+        return existing ?: createDefaultConsent(userId)
     }
 
     /**
@@ -184,7 +187,7 @@ class MarketingPreferenceService(
     }
 
     /**
-     * Creates and persists a default marketing consent record for a user who has no record.
+     * Creates a non-persisted default marketing consent record for a user who has no record.
      *
      * This should rarely happen since users are required to set their marketing preference
      * during signup. When it does occur, it indicates either:
@@ -195,24 +198,21 @@ class MarketingPreferenceService(
      * We log these occurrences for monitoring and alerting purposes.
      *
      * @param userId The user's unique identifier
-     * @return Default UserMarketingConsent (marketingConsent = false), persisted to database
+     * @return Default UserMarketingConsent (marketingConsent = false), NOT persisted to database
      */
-    private suspend fun createAndPersistDefaultConsent(userId: String): UserMarketingConsent {
+    private fun createDefaultConsent(userId: String): UserMarketingConsent {
         logger.warn(
-            "Marketing consent record missing for user {}. Creating default (consent=false). " +
+            "Marketing consent record missing for user {}. Returning non-persisted default (consent=false). " +
             "This should be rare - investigate if happening frequently.",
             userId
         )
 
         val now = Instant.now(clock)
-        val defaultConsent = UserMarketingConsent(
+        return UserMarketingConsent(
             userId = userId,
             marketingConsent = false,
             createdAt = now,
             updatedAt = now
         )
-
-        // Use upsert to handle race condition where another request might have created it
-        return marketingRepository.upsert(defaultConsent)
     }
 }

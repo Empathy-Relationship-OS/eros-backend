@@ -23,7 +23,7 @@ import java.util.*
  * ## Upload flow (two steps)
  *
  * **Step 1** — [generatePresignedUploadUrl]:
- *   - Validates content type (JPEG, PNG, HEIC) and file size (100 KB – 10 MB).
+ *   - Validates content type (see [MediaConstants.ALLOWED_CONTENT_TYPES]: JPEG, JPG, PNG, HEIC, HEIF, WEBP) and file size (100 KB – 10 MB).
  *   - Generates a time-limited S3 presigned PUT URL.
  *   - Returns the presigned URL + the S3 object key the client must echo back in step 2.
  *

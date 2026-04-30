@@ -115,11 +115,8 @@ class MarketingPreferenceServiceTest {
         }
 
         @Test
-        fun `should create and persist default consent when no record exists`() = runTest {
-            val defaultConsent = createTestConsent(userId = "user1", marketingConsent = false)
-
+        fun `should return non-persisted default consent when no record exists`() = runTest {
             coEvery { marketingRepository.findById("user1") } returns null
-            coEvery { marketingRepository.upsert(any()) } returns defaultConsent
 
             val result = marketingPreferenceService.getMarketingPreference("user1")
 
@@ -129,8 +126,9 @@ class MarketingPreferenceServiceTest {
             assertEquals(fixedInstant, result.createdAt)
             assertEquals(fixedInstant, result.updatedAt)
 
-            // Verify it was persisted to the database
-            coVerify { marketingRepository.upsert(any()) }
+            // Verify it was NOT persisted to the database (GET is side-effect free)
+            coVerify(exactly = 0) { marketingRepository.upsert(any()) }
+            coVerify(exactly = 0) { marketingRepository.create(any()) }
         }
     }
 
@@ -188,6 +186,23 @@ class MarketingPreferenceServiceTest {
             assertNotNull(result)
             assertEquals("user1", result.userId)
             assertFalse(result.marketingConsent)
+        }
+
+        @Test
+        fun `should throw ConflictException when record already exists`() = runTest {
+            coEvery { marketingRepository.doesExist("user1") } returns true
+
+            val exception = assertThrows<com.eros.common.errors.ConflictException> {
+                marketingPreferenceService.createMarketingPreference(
+                    userId = "user1",
+                    requestingUserId = "user1",
+                    marketingConsent = true
+                )
+            }
+
+            assertTrue(exception.message!!.contains("Marketing preference already exists"))
+            assertTrue(exception.message!!.contains("Use PUT to update"))
+            coVerify(exactly = 0) { marketingRepository.create(any()) }
         }
     }
 

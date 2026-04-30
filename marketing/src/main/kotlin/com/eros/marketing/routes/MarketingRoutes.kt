@@ -160,8 +160,29 @@ fun Route.marketingRoutes(marketingPreferenceService: MarketingPreferenceService
          * - 403 Forbidden: Insufficient permissions (not ADMIN or EMPLOYEE)
          */
         get("/consented") {
-            val limit = call.parameters["limit"]?.toIntOrNull()?.coerceIn(1, 1000) ?: 100
-            val offset = call.parameters["offset"]?.toLongOrNull()?.coerceAtLeast(0) ?: 0L
+            // Validate limit parameter
+            val limitParam = call.parameters["limit"]
+            val limit = if (limitParam == null) {
+                100 // default
+            } else {
+                val parsedLimit = limitParam.toIntOrNull()
+                if (parsedLimit == null || parsedLimit !in 1..1000) {
+                    throw BadRequestException("Invalid limit parameter. Must be between 1 and 1000.")
+                }
+                parsedLimit
+            }
+
+            // Validate offset parameter
+            val offsetParam = call.parameters["offset"]
+            val offset = if (offsetParam == null) {
+                0L // default
+            } else {
+                val parsedOffset = offsetParam.toLongOrNull()
+                if (parsedOffset == null || parsedOffset < 0) {
+                    throw BadRequestException("Invalid offset parameter. Must be >= 0.")
+                }
+                parsedOffset
+            }
 
             val consented = marketingPreferenceService.getAllConsentedUsers(limit, offset)
             val total = marketingPreferenceService.getConsentedUsersCount()

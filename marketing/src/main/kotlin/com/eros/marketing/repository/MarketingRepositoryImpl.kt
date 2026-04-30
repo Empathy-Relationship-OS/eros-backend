@@ -49,6 +49,7 @@ class MarketingRepositoryImpl : BaseDAOImpl<String, UserMarketingConsent>(UserMa
     override suspend fun findAllConsented(limit: Int?, offset: Long): List<UserMarketingConsent> {
         var query = UserMarketingConsentTable.selectAll()
             .where { UserMarketingConsentTable.marketingConsent eq true }
+            .orderBy(UserMarketingConsentTable.createdAt)
 
         if (limit != null) {
             query = query.limit(limit)
