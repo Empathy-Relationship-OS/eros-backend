@@ -23,7 +23,7 @@ import java.util.*
  * ## Upload flow (two steps)
  *
  * **Step 1** — [generatePresignedUploadUrl]:
- *   - Validates content type (JPEG, PNG, HEIC) and file size (500 KB – 10 MB).
+ *   - Validates content type (see [MediaConstants.ALLOWED_CONTENT_TYPES]: JPEG, JPG, PNG, HEIC, HEIF, WEBP) and file size (100 KB – 10 MB).
  *   - Generates a time-limited S3 presigned PUT URL.
  *   - Returns the presigned URL + the S3 object key the client must echo back in step 2.
  *
@@ -100,7 +100,7 @@ class PhotoService(
             "Unsupported file type '$contentType'. Allowed: JPEG, PNG, HEIC, HEIF, WEBP."
         }
         require(request.fileSizeBytes in MediaConstants.MIN_FILE_SIZE_BYTES..MediaConstants.MAX_FILE_SIZE_BYTES) {
-            "File size must be between 500 KB and 10 MB " +
+            "File size must be between 100 KB and 10 MB " +
                     "(received ${request.fileSizeBytes} bytes)."
         }
 

@@ -23,7 +23,7 @@ import software.amazon.awssdk.services.s3.model.NoSuchKeyException
 import software.amazon.awssdk.services.s3.presigner.S3Presigner
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest
-import java.net.URL
+import java.net.URI
 import java.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -103,7 +103,7 @@ class PhotoServiceTest {
 
         private fun stubPresigner(url: String = "https://s3.amazonaws.com/presigned") {
             val presignedRequest = mockk<PresignedPutObjectRequest> {
-                every { url() } returns URL(url)
+                every { url() } returns URI(url).toURL()
             }
             every { mockS3Presigner.presignPutObject(any<PutObjectPresignRequest>()) } returns presignedRequest
         }
@@ -178,12 +178,12 @@ class PhotoServiceTest {
 
         @Test
         fun `should throw IllegalArgumentException when file is below minimum size`() = runTest {
-            // Service enforces stricter 500KB minimum
+            // Constructor enforces 100KB minimum
             assertThrows<IllegalArgumentException> {
                 PresignedUploadRequest(
                     fileName = "file.jpg",
                     contentType   = "image/jpeg",
-                    fileSizeBytes = 100L,  // below 500 KB - DTO allows but service rejects
+                    fileSizeBytes = 100L,  // below 100 KB (100 bytes vs 100 KB = 102400 bytes)
                     displayOrder  = 1
                 )
             }
