@@ -12,9 +12,11 @@ interface MarketingRepository : IBaseDAO<String, UserMarketingConsent> {
     /**
      * Finds all users who have consented to marketing communications.
      *
+     * @param limit Maximum number of records to return (optional, defaults to all)
+     * @param offset Number of records to skip (optional, defaults to 0)
      * @return List of user marketing consent records where marketingConsent is true
      */
-    suspend fun findAllConsented(): List<UserMarketingConsent>
+    suspend fun findAllConsented(limit: Int? = null, offset: Long = 0): List<UserMarketingConsent>
 
     /**
      * Counts the number of users who have consented to marketing communications.

@@ -3,6 +3,7 @@ package com.eros.marketing.routes
 import com.eros.auth.firebase.FirebaseUserPrincipal
 import com.eros.common.plugins.configureExceptionHandling
 import com.eros.marketing.models.MarketingPreferenceResponse
+import com.eros.marketing.models.PaginatedConsentedUsersResponse
 import com.eros.marketing.models.UserMarketingConsent
 import com.eros.marketing.service.MarketingPreferenceService
 import io.ktor.client.call.body
@@ -333,7 +334,7 @@ class MarketingRoutesTest {
                 updatedAt = Instant.parse("2024-01-15T10:00:00Z")
             )
 
-            coEvery { mockMarketingService.findMarketingPreference(targetUserId) } returns consent
+            coEvery { mockMarketingService.getMarketingPreference(targetUserId) } returns consent
 
             val response = client.get("/marketing/admin/preference/$targetUserId") {
                 setAuthenticatedUser(adminId, role = "ADMIN")
@@ -343,25 +344,34 @@ class MarketingRoutesTest {
             val result = response.body<MarketingPreferenceResponse>()
             assertEquals(targetUserId, result.userId)
             assertTrue(result.marketingConsent)
-            coVerify { mockMarketingService.findMarketingPreference(targetUserId) }
+            coVerify { mockMarketingService.getMarketingPreference(targetUserId) }
         }
 
         @Test
-        fun `should return 404 when user has no marketing preference record`() = testApplication {
+        fun `should return default when user has no marketing preference record`() = testApplication {
             setupTestApp()
             val client = configuredClient()
 
             val adminId = "admin1"
             val targetUserId = "nonexistent"
+            val defaultConsent = UserMarketingConsent(
+                userId = targetUserId,
+                marketingConsent = false,
+                createdAt = Instant.now(),
+                updatedAt = Instant.now()
+            )
 
-            coEvery { mockMarketingService.findMarketingPreference(targetUserId) } returns null
+            coEvery { mockMarketingService.getMarketingPreference(targetUserId) } returns defaultConsent
 
             val response = client.get("/marketing/admin/preference/$targetUserId") {
                 setAuthenticatedUser(adminId, role = "ADMIN")
             }
 
-            assertEquals(HttpStatusCode.NotFound, response.status)
-            coVerify { mockMarketingService.findMarketingPreference(targetUserId) }
+            assertEquals(HttpStatusCode.OK, response.status)
+            val result = response.body<MarketingPreferenceResponse>()
+            assertEquals(targetUserId, result.userId)
+            assertFalse(result.marketingConsent)
+            coVerify { mockMarketingService.getMarketingPreference(targetUserId) }
         }
 
         @Test
@@ -464,16 +474,18 @@ class MarketingRoutesTest {
                 )
             )
 
-            coEvery { mockMarketingService.getAllConsentedUsers() } returns consentedUsers
+            coEvery { mockMarketingService.getAllConsentedUsers(any(), any()) } returns consentedUsers
+            coEvery { mockMarketingService.getConsentedUsersCount() } returns 2
 
             val response = client.get("/marketing/admin/consented") {
                 setAuthenticatedUser(adminId, role = "ADMIN")
             }
 
             assertEquals(HttpStatusCode.OK, response.status)
-            val result = response.body<List<MarketingPreferenceResponse>>()
-            assertEquals(2, result.size)
-            assertTrue(result.all { it.marketingConsent })
+            val result = response.body<PaginatedConsentedUsersResponse>()
+            assertEquals(2, result.data.size)
+            assertEquals(2, result.total)
+            assertTrue(result.data.all { it.marketingConsent })
         }
 
         @Test
@@ -483,15 +495,17 @@ class MarketingRoutesTest {
 
             val adminId = "admin1"
 
-            coEvery { mockMarketingService.getAllConsentedUsers() } returns emptyList()
+            coEvery { mockMarketingService.getAllConsentedUsers(any(), any()) } returns emptyList()
+            coEvery { mockMarketingService.getConsentedUsersCount() } returns 0
 
             val response = client.get("/marketing/admin/consented") {
                 setAuthenticatedUser(adminId, role = "ADMIN")
             }
 
             assertEquals(HttpStatusCode.OK, response.status)
-            val result = response.body<List<MarketingPreferenceResponse>>()
-            assertTrue(result.isEmpty())
+            val result = response.body<PaginatedConsentedUsersResponse>()
+            assertTrue(result.data.isEmpty())
+            assertEquals(0, result.total)
         }
 
         @Test

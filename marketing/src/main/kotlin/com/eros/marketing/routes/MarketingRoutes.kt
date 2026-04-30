@@ -3,9 +3,9 @@ package com.eros.marketing.routes
 import com.eros.auth.extensions.requireFirebasePrincipal
 import com.eros.auth.extensions.requireRoles
 import com.eros.common.errors.BadRequestException
-import com.eros.common.errors.NotFoundException
 import com.eros.marketing.models.CreateMarketingConsentRequest
 import com.eros.marketing.models.MarketingPreferenceResponse
+import com.eros.marketing.models.PaginatedConsentedUsersResponse
 import com.eros.marketing.models.UpdateMarketingConsentRequest
 import com.eros.marketing.service.MarketingPreferenceService
 import io.ktor.http.HttpStatusCode
@@ -108,21 +108,18 @@ fun Route.marketingRoutes(marketingPreferenceService: MarketingPreferenceService
          * GET /marketing/admin/preference/{userId} - Get user's marketing preference (Admin only)
          *
          * Returns the specified user's marketing consent record.
-         * Unlike the user-facing endpoint, this returns 404 if no record exists.
+         * Returns default if no record exists (same behavior as user-facing endpoint).
          *
          * Responses:
          * - 200 OK: MarketingPreferenceResponse - User's marketing preference
          * - 401 Unauthorized: Not authenticated
          * - 403 Forbidden: Insufficient permissions (not ADMIN or EMPLOYEE)
-         * - 404 Not Found: No marketing preference record exists for this user
          */
         get("/preference/{userId}") {
             val userId = call.parameters["userId"]
                 ?: throw BadRequestException("userId parameter is required")
 
-            val consent = marketingPreferenceService.findMarketingPreference(userId)
-                ?: throw NotFoundException("No marketing preference found for user $userId")
-
+            val consent = marketingPreferenceService.getMarketingPreference(userId)
             val response = MarketingPreferenceResponse.fromDomain(consent)
             call.respond(HttpStatusCode.OK, response)
         }
@@ -149,18 +146,35 @@ fun Route.marketingRoutes(marketingPreferenceService: MarketingPreferenceService
         /**
          * GET /marketing/admin/consented - Get all users who consented to marketing (Admin only)
          *
-         * Returns a list of all users who have marketingConsent = true.
+         * Returns a paginated list of users who have marketingConsent = true.
          * Useful for generating marketing email lists.
          *
+         * Query parameters:
+         * - limit (optional, default=100, max=1000): Maximum number of records per page
+         * - offset (optional, default=0): Number of records to skip
+         *
          * Responses:
-         * - 200 OK: List<MarketingPreferenceResponse> - All consented users
+         * - 200 OK: PaginatedConsentedUsersResponse - Paginated list of consented users
+         * - 400 Bad Request: Invalid pagination parameters
          * - 401 Unauthorized: Not authenticated
          * - 403 Forbidden: Insufficient permissions (not ADMIN or EMPLOYEE)
          */
         get("/consented") {
-            val consented = marketingPreferenceService.getAllConsentedUsers()
+            val limit = call.parameters["limit"]?.toIntOrNull()?.coerceIn(1, 1000) ?: 100
+            val offset = call.parameters["offset"]?.toLongOrNull()?.coerceAtLeast(0) ?: 0L
+
+            val consented = marketingPreferenceService.getAllConsentedUsers(limit, offset)
+            val total = marketingPreferenceService.getConsentedUsersCount()
             val responses = consented.map { MarketingPreferenceResponse.fromDomain(it) }
-            call.respond(HttpStatusCode.OK, responses)
+
+            val paginatedResponse = PaginatedConsentedUsersResponse(
+                data = responses,
+                total = total,
+                limit = limit,
+                offset = offset
+            )
+
+            call.respond(HttpStatusCode.OK, paginatedResponse)
         }
     }
 }

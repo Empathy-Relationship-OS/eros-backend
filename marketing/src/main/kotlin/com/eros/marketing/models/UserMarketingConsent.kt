@@ -105,3 +105,21 @@ data class MarketingPreferenceResponse(
         }
     }
 }
+
+/**
+ * Paginated response DTO for consented users list.
+ *
+ * Returns a page of users who have consented to marketing communications.
+ *
+ * @property data List of marketing preferences for the current page
+ * @property total Total number of consented users (useful for pagination UI)
+ * @property limit Maximum number of records per page
+ * @property offset Number of records skipped
+ */
+@Serializable
+data class PaginatedConsentedUsersResponse(
+    val data: List<MarketingPreferenceResponse>,
+    val total: Long,
+    val limit: Int,
+    val offset: Long
+)

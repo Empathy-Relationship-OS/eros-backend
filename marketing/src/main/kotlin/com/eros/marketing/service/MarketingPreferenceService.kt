@@ -5,6 +5,7 @@ import com.eros.common.errors.ForbiddenException
 import com.eros.database.dbQuery
 import com.eros.marketing.models.UserMarketingConsent
 import com.eros.marketing.repository.MarketingRepository
+import org.jetbrains.exposed.v1.exceptions.ExposedSQLException
 import org.slf4j.LoggerFactory
 import java.time.Clock
 import java.time.Instant
@@ -89,7 +90,16 @@ class MarketingPreferenceService(
                 updatedAt = now
             )
 
-            marketingRepository.create(consent)
+            try {
+                marketingRepository.create(consent)
+            } catch (e: ExposedSQLException) {
+                // Handle race condition where another request created the record after doesExist check
+                // PostgreSQL unique constraint violation error code is 23505
+                if (e.sqlState == "23505") {
+                    throw ConflictException("Marketing preference already exists for user $userId. Use PUT to update.")
+                }
+                throw e
+            }
         }
     }
 
@@ -150,11 +160,27 @@ class MarketingPreferenceService(
      *
      * Business rules:
      * - Only accessible to admins/employees (enforced at route level)
+     * - Supports pagination to prevent loading all records into memory
      *
+     * @param limit Maximum number of records to return (optional, defaults to 100)
+     * @param offset Number of records to skip (optional, defaults to 0)
      * @return List of UserMarketingConsent records where marketingConsent is true
      */
-    suspend fun getAllConsentedUsers(): List<UserMarketingConsent> = dbQuery {
-        marketingRepository.findAllConsented()
+    suspend fun getAllConsentedUsers(limit: Int = 100, offset: Long = 0): List<UserMarketingConsent> = dbQuery {
+        marketingRepository.findAllConsented(limit, offset)
+    }
+
+    /**
+     * Gets the total count of users who have consented to marketing communications.
+     *
+     * Business rules:
+     * - Only accessible to admins/employees (enforced at route level)
+     * - Useful for pagination metadata
+     *
+     * @return Count of users with marketingConsent = true
+     */
+    suspend fun getConsentedUsersCount(): Long = dbQuery {
+        marketingRepository.countConsented()
     }
 
     /**

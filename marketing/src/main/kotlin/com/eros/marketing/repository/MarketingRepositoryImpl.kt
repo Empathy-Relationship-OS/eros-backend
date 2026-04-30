@@ -10,8 +10,7 @@ import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.upsert
 import com.eros.marketing.tables.UserMarketingConsent as UserMarketingConsentTable
 
-class MarketingRepositoryImpl(
-) : BaseDAOImpl<String, UserMarketingConsent>(UserMarketingConsentTable, UserMarketingConsentTable.userId), MarketingRepository {
+class MarketingRepositoryImpl : BaseDAOImpl<String, UserMarketingConsent>(UserMarketingConsentTable, UserMarketingConsentTable.userId), MarketingRepository {
 
     // -------------------------------------------------------------------------
     // BaseDAOImpl required implementations
@@ -47,10 +46,19 @@ class MarketingRepositoryImpl(
     // Marketing-specific query methods
     // -------------------------------------------------------------------------
 
-    override suspend fun findAllConsented(): List<UserMarketingConsent> {
-        return UserMarketingConsentTable.selectAll()
+    override suspend fun findAllConsented(limit: Int?, offset: Long): List<UserMarketingConsent> {
+        var query = UserMarketingConsentTable.selectAll()
             .where { UserMarketingConsentTable.marketingConsent eq true }
-            .map { it.toDomain() }
+
+        if (limit != null) {
+            query = query.limit(limit)
+        }
+
+        if (offset > 0) {
+            query = query.offset(offset)
+        }
+
+        return query.map { it.toDomain() }
     }
 
     override suspend fun countConsented(): Long {

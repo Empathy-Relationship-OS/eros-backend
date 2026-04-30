@@ -308,7 +308,7 @@ class MarketingPreferenceServiceTest {
                 createTestConsent(userId = "user1", marketingConsent = true),
                 createTestConsent(userId = "user2", marketingConsent = true)
             )
-            coEvery { marketingRepository.findAllConsented() } returns consented
+            coEvery { marketingRepository.findAllConsented(any(), any()) } returns consented
 
             val result = marketingPreferenceService.getAllConsentedUsers()
 
@@ -320,7 +320,7 @@ class MarketingPreferenceServiceTest {
 
         @Test
         fun `should return empty list when no users consented`() = runTest {
-            coEvery { marketingRepository.findAllConsented() } returns emptyList()
+            coEvery { marketingRepository.findAllConsented(any(), any()) } returns emptyList()
 
             val result = marketingPreferenceService.getAllConsentedUsers()
 

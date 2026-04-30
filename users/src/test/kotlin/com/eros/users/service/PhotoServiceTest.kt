@@ -178,12 +178,12 @@ class PhotoServiceTest {
 
         @Test
         fun `should throw IllegalArgumentException when file is below minimum size`() = runTest {
-            // Service enforces stricter 500KB minimum
+            // Service enforces 100KB minimum
             assertThrows<IllegalArgumentException> {
                 PresignedUploadRequest(
                     fileName = "file.jpg",
                     contentType   = "image/jpeg",
-                    fileSizeBytes = 100L,  // below 500 KB - DTO allows but service rejects
+                    fileSizeBytes = 100L,  // below 100 KB (100 bytes vs 100 KB = 102400 bytes)
                     displayOrder  = 1
                 )
             }
