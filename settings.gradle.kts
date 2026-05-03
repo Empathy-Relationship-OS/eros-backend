@@ -7,6 +7,7 @@ include(
     "database",
     "dates",
     "matching",
+    "marketing",
     "notifications",
     "users",
     "wallet"
