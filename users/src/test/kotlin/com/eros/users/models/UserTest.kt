@@ -50,7 +50,6 @@ class UserTest {
         fun `should handle leap year birthdays`() {
             // Born on Feb 29, 2000 (leap year)
             val user = createTestUser(dateOfBirth = LocalDate.of(2000, 2, 29))
-            val today = LocalDate.now()
 
             // Just verify it doesn't crash and produces a reasonable age
             val age = user.getAge()
