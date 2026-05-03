@@ -28,6 +28,11 @@ import com.eros.users.models.StarSign
 import com.eros.users.models.Trait
 import com.eros.users.models.UpdateUserRequest
 import com.eros.users.models.User
+import com.eros.users.models.Activity
+import com.eros.users.models.Interest
+import com.eros.users.models.Entertainment
+import com.eros.users.models.Creative
+import com.eros.users.models.Sport
 import com.eros.users.models.UserQAItem
 import com.eros.users.models.ValidationStatus
 import com.eros.users.repository.PhotoRepository
@@ -286,7 +291,7 @@ class UserServiceTest {
             preferredLanguage = Language.ENGLISH,
             occupation = "Engineer",
             bio = "Test bio",
-            interests = List(5) { "Interest$it" },
+            interests = listOf(Activity.HIKING, Interest.NATURE, Entertainment.MOVIES, Creative.PHOTOGRAPHY, Sport.YOGA),
             traits = List(3) { Trait.entries[it] },
             spokenLanguages = DisplayableField(listOf(Language.ENGLISH), false),
             religion = DisplayableField(null, false),
@@ -327,7 +332,7 @@ class UserServiceTest {
             gender = Gender.MALE,
             occupation = "Engineer",
             bio = "Test bio",
-            interests = List(5) { "Interest$it" },
+            interests = listOf(Activity.HIKING, Interest.NATURE, Entertainment.MOVIES, Creative.PHOTOGRAPHY, Sport.YOGA),
             traits = List(3) { Trait.entries[it] },
             preferredLanguage = Language.ENGLISH,
             spokenLanguages = DisplayableField(listOf(Language.ENGLISH), false),
@@ -377,7 +382,7 @@ class UserServiceTest {
             gender = Gender.MALE,
             occupation = "Engineer",
             bio = "Test bio",
-            interests = List(5) { "Interest$it" },
+            interests = listOf(Activity.HIKING, Interest.NATURE, Entertainment.MOVIES, Creative.PHOTOGRAPHY, Sport.YOGA),
             traits = List(3) { Trait.entries[it] },
             preferredLanguage = Language.ENGLISH,
             spokenLanguages = DisplayableField(listOf(Language.ENGLISH), true),

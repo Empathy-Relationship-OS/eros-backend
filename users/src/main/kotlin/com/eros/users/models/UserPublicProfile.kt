@@ -133,7 +133,7 @@ data class PublicProfileDetails(
                 coverPhoto = userMediaCollection.getPrimaryMedia()?.mediaUrl,
                 photos = userMediaCollection.media.map { it.mediaUrl },
                 bio = user.bio,
-                hobbies = user.interests,
+                hobbies = user.interests.map { it.displayName },
                 traits = user.traits.map {it.name},
                 habits = HabitsResponse.from(user),
                 relationshipGoals = RelationshipResponse.from(user),

@@ -1,6 +1,5 @@
 package com.eros.users.models
 
-import com.eros.common.serializers.InstantSerializer
 import com.eros.common.serializers.LocalDateSerializer
 import kotlinx.serialization.Serializable
 import java.time.Instant
@@ -39,7 +38,7 @@ data class User(
     
     // Hobbies & Interests (5-10 required)
     // These combine all interest categories: Activity, Interest, Entertainment, Creative, MusicGenre, FoodAndDrink, Sport
-    val interests: List<String>,
+    val interests: List<UserInterest>,
     
     // Personality Traits (3-10 required)
     val traits: List<Trait>,
@@ -157,7 +156,7 @@ fun User.toDTO() = UserDTO(
     coordinatesLongitude = this.coordinatesLongitude,
     occupation = this.occupation,
     bio = this.bio,
-    interests = this.interests ,
+    interests = this.interests,
     traits = this.traits ,
     spokenLanguages = this.spokenLanguages ,
     religion = this.religion ,
@@ -201,7 +200,7 @@ data class UserDTO(
     // Optional fields
     val occupation: String? = null,
     val bio: String = "",
-    val interests: List<String>,
+    val interests: List<@Serializable(with = com.eros.users.serializers.UserInterestSerializer::class) UserInterest>,
     val traits: List<Trait>,
 
     // Displayable fields — client controls both value and visibility
@@ -249,7 +248,7 @@ data class CreateUserRequest(
     // Optional fields
     val occupation: String? = null,
     val bio: String = "",
-    val interests: List<String>,
+    val interests: List<@Serializable(with = com.eros.users.serializers.UserInterestSerializer::class) UserInterest>,
     val traits: List<Trait>,
 
     // Displayable fields — client controls both value and visibility
@@ -308,7 +307,7 @@ data class UpdateUserRequest(
     val educationLevel: EducationLevel? = null,
     val occupation: String? = null,
     val bio: String? = null,
-    val interests: List<String>? = null,
+    val interests: List<@Serializable(with = com.eros.users.serializers.UserInterestSerializer::class) UserInterest>? = null,
     val traits: List<Trait>? = null,
     val preferredLanguage: Language? = null,
     val coordinatesLatitude: Double? = null,
@@ -419,3 +418,23 @@ fun User.toVisibilityDTO() = ProfileStatusDTO(
  */
 @Serializable
 data class DisplayableField<T>(val field: T, val display: Boolean)
+
+/**
+ * Helper function to convert UserInterest enum to String for database storage
+ */
+fun List<UserInterest>.toStorageFormat(): List<String> =
+    this.map { (it as Enum<*>).name }
+
+/**
+ * Helper function to convert String from database to UserInterest enum
+ */
+fun List<String>.toUserInterests(): List<UserInterest> =
+    this.mapNotNull { enumName ->
+        Activity.entries.find { it.name == enumName }
+            ?: Interest.entries.find { it.name == enumName }
+            ?: Entertainment.entries.find { it.name == enumName }
+            ?: Creative.entries.find { it.name == enumName }
+            ?: MusicGenre.entries.find { it.name == enumName }
+            ?: FoodAndDrink.entries.find { it.name == enumName }
+            ?: Sport.entries.find { it.name == enumName }
+    }

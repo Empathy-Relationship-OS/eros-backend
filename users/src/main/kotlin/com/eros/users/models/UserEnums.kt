@@ -169,9 +169,43 @@ enum class StarSign {
 }
 
 /**
+ * Helper function to convert enum names to display format
+ * CITY_TRIPS -> "City Trips"
+ * FORMULA_1 -> "Formula 1"
+ */
+private fun String.toDisplayName(): String =
+    this.split('_').joinToString(" ") { word ->
+        word.lowercase().replaceFirstChar { it.uppercase() }
+    }
+
+/**
+ * Base interface for all user interest enums.
+ *
+ * IMPORTANT: All enum values across Activity, Interest, Entertainment, Creative,
+ * MusicGenre, FoodAndDrink, and Sport MUST be unique to avoid database ambiguity.
+ *
+ * A test enforces this uniqueness constraint.
+ */
+interface UserInterest {
+    /**
+     * Display name for frontend presentation.
+     * Defaults to automatic conversion (CITY_TRIPS -> "City Trips")
+     *
+     * Can be overridden for custom formatting:
+     * ```
+     * FORMULA_1 {
+     *     override val displayName = "Formula 1"
+     * }
+     * ```
+     */
+    val displayName: String
+        get() = (this as Enum<*>).name.toDisplayName()
+}
+
+/**
  * Hobbies and interests - Activities section
  */
-enum class Activity {
+enum class Activity : UserInterest {
     CITY_TRIPS,
     OUTDOORS,
     PUB_QUIZ,
@@ -199,13 +233,16 @@ enum class Activity {
     SAUNA,
     SHOPPING,
     TAKING_A_WALK,
-    THRIFTING
+    THRIFTING;
+
+    override val displayName: String
+        get() = name.toDisplayName()
 }
 
 /**
  * Hobbies and interests - General interests
  */
-enum class Interest {
+enum class Interest : UserInterest{
     ENTREPRENEURSHIP,
     FORMULA_1,
     LANGUAGES,
@@ -239,7 +276,7 @@ enum class Interest {
 /**
  * Entertainment preferences
  */
-enum class Entertainment {
+enum class Entertainment : UserInterest {
     READING,
     ANIME,
     BOARD_GAMES,
@@ -268,7 +305,7 @@ enum class Entertainment {
 /**
  * Creative pursuits
  */
-enum class Creative {
+enum class Creative : UserInterest {
     ACTING,
     COMPOSING_MUSIC,
     CRAFTS,
@@ -290,7 +327,7 @@ enum class Creative {
 /**
  * Music genres
  */
-enum class MusicGenre {
+enum class MusicGenre : UserInterest {
     AFRO_BEATS,
     BLUES,
     CLASSICAL_MUSIC,
@@ -328,7 +365,7 @@ enum class MusicGenre {
 /**
  * Food and drink preferences
  */
-enum class FoodAndDrink {
+enum class FoodAndDrink : UserInterest{
     BBQ,
     BARBECUE,
     BEER,
@@ -362,7 +399,7 @@ enum class FoodAndDrink {
 /**
  * Sports and physical activities
  */
-enum class Sport {
+enum class Sport : UserInterest {
     KICK_BOXING,
     GOLF,
     KITE_SURFING,

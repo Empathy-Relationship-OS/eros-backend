@@ -316,14 +316,18 @@ class UserService(
     /**
      * Function to return the shared interests of two users.
      *
-     * @param user1Interests [User] List of Strings of user 1's interests.
-     * @param user1Interests [User] List of Strings of user 2's interests.
+     * @param user1Interests [User] List of UserInterests of user 1's interests.
+     * @param user2Interests [User] List of UserInterests of user 2's interests.
      *
-     * @return List of strings containing only interests that are in both user 1 and user 2's lists.
+     * @return List of strings (displayNames) containing only interests that are in both user 1 and user 2's lists.
      */
-    fun getSharedInterests(user1Interests: List<String>, user2Interests: List<String>): List<String> {
-        return if (user1Interests == user2Interests){user1Interests}
-        else(user1Interests intersect user2Interests.toSet()).toList()
+    fun getSharedInterests(user1Interests: List<UserInterest>, user2Interests: List<UserInterest>): List<String> {
+        val shared = if (user1Interests == user2Interests) {
+            user1Interests
+        } else {
+            (user1Interests intersect user2Interests.toSet()).toList()
+        }
+        return shared.map { it.displayName }
     }
 
     /**

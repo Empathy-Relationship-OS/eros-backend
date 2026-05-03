@@ -93,35 +93,51 @@ class UserTest {
 
         @Test
         fun `should return true when interests count is 5`() {
-            val user = createTestUser(interests = listOf("A", "B", "C", "D", "E"))
+            val user = createTestUser(interests = listOf(Activity.HIKING, Interest.NATURE, Entertainment.MOVIES, Creative.PHOTOGRAPHY, Sport.YOGA))
 
             assertTrue(user.hasValidInterestsCount())
         }
 
         @Test
         fun `should return true when interests count is 10`() {
-            val user = createTestUser(interests = List(10) { "Interest$it" })
+            val user = createTestUser(interests = listOf(
+                Activity.HIKING, Activity.CAMPING, Activity.BEACH,
+                Interest.NATURE, Interest.ANIMALS,
+                Entertainment.MOVIES, Entertainment.GAMING,
+                Creative.PHOTOGRAPHY, Creative.PAINTING,
+                Sport.YOGA
+            ))
 
             assertTrue(user.hasValidInterestsCount())
         }
 
         @Test
         fun `should return true when interests count is between 5 and 10`() {
-            val user = createTestUser(interests = List(7) { "Interest$it" })
+            val user = createTestUser(interests = listOf(
+                Activity.HIKING, Activity.CAMPING,
+                Interest.NATURE, Interest.ANIMALS,
+                Entertainment.MOVIES, Entertainment.GAMING,
+                Sport.YOGA
+            ))
 
             assertTrue(user.hasValidInterestsCount())
         }
 
         @Test
         fun `should return false when interests count is less than 5`() {
-            val user = createTestUser(interests = listOf("A", "B", "C", "D"))
+            val user = createTestUser(interests = listOf(Activity.HIKING, Interest.NATURE, Entertainment.MOVIES, Creative.PHOTOGRAPHY))
 
             assertFalse(user.hasValidInterestsCount())
         }
 
         @Test
         fun `should return false when interests count is more than 10`() {
-            val user = createTestUser(interests = List(11) { "Interest$it" })
+            val user = createTestUser(interests = listOf(
+                Activity.HIKING, Activity.CAMPING, Activity.BEACH, Activity.CONCERTS,
+                Interest.NATURE, Interest.ANIMALS, Interest.PLANTS,
+                Entertainment.MOVIES, Entertainment.GAMING, Entertainment.READING,
+                Sport.YOGA
+            ))
 
             assertFalse(user.hasValidInterestsCount())
         }
@@ -209,7 +225,7 @@ class UserTest {
                 email = "john@example.com",
                 heightCm = 180,
                 city = "London",
-                interests = List(5) { "Interest$it" },
+                interests = listOf(Activity.HIKING, Interest.NATURE, Entertainment.MOVIES, Creative.PHOTOGRAPHY, Sport.YOGA),
                 traits = List(3) { Trait.entries[it] }
             )
 
@@ -260,7 +276,7 @@ class UserTest {
 
         @Test
         fun `should return false when interests count is invalid`() {
-            val user = createTestUser(interests = listOf("A", "B", "C"))
+            val user = createTestUser(interests = listOf(Activity.HIKING, Interest.NATURE, Entertainment.MOVIES))
 
             assertFalse(user.hasMinimumRequiredFields())
         }
@@ -279,7 +295,7 @@ class UserTest {
         @Test
         fun `should throw exception when interests count is less than 5`() {
             val exception = assertThrows<IllegalArgumentException> {
-                createValidCreateUserRequest(interests = listOf("A", "B", "C", "D"))
+                createValidCreateUserRequest(interests = listOf(Activity.HIKING, Interest.NATURE, Entertainment.MOVIES, Creative.PHOTOGRAPHY))
             }
             assertEquals("Interests must be between 5 and 10 items", exception.message)
         }
@@ -287,7 +303,13 @@ class UserTest {
         @Test
         fun `should throw exception when interests count is more than 10`() {
             val exception = assertThrows<IllegalArgumentException> {
-                createValidCreateUserRequest(interests = List(11) { "Interest$it" })
+                createValidCreateUserRequest(interests = listOf(
+                    Activity.HIKING, Activity.CAMPING, Activity.BEACH,
+                    Interest.NATURE, Interest.ANIMALS, Interest.PLANTS,
+                    Entertainment.MOVIES, Entertainment.GAMING,
+                    Creative.PHOTOGRAPHY, Creative.PAINTING,
+                    Sport.YOGA
+                ))
             }
             assertEquals("Interests must be between 5 and 10 items", exception.message)
         }
@@ -349,7 +371,7 @@ class UserTest {
         @Test
         fun `should throw exception when interests count is invalid`() {
             val exception = assertThrows<IllegalArgumentException> {
-                UpdateUserRequest(interests = listOf("A", "B"))
+                UpdateUserRequest(interests = listOf(Activity.HIKING, Interest.NATURE))
             }
             assertEquals("Interests must be between 5 and 10 items", exception.message)
         }
@@ -407,7 +429,7 @@ class UserTest {
             val request = UpdateUserRequest(
                 firstName = "Jane",
                 bio = "Updated bio",
-                interests = List(7) { "Interest$it" }
+                interests = listOf(Activity.HIKING, Activity.CAMPING, Interest.NATURE, Entertainment.MOVIES, Creative.PHOTOGRAPHY, Sport.YOGA, Sport.RUNNING)
             )
 
             assertEquals("Jane", request.firstName)
@@ -436,7 +458,7 @@ class UserTest {
         gender: Gender = Gender.MALE,
         preferredLanguage: Language = Language.ENGLISH,
         bio: String = "",
-        interests: List<String> = List(5) { "Interest$it" },
+        interests: List<UserInterest> = listOf(Activity.HIKING, Interest.NATURE, Entertainment.MOVIES, Creative.PHOTOGRAPHY, Sport.YOGA),
         traits: List<Trait> = List(3) { Trait.entries[it] },
         spokenLanguages: DisplayableField<List<Language>> = DisplayableField(listOf(Language.ENGLISH), false),
         religion: DisplayableField<Religion?> = DisplayableField(null, false),
@@ -507,7 +529,7 @@ class UserTest {
         gender: Gender = Gender.MALE,
         occupation: String = "Engineer",
         bio: String = "Test bio",
-        interests: List<String> = List(5) { "Interest$it" },
+        interests: List<UserInterest> = listOf(Activity.HIKING, Interest.NATURE, Entertainment.MOVIES, Creative.PHOTOGRAPHY, Sport.YOGA),
         traits: List<Trait> = List(3) { Trait.entries[it] },
         preferredLanguage: Language = Language.ENGLISH,
         spokenLanguages: DisplayableField<List<Language>> = DisplayableField(listOf(Language.ENGLISH), false),

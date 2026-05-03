@@ -2,6 +2,7 @@ package com.eros.users.repository
 
 import com.eros.database.repository.BaseDAOImpl
 import com.eros.users.models.User
+import com.eros.users.models.toStorageFormat
 import com.eros.users.table.BADGE_COLUMN_MAP
 import com.eros.users.table.Users
 import com.eros.users.table.toDTO
@@ -50,7 +51,7 @@ class UserRepositoryImpl(
             this[Users.gender] = entity.gender.name
             this[Users.occupation] = entity.occupation
             this[Users.bio] = entity.bio
-            this[Users.interests] = entity.interests
+            this[Users.interests] = entity.interests.toStorageFormat()
             this[Users.traits] = entity.traits.map { it.name }
             this[Users.preferredLanguage] = entity.preferredLanguage.name
             this[Users.spokenLanguages] = entity.spokenLanguages.field.map { it.name }
