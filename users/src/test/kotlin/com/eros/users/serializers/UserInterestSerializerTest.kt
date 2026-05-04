@@ -1,11 +1,18 @@
 package com.eros.users.serializers
 
-import com.eros.users.models.*
-import kotlinx.serialization.encodeToString
+import com.eros.users.models.Activity
+import com.eros.users.models.Creative
+import com.eros.users.models.Entertainment
+import com.eros.users.models.FoodAndDrink
+import com.eros.users.models.Interest
+import com.eros.users.models.MusicGenre
+import com.eros.users.models.Sport
+import com.eros.users.models.UserInterest
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 /**
  * Test suite for UserInterestSerializer.
@@ -161,15 +168,15 @@ class UserInterestSerializerTest {
         val exception = assertThrows<IllegalArgumentException> {
             json.decodeFromString(UserInterestSerializer, "\"INVALID_INTEREST\"")
         }
-        assert(exception.message!!.contains("Unknown UserInterest displayName: 'INVALID_INTEREST'"))
+        assertTrue(exception.message!!.contains("Unknown UserInterest displayName: 'INVALID_INTEREST'"))
     }
 
     @Test
-    fun `UserInterestSerializer should throw exception for old enum format`() {
-        val exception = assertThrows<IllegalArgumentException> {
-            json.decodeFromString(UserInterestSerializer, "\"CITY_TRIPS\"")
-        }
-        assert(exception.message!!.contains("Unknown UserInterest displayName: 'CITY_TRIPS'"))
+    fun `UserInterestSerializer should accept old enum format for backward compatibility`() {
+        // Now accepts enum names for backward compatibility
+        assertEquals(Activity.CITY_TRIPS, json.decodeFromString(UserInterestSerializer, "\"CITY_TRIPS\""))
+        assertEquals(Interest.NATURE, json.decodeFromString(UserInterestSerializer, "\"NATURE\""))
+        assertEquals(Entertainment.MOVIES, json.decodeFromString(UserInterestSerializer, "\"MOVIES\""))
     }
 
     @Test
@@ -178,7 +185,7 @@ class UserInterestSerializerTest {
         val exception = assertThrows<IllegalArgumentException> {
             json.decodeFromString(UserInterestSerializer, "\"Diy\"")
         }
-        assert(exception.message!!.contains("Unknown UserInterest displayName: 'Diy'"))
+        assertTrue(exception.message!!.contains("Unknown UserInterest displayName: 'Diy'"))
     }
 
     @Test
@@ -187,7 +194,7 @@ class UserInterestSerializerTest {
         val exception = assertThrows<IllegalArgumentException> {
             json.decodeFromString(UserInterestSerializer, "\"Sci Fi\"")
         }
-        assert(exception.message!!.contains("Unknown UserInterest displayName: 'Sci Fi'"))
+        assertTrue(exception.message!!.contains("Unknown UserInterest displayName: 'Sci Fi'"))
     }
 
     // ========================================

@@ -1,11 +1,28 @@
 package com.eros.users.serializers
 
-import com.eros.users.models.*
-import kotlinx.serialization.encodeToString
+import com.eros.users.models.AlcoholConsumption
+import com.eros.users.models.BodyAttribute
+import com.eros.users.models.BrainAttribute
+import com.eros.users.models.DateIntentions
+import com.eros.users.models.Diet
+import com.eros.users.models.EducationLevel
+import com.eros.users.models.Ethnicity
+import com.eros.users.models.Gender
+import com.eros.users.models.KidsPreference
+import com.eros.users.models.Language
+import com.eros.users.models.PoliticalView
+import com.eros.users.models.Pronouns
+import com.eros.users.models.RelationshipType
+import com.eros.users.models.Religion
+import com.eros.users.models.SexualOrientation
+import com.eros.users.models.SmokingStatus
+import com.eros.users.models.StarSign
+import com.eros.users.models.Trait
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 /**
  * Test suite for EnumSerializers.
@@ -48,15 +65,15 @@ class EnumSerializersTest {
         val exception = assertThrows<IllegalArgumentException> {
             json.decodeFromString(GenderSerializer, "\"INVALID\"")
         }
-        assert(exception.message!!.contains("Unknown Gender displayName: 'INVALID'"))
+        assertTrue(exception.message!!.contains("Unknown Gender displayName: 'INVALID'"))
     }
 
     @Test
-    fun `GenderSerializer should throw exception for old enum format`() {
-        val exception = assertThrows<IllegalArgumentException> {
-            json.decodeFromString(GenderSerializer, "\"MALE\"")
-        }
-        assert(exception.message!!.contains("Unknown Gender displayName: 'MALE'"))
+    fun `GenderSerializer should accept old enum format for backward compatibility`() {
+        // Now accepts enum names for backward compatibility
+        assertEquals(Gender.MALE, json.decodeFromString(GenderSerializer, "\"MALE\""))
+        assertEquals(Gender.FEMALE, json.decodeFromString(GenderSerializer, "\"FEMALE\""))
+        assertEquals(Gender.NON_BINARY, json.decodeFromString(GenderSerializer, "\"NON_BINARY\""))
     }
 
     // ========================================
@@ -80,11 +97,10 @@ class EnumSerializersTest {
     }
 
     @Test
-    fun `EducationLevelSerializer should throw exception for old enum format`() {
-        val exception = assertThrows<IllegalArgumentException> {
-            json.decodeFromString(EducationLevelSerializer, "\"UNIVERSITY\"")
-        }
-        assert(exception.message!!.contains("Unknown EducationLevel displayName"))
+    fun `EducationLevelSerializer should accept old enum format for backward compatibility`() {
+        // Now accepts enum names for backward compatibility
+        assertEquals(EducationLevel.UNIVERSITY, json.decodeFromString(EducationLevelSerializer, "\"UNIVERSITY\""))
+        assertEquals(EducationLevel.COLLEGE, json.decodeFromString(EducationLevelSerializer, "\"COLLEGE\""))
     }
 
     // ========================================
@@ -106,11 +122,10 @@ class EnumSerializersTest {
     }
 
     @Test
-    fun `LanguageSerializer should throw exception for old enum format`() {
-        val exception = assertThrows<IllegalArgumentException> {
-            json.decodeFromString(LanguageSerializer, "\"ENGLISH\"")
-        }
-        assert(exception.message!!.contains("Unknown Language displayName"))
+    fun `LanguageSerializer should accept old enum format for backward compatibility`() {
+        // Now accepts enum names for backward compatibility
+        assertEquals(Language.ENGLISH, json.decodeFromString(LanguageSerializer, "\"ENGLISH\""))
+        assertEquals(Language.SPANISH, json.decodeFromString(LanguageSerializer, "\"SPANISH\""))
     }
 
     // ========================================
@@ -132,11 +147,9 @@ class EnumSerializersTest {
     }
 
     @Test
-    fun `TraitSerializer should throw exception for old enum format`() {
-        val exception = assertThrows<IllegalArgumentException> {
-            json.decodeFromString(TraitSerializer, "\"ADVENTUROUS\"")
-        }
-        assert(exception.message!!.contains("Unknown Trait displayName"))
+    fun `TraitSerializer should accept old enum format for backward compatibility`() {
+        // Now accepts enum names for backward compatibility
+        assertEquals(Trait.ADVENTUROUS, json.decodeFromString(TraitSerializer, "\"ADVENTUROUS\""))
     }
 
     // ========================================
@@ -248,11 +261,9 @@ class EnumSerializersTest {
     }
 
     @Test
-    fun `DateIntentionsSerializer should throw exception for old enum format`() {
-        val exception = assertThrows<IllegalArgumentException> {
-            json.decodeFromString(DateIntentionsSerializer, "\"SERIOUS_DATING\"")
-        }
-        assert(exception.message!!.contains("Unknown DateIntentions displayName"))
+    fun `DateIntentionsSerializer should accept old enum format for backward compatibility`() {
+        // Now accepts enum names for backward compatibility
+        assertEquals(DateIntentions.SERIOUS_DATING, json.decodeFromString(DateIntentionsSerializer, "\"SERIOUS_DATING\""))
     }
 
     // ========================================
@@ -328,11 +339,9 @@ class EnumSerializersTest {
     }
 
     @Test
-    fun `PronounsSerializer should throw exception for old enum format`() {
-        val exception = assertThrows<IllegalArgumentException> {
-            json.decodeFromString(PronounsSerializer, "\"HE_HIM\"")
-        }
-        assert(exception.message!!.contains("Unknown Pronouns displayName"))
+    fun `PronounsSerializer should accept old enum format for backward compatibility`() {
+        // Now accepts enum names for backward compatibility
+        assertEquals(Pronouns.HE_HIM, json.decodeFromString(PronounsSerializer, "\"HE_HIM\""))
     }
 
     // ========================================
@@ -372,11 +381,9 @@ class EnumSerializersTest {
     }
 
     @Test
-    fun `BrainAttributeSerializer should throw exception for old enum format`() {
-        val exception = assertThrows<IllegalArgumentException> {
-            json.decodeFromString(BrainAttributeSerializer, "\"ADHD\"")
-        }
-        assert(exception.message!!.contains("Unknown BrainAttribute displayName"))
+    fun `BrainAttributeSerializer should accept old enum format for backward compatibility`() {
+        // Now accepts enum names for backward compatibility
+        assertEquals(BrainAttribute.ADHD, json.decodeFromString(BrainAttributeSerializer, "\"ADHD\""))
     }
 
     // ========================================
@@ -398,11 +405,9 @@ class EnumSerializersTest {
     }
 
     @Test
-    fun `BodyAttributeSerializer should throw exception for old enum format`() {
-        val exception = assertThrows<IllegalArgumentException> {
-            json.decodeFromString(BodyAttributeSerializer, "\"WHEELCHAIR\"")
-        }
-        assert(exception.message!!.contains("Unknown BodyAttribute displayName"))
+    fun `BodyAttributeSerializer should accept old enum format for backward compatibility`() {
+        // Now accepts enum names for backward compatibility
+        assertEquals(BodyAttribute.WHEELCHAIR, json.decodeFromString(BodyAttributeSerializer, "\"WHEELCHAIR\""))
     }
 
     // ========================================
@@ -424,10 +429,8 @@ class EnumSerializersTest {
     }
 
     @Test
-    fun `EthnicitySerializer should throw exception for old enum format`() {
-        val exception = assertThrows<IllegalArgumentException> {
-            json.decodeFromString(EthnicitySerializer, "\"WHITE_CAUCASIAN\"")
-        }
-        assert(exception.message!!.contains("Unknown Ethnicity displayName"))
+    fun `EthnicitySerializer should accept old enum format for backward compatibility`() {
+        // Now accepts enum names for backward compatibility
+        assertEquals(Ethnicity.WHITE_CAUCASIAN, json.decodeFromString(EthnicitySerializer, "\"WHITE_CAUCASIAN\""))
     }
 }

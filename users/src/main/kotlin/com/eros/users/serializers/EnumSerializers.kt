@@ -1,6 +1,23 @@
 package com.eros.users.serializers
 
-import com.eros.users.models.*
+import com.eros.users.models.AlcoholConsumption
+import com.eros.users.models.BodyAttribute
+import com.eros.users.models.BrainAttribute
+import com.eros.users.models.DateIntentions
+import com.eros.users.models.Diet
+import com.eros.users.models.EducationLevel
+import com.eros.users.models.Ethnicity
+import com.eros.users.models.Gender
+import com.eros.users.models.KidsPreference
+import com.eros.users.models.Language
+import com.eros.users.models.PoliticalView
+import com.eros.users.models.Pronouns
+import com.eros.users.models.RelationshipType
+import com.eros.users.models.Religion
+import com.eros.users.models.SexualOrientation
+import com.eros.users.models.SmokingStatus
+import com.eros.users.models.StarSign
+import com.eros.users.models.Trait
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
@@ -27,10 +44,13 @@ abstract class DisplayNameEnumSerializer<T>(
 
     override fun deserialize(decoder: Decoder): T {
         val displayName = decoder.decodeString()
+        // Try display name first (preferred format)
         return fromDisplayName(displayName)
+            // Fallback to enum name for backward compatibility
+            ?: values.find { (it as? Enum<*>)?.name == displayName }
             ?: throw IllegalArgumentException(
                 "Unknown $serialName displayName: '$displayName'. " +
-                "Valid values are: ${values.map { getDisplayName(it) }.joinToString(", ")}"
+                "Valid values are: ${values.joinToString(", ") { getDisplayName(it) }}"
             )
     }
 }

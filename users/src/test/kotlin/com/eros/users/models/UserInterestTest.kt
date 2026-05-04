@@ -60,21 +60,27 @@ class UserInterestTest {
     @Test
     fun `all UserInterest enums should have displayName property`() {
         // Verify that all enum types implementing UserInterest have the displayName property
-        val activityExample: UserInterest = Activity.HIKING
-        val interestExample: UserInterest = Interest.NATURE
-        val entertainmentExample: UserInterest = Entertainment.MOVIES
-        val creativeExample: UserInterest = Creative.PHOTOGRAPHY
-        val musicGenreExample: UserInterest = MusicGenre.JAZZ
-        val foodAndDrinkExample: UserInterest = FoodAndDrink.PIZZA
-        val sportExample: UserInterest = Sport.YOGA
-
-        // Should not throw - just verify they have displayName
-        assertTrue(activityExample.displayName.isNotBlank())
-        assertTrue(interestExample.displayName.isNotBlank())
-        assertTrue(entertainmentExample.displayName.isNotBlank())
-        assertTrue(creativeExample.displayName.isNotBlank())
-        assertTrue(musicGenreExample.displayName.isNotBlank())
-        assertTrue(foodAndDrinkExample.displayName.isNotBlank())
-        assertTrue(sportExample.displayName.isNotBlank())
+        // Check every entry in each enum type
+        Activity.entries.forEach { entry ->
+            assertTrue(entry.displayName.isNotBlank(), "Activity.${entry.name} should have non-blank displayName")
+        }
+        Interest.entries.forEach { entry ->
+            assertTrue(entry.displayName.isNotBlank(), "Interest.${entry.name} should have non-blank displayName")
+        }
+        Entertainment.entries.forEach { entry ->
+            assertTrue(entry.displayName.isNotBlank(), "Entertainment.${entry.name} should have non-blank displayName")
+        }
+        Creative.entries.forEach { entry ->
+            assertTrue(entry.displayName.isNotBlank(), "Creative.${entry.name} should have non-blank displayName")
+        }
+        MusicGenre.entries.forEach { entry ->
+            assertTrue(entry.displayName.isNotBlank(), "MusicGenre.${entry.name} should have non-blank displayName")
+        }
+        FoodAndDrink.entries.forEach { entry ->
+            assertTrue(entry.displayName.isNotBlank(), "FoodAndDrink.${entry.name} should have non-blank displayName")
+        }
+        Sport.entries.forEach { entry ->
+            assertTrue(entry.displayName.isNotBlank(), "Sport.${entry.name} should have non-blank displayName")
+        }
     }
 }

@@ -17,6 +17,7 @@ import kotlinx.serialization.encoding.Encoder
  * Examples:
  * - Serialization: Activity.CITY_TRIPS -> "City Trips"
  * - Deserialization: "City Trips" -> Activity.CITY_TRIPS
+ * - Deserialization: "CITY_TRIPS" -> Activity.CITY_TRIPS (backward compatibility)
  */
 object UserInterestSerializer : KSerializer<UserInterest> {
     override val descriptor: SerialDescriptor =
@@ -29,15 +30,8 @@ object UserInterestSerializer : KSerializer<UserInterest> {
     override fun deserialize(decoder: Decoder): UserInterest {
         val displayName = decoder.decodeString()
 
-        // Try each enum type that implements UserInterest
-        // This works because we enforce uniqueness of enum values across all types
-        return Activity.entries.find { it.displayName == displayName }
-            ?: Interest.entries.find { it.displayName == displayName }
-            ?: Entertainment.entries.find { it.displayName == displayName }
-            ?: Creative.entries.find { it.displayName == displayName }
-            ?: MusicGenre.entries.find { it.displayName == displayName }
-            ?: FoodAndDrink.entries.find { it.displayName == displayName }
-            ?: Sport.entries.find { it.displayName == displayName }
+        // Use shared helper function to find UserInterest by name or displayName
+        return findUserInterest(displayName)
             ?: throw IllegalArgumentException(
                 "Unknown UserInterest displayName: '$displayName'. " +
                 "Valid values must match a displayName from Activity, Interest, Entertainment, " +

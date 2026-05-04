@@ -434,15 +434,41 @@ fun List<UserInterest>.toStorageFormat(): List<String> =
     this.map { (it as Enum<*>).name }
 
 /**
+ * Finds a UserInterest enum by either its enum name or display name.
+ * Supports both new enum.name format and legacy display name format.
+ *
+ * @param value The string value to look up (can be enum name or display name)
+ * @return The matching UserInterest enum, or null if not found
+ */
+internal fun findUserInterest(value: String): UserInterest? {
+    // Try matching by enum name first (new format - preferred)
+    return Activity.entries.find { it.name == value }
+        ?: Interest.entries.find { it.name == value }
+        ?: Entertainment.entries.find { it.name == value }
+        ?: Creative.entries.find { it.name == value }
+        ?: MusicGenre.entries.find { it.name == value }
+        ?: FoodAndDrink.entries.find { it.name == value }
+        ?: Sport.entries.find { it.name == value }
+        // Fallback to display name for backward compatibility (legacy format)
+        ?: Activity.entries.find { it.displayName == value }
+        ?: Interest.entries.find { it.displayName == value }
+        ?: Entertainment.entries.find { it.displayName == value }
+        ?: Creative.entries.find { it.displayName == value }
+        ?: MusicGenre.entries.find { it.displayName == value }
+        ?: FoodAndDrink.entries.find { it.displayName == value }
+        ?: Sport.entries.find { it.displayName == value }
+}
+
+/**
  * Helper function to convert String from database to UserInterest enum
+ * Supports both new enum.name format and legacy display name format
+ * @throws IllegalArgumentException if an enumName cannot be mapped
  */
 fun List<String>.toUserInterests(): List<UserInterest> =
-    this.mapNotNull { enumName ->
-        Activity.entries.find { it.name == enumName }
-            ?: Interest.entries.find { it.name == enumName }
-            ?: Entertainment.entries.find { it.name == enumName }
-            ?: Creative.entries.find { it.name == enumName }
-            ?: MusicGenre.entries.find { it.name == enumName }
-            ?: FoodAndDrink.entries.find { it.name == enumName }
-            ?: Sport.entries.find { it.name == enumName }
+    this.map { enumName ->
+        findUserInterest(enumName)
+            ?: throw IllegalArgumentException(
+                "Unknown UserInterest value in database: '$enumName'. " +
+                "This indicates corrupt or legacy data that needs migration."
+            )
     }
