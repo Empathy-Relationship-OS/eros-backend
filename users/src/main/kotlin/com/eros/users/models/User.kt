@@ -1,6 +1,5 @@
 package com.eros.users.models
 
-import com.eros.common.serializers.InstantSerializer
 import com.eros.common.serializers.LocalDateSerializer
 import kotlinx.serialization.Serializable
 import java.time.Instant
@@ -39,7 +38,7 @@ data class User(
     
     // Hobbies & Interests (5-10 required)
     // These combine all interest categories: Activity, Interest, Entertainment, Creative, MusicGenre, FoodAndDrink, Sport
-    val interests: List<String>,
+    val interests: List<UserInterest>,
     
     // Personality Traits (3-10 required)
     val traits: List<Trait>,
@@ -157,7 +156,7 @@ fun User.toDTO() = UserDTO(
     coordinatesLongitude = this.coordinatesLongitude,
     occupation = this.occupation,
     bio = this.bio,
-    interests = this.interests ,
+    interests = this.interests,
     traits = this.traits ,
     spokenLanguages = this.spokenLanguages ,
     religion = this.religion ,
@@ -191,8 +190,11 @@ data class UserDTO(
     @Serializable(with = LocalDateSerializer::class)
     val dateOfBirth: LocalDate,
     val city: String,
+    @Serializable(with = com.eros.users.serializers.EducationLevelSerializer::class)
     val educationLevel: EducationLevel,
+    @Serializable(with = com.eros.users.serializers.GenderSerializer::class)
     val gender: Gender,
+    @Serializable(with = com.eros.users.serializers.LanguageSerializer::class)
     val preferredLanguage: Language,
 
     val coordinatesLatitude: Double,
@@ -201,26 +203,26 @@ data class UserDTO(
     // Optional fields
     val occupation: String? = null,
     val bio: String = "",
-    val interests: List<String>,
-    val traits: List<Trait>,
+    val interests: List<@Serializable(with = com.eros.users.serializers.UserInterestSerializer::class) UserInterest>,
+    val traits: List<@Serializable(with = com.eros.users.serializers.TraitSerializer::class) Trait>,
 
     // Displayable fields — client controls both value and visibility
-    val spokenLanguages: DisplayableField<List<Language>>,
-    val religion: DisplayableField<Religion?>,
-    val politicalView: DisplayableField<PoliticalView?>,
-    val alcoholConsumption: DisplayableField<AlcoholConsumption?>,
-    val smokingStatus: DisplayableField<SmokingStatus?>,
-    val diet: DisplayableField<Diet?>,
-    val dateIntentions: DisplayableField<DateIntentions>,
-    val relationshipType: DisplayableField<RelationshipType>,
-    val kidsPreference: DisplayableField<KidsPreference>,
-    val sexualOrientation: DisplayableField<SexualOrientation>,
-    val pronouns: DisplayableField<Pronouns?>,
-    val starSign: DisplayableField<StarSign?>,
-    val ethnicity: DisplayableField<List<Ethnicity>>,
-    val brainAttributes: DisplayableField<List<BrainAttribute>?>,
+    val spokenLanguages: DisplayableField<List<@Serializable(with = com.eros.users.serializers.LanguageSerializer::class) Language>>,
+    val religion: DisplayableField<@Serializable(with = com.eros.users.serializers.ReligionSerializer::class) Religion?>,
+    val politicalView: DisplayableField<@Serializable(with = com.eros.users.serializers.PoliticalViewSerializer::class) PoliticalView?>,
+    val alcoholConsumption: DisplayableField<@Serializable(with = com.eros.users.serializers.AlcoholConsumptionSerializer::class) AlcoholConsumption?>,
+    val smokingStatus: DisplayableField<@Serializable(with = com.eros.users.serializers.SmokingStatusSerializer::class) SmokingStatus?>,
+    val diet: DisplayableField<@Serializable(with = com.eros.users.serializers.DietSerializer::class) Diet?>,
+    val dateIntentions: DisplayableField<@Serializable(with = com.eros.users.serializers.DateIntentionsSerializer::class) DateIntentions>,
+    val relationshipType: DisplayableField<@Serializable(with = com.eros.users.serializers.RelationshipTypeSerializer::class) RelationshipType>,
+    val kidsPreference: DisplayableField<@Serializable(with = com.eros.users.serializers.KidsPreferenceSerializer::class) KidsPreference>,
+    val sexualOrientation: DisplayableField<@Serializable(with = com.eros.users.serializers.SexualOrientationSerializer::class) SexualOrientation>,
+    val pronouns: DisplayableField<@Serializable(with = com.eros.users.serializers.PronounsSerializer::class) Pronouns?>,
+    val starSign: DisplayableField<@Serializable(with = com.eros.users.serializers.StarSignSerializer::class) StarSign?>,
+    val ethnicity: DisplayableField<List<@Serializable(with = com.eros.users.serializers.EthnicitySerializer::class) Ethnicity>>,
+    val brainAttributes: DisplayableField<List<@Serializable(with = com.eros.users.serializers.BrainAttributeSerializer::class) BrainAttribute>?>,
     val brainDescription: DisplayableField<String?>,
-    val bodyAttributes: DisplayableField<List<BodyAttribute>?>,
+    val bodyAttributes: DisplayableField<List<@Serializable(with = com.eros.users.serializers.BodyAttributeSerializer::class) BodyAttribute>?>,
     val bodyDescription: DisplayableField<String?>
 )
 
@@ -239,8 +241,11 @@ data class CreateUserRequest(
     @Serializable(with = LocalDateSerializer::class)
     val dateOfBirth: LocalDate,
     val city: String,
+    @Serializable(with = com.eros.users.serializers.EducationLevelSerializer::class)
     val educationLevel: EducationLevel,
+    @Serializable(with = com.eros.users.serializers.GenderSerializer::class)
     val gender: Gender,
+    @Serializable(with = com.eros.users.serializers.LanguageSerializer::class)
     val preferredLanguage: Language,
 
     val coordinatesLatitude: Double,
@@ -249,26 +254,26 @@ data class CreateUserRequest(
     // Optional fields
     val occupation: String? = null,
     val bio: String = "",
-    val interests: List<String>,
-    val traits: List<Trait>,
+    val interests: List<@Serializable(with = com.eros.users.serializers.UserInterestSerializer::class) UserInterest>,
+    val traits: List<@Serializable(with = com.eros.users.serializers.TraitSerializer::class) Trait>,
 
     // Displayable fields — client controls both value and visibility
-    val spokenLanguages: DisplayableField<List<Language>>,
-    val religion: DisplayableField<Religion?>,
-    val politicalView: DisplayableField<PoliticalView?>,
-    val alcoholConsumption: DisplayableField<AlcoholConsumption?>,
-    val smokingStatus: DisplayableField<SmokingStatus?>,
-    val diet: DisplayableField<Diet?>,
-    val dateIntentions: DisplayableField<DateIntentions>,
-    val relationshipType: DisplayableField<RelationshipType>,
-    val kidsPreference: DisplayableField<KidsPreference>,
-    val sexualOrientation: DisplayableField<SexualOrientation>,
-    val pronouns: DisplayableField<Pronouns?>,
-    val starSign: DisplayableField<StarSign?>,
-    val ethnicity: DisplayableField<List<Ethnicity>>,
-    val brainAttributes: DisplayableField<List<BrainAttribute>?>,
+    val spokenLanguages: DisplayableField<List<@Serializable(with = com.eros.users.serializers.LanguageSerializer::class) Language>>,
+    val religion: DisplayableField<@Serializable(with = com.eros.users.serializers.ReligionSerializer::class) Religion?>,
+    val politicalView: DisplayableField<@Serializable(with = com.eros.users.serializers.PoliticalViewSerializer::class) PoliticalView?>,
+    val alcoholConsumption: DisplayableField<@Serializable(with = com.eros.users.serializers.AlcoholConsumptionSerializer::class) AlcoholConsumption?>,
+    val smokingStatus: DisplayableField<@Serializable(with = com.eros.users.serializers.SmokingStatusSerializer::class) SmokingStatus?>,
+    val diet: DisplayableField<@Serializable(with = com.eros.users.serializers.DietSerializer::class) Diet?>,
+    val dateIntentions: DisplayableField<@Serializable(with = com.eros.users.serializers.DateIntentionsSerializer::class) DateIntentions>,
+    val relationshipType: DisplayableField<@Serializable(with = com.eros.users.serializers.RelationshipTypeSerializer::class) RelationshipType>,
+    val kidsPreference: DisplayableField<@Serializable(with = com.eros.users.serializers.KidsPreferenceSerializer::class) KidsPreference>,
+    val sexualOrientation: DisplayableField<@Serializable(with = com.eros.users.serializers.SexualOrientationSerializer::class) SexualOrientation>,
+    val pronouns: DisplayableField<@Serializable(with = com.eros.users.serializers.PronounsSerializer::class) Pronouns?>,
+    val starSign: DisplayableField<@Serializable(with = com.eros.users.serializers.StarSignSerializer::class) StarSign?>,
+    val ethnicity: DisplayableField<List<@Serializable(with = com.eros.users.serializers.EthnicitySerializer::class) Ethnicity>>,
+    val brainAttributes: DisplayableField<List<@Serializable(with = com.eros.users.serializers.BrainAttributeSerializer::class) BrainAttribute>?>,
     val brainDescription: DisplayableField<String?>,
-    val bodyAttributes: DisplayableField<List<BodyAttribute>?>,
+    val bodyAttributes: DisplayableField<List<@Serializable(with = com.eros.users.serializers.BodyAttributeSerializer::class) BodyAttribute>?>,
     val bodyDescription: DisplayableField<String?>
 ) {
     init {
@@ -305,32 +310,34 @@ data class UpdateUserRequest(
     val email: String? = null,
     val heightCm: Int? = null,
     val city: String? = null,
+    @Serializable(with = com.eros.users.serializers.EducationLevelSerializer::class)
     val educationLevel: EducationLevel? = null,
     val occupation: String? = null,
     val bio: String? = null,
-    val interests: List<String>? = null,
-    val traits: List<Trait>? = null,
+    val interests: List<@Serializable(with = com.eros.users.serializers.UserInterestSerializer::class) UserInterest>? = null,
+    val traits: List<@Serializable(with = com.eros.users.serializers.TraitSerializer::class) Trait>? = null,
+    @Serializable(with = com.eros.users.serializers.LanguageSerializer::class)
     val preferredLanguage: Language? = null,
     val coordinatesLatitude: Double? = null,
     val coordinatesLongitude: Double? = null,
 
     // Displayable fields — null means "do not update", non-null replaces both value and display flag
-    val spokenLanguages: DisplayableField<List<Language>>? = null,
-    val religion: DisplayableField<Religion?>? = null,
-    val politicalView: DisplayableField<PoliticalView?>? = null,
-    val alcoholConsumption: DisplayableField<AlcoholConsumption?>? = null,
-    val smokingStatus: DisplayableField<SmokingStatus?>? = null,
-    val diet: DisplayableField<Diet?>? = null,
-    val dateIntentions: DisplayableField<DateIntentions>? = null,
-    val relationshipType: DisplayableField<RelationshipType>? = null,
-    val kidsPreference: DisplayableField<KidsPreference>? = null,
-    val sexualOrientation: DisplayableField<SexualOrientation>? = null,
-    val pronouns: DisplayableField<Pronouns?>? = null,
-    val starSign: DisplayableField<StarSign?>? = null,
-    val ethnicity: DisplayableField<List<Ethnicity>>? = null,
-    val brainAttributes: DisplayableField<List<BrainAttribute>?>? = null,
+    val spokenLanguages: DisplayableField<List<@Serializable(with = com.eros.users.serializers.LanguageSerializer::class) Language>>? = null,
+    val religion: DisplayableField<@Serializable(with = com.eros.users.serializers.ReligionSerializer::class) Religion?>? = null,
+    val politicalView: DisplayableField<@Serializable(with = com.eros.users.serializers.PoliticalViewSerializer::class) PoliticalView?>? = null,
+    val alcoholConsumption: DisplayableField<@Serializable(with = com.eros.users.serializers.AlcoholConsumptionSerializer::class) AlcoholConsumption?>? = null,
+    val smokingStatus: DisplayableField<@Serializable(with = com.eros.users.serializers.SmokingStatusSerializer::class) SmokingStatus?>? = null,
+    val diet: DisplayableField<@Serializable(with = com.eros.users.serializers.DietSerializer::class) Diet?>? = null,
+    val dateIntentions: DisplayableField<@Serializable(with = com.eros.users.serializers.DateIntentionsSerializer::class) DateIntentions>? = null,
+    val relationshipType: DisplayableField<@Serializable(with = com.eros.users.serializers.RelationshipTypeSerializer::class) RelationshipType>? = null,
+    val kidsPreference: DisplayableField<@Serializable(with = com.eros.users.serializers.KidsPreferenceSerializer::class) KidsPreference>? = null,
+    val sexualOrientation: DisplayableField<@Serializable(with = com.eros.users.serializers.SexualOrientationSerializer::class) SexualOrientation>? = null,
+    val pronouns: DisplayableField<@Serializable(with = com.eros.users.serializers.PronounsSerializer::class) Pronouns?>? = null,
+    val starSign: DisplayableField<@Serializable(with = com.eros.users.serializers.StarSignSerializer::class) StarSign?>? = null,
+    val ethnicity: DisplayableField<List<@Serializable(with = com.eros.users.serializers.EthnicitySerializer::class) Ethnicity>>? = null,
+    val brainAttributes: DisplayableField<List<@Serializable(with = com.eros.users.serializers.BrainAttributeSerializer::class) BrainAttribute>?>? = null,
     val brainDescription: DisplayableField<String?>? = null,
-    val bodyAttributes: DisplayableField<List<BodyAttribute>?>? = null,
+    val bodyAttributes: DisplayableField<List<@Serializable(with = com.eros.users.serializers.BodyAttributeSerializer::class) BodyAttribute>?>? = null,
     val bodyDescription: DisplayableField<String?>? = null,
 
     // Profile Visibility
@@ -419,3 +426,49 @@ fun User.toVisibilityDTO() = ProfileStatusDTO(
  */
 @Serializable
 data class DisplayableField<T>(val field: T, val display: Boolean)
+
+/**
+ * Helper function to convert UserInterest enum to String for database storage
+ */
+fun List<UserInterest>.toStorageFormat(): List<String> =
+    this.map { (it as Enum<*>).name }
+
+/**
+ * Finds a UserInterest enum by either its enum name or display name.
+ * Supports both new enum.name format and legacy display name format.
+ *
+ * @param value The string value to look up (can be enum name or display name)
+ * @return The matching UserInterest enum, or null if not found
+ */
+internal fun findUserInterest(value: String): UserInterest? {
+    // Try matching by enum name first (new format - preferred)
+    return Activity.entries.find { it.name == value }
+        ?: Interest.entries.find { it.name == value }
+        ?: Entertainment.entries.find { it.name == value }
+        ?: Creative.entries.find { it.name == value }
+        ?: MusicGenre.entries.find { it.name == value }
+        ?: FoodAndDrink.entries.find { it.name == value }
+        ?: Sport.entries.find { it.name == value }
+        // Fallback to display name for backward compatibility (legacy format)
+        ?: Activity.entries.find { it.displayName == value }
+        ?: Interest.entries.find { it.displayName == value }
+        ?: Entertainment.entries.find { it.displayName == value }
+        ?: Creative.entries.find { it.displayName == value }
+        ?: MusicGenre.entries.find { it.displayName == value }
+        ?: FoodAndDrink.entries.find { it.displayName == value }
+        ?: Sport.entries.find { it.displayName == value }
+}
+
+/**
+ * Helper function to convert String from database to UserInterest enum
+ * Supports both new enum.name format and legacy display name format
+ * @throws IllegalArgumentException if an enumName cannot be mapped
+ */
+fun List<String>.toUserInterests(): List<UserInterest> =
+    this.map { enumName ->
+        findUserInterest(enumName)
+            ?: throw IllegalArgumentException(
+                "Unknown UserInterest value in database: '$enumName'. " +
+                "This indicates corrupt or legacy data that needs migration."
+            )
+    }

@@ -28,10 +28,10 @@ data class PublicProfile(
                 age = user.getAge(),
                 height = user.heightCm,
                 city = user.city,
-                education = user.educationLevel.name,
+                education = user.educationLevel.displayName,
                 occupation = user.occupation,
                 badges = user.badges?.map { it.name }?.toSet(),
-                language = user.preferredLanguage.name,
+                language = user.preferredLanguage.displayName,
                 profile = PublicProfileDetails.from(user, sharedInterests, userMediaCollection, userQAs)
             )
         }
@@ -77,9 +77,9 @@ data class HabitsResponse(
     companion object {
         fun from(user:User): HabitsResponse{
             return HabitsResponse(
-            smokingStatus = user.smokingStatus.let { if (it.display) it.field?.name else null },
-            alcoholConsumption = user.alcoholConsumption.let { if (it.display) it.field?.name else null },
-            diet = user.diet.let { if (it.display) it.field?.name else null },
+            smokingStatus = user.smokingStatus.let { if (it.display) it.field?.displayName else null },
+            alcoholConsumption = user.alcoholConsumption.let { if (it.display) it.field?.displayName else null },
+            diet = user.diet.let { if (it.display) it.field?.displayName else null },
             )
         }
     }
@@ -94,9 +94,9 @@ data class RelationshipResponse(
     companion object {
         fun from(user:User): RelationshipResponse{
             return RelationshipResponse(
-                intention = user.dateIntentions.let { if (it.display) it.field.name else null },
-                kidsPreference = user.kidsPreference.let { if (it.display) it.field.name else null },
-                relationshipType = user.relationshipType.let { if (it.display) it.field.name else null },
+                intention = user.dateIntentions.let { if (it.display) it.field.displayName else null },
+                kidsPreference = user.kidsPreference.let { if (it.display) it.field.displayName else null },
+                relationshipType = user.relationshipType.let { if (it.display) it.field.displayName else null },
             )
         }
     }
@@ -133,21 +133,21 @@ data class PublicProfileDetails(
                 coverPhoto = userMediaCollection.getPrimaryMedia()?.mediaUrl,
                 photos = userMediaCollection.media.map { it.mediaUrl },
                 bio = user.bio,
-                hobbies = user.interests,
-                traits = user.traits.map {it.name},
+                hobbies = user.interests.map { it.displayName },
+                traits = user.traits.map { it.displayName },
                 habits = HabitsResponse.from(user),
                 relationshipGoals = RelationshipResponse.from(user),
 
-                spokenLanguages = user.spokenLanguages.let { if (it.display) it.field.map { it.name } else null },
-                religion = user.religion.let { if (it.display) it.field?.name else null },
-                politicalView = user.politicalView.let { if (it.display) it.field?.name else null },
-                sexualOrientation = user.sexualOrientation.let { if (it.display) it.field.name else null },
-                pronouns = user.pronouns.let { if (it.display) it.field?.name else null },
-                starSign = user.starSign.let { if (it.display) it.field?.name else null },
-                ethnicity = user.ethnicity.let { if (it.display) it.field.map { it.name } else null },
-                brainAttribute = user.brainAttributes.let { if (it.display) it.field?.map { it.name } else null },
+                spokenLanguages = user.spokenLanguages.let { if (it.display) it.field.map { it.displayName } else null },
+                religion = user.religion.let { if (it.display) it.field?.displayName else null },
+                politicalView = user.politicalView.let { if (it.display) it.field?.displayName else null },
+                sexualOrientation = user.sexualOrientation.let { if (it.display) it.field.displayName else null },
+                pronouns = user.pronouns.let { if (it.display) it.field?.displayName else null },
+                starSign = user.starSign.let { if (it.display) it.field?.displayName else null },
+                ethnicity = user.ethnicity.let { if (it.display) it.field.map { it.displayName } else null },
+                brainAttribute = user.brainAttributes.let { if (it.display) it.field?.map { it.displayName } else null },
                 brainDescription = user.brainDescription.let { if (it.display) it.field else null },
-                bodyAttribute = user.bodyAttributes.let { if (it.display) it.field?.map { it.name } else null },
+                bodyAttribute = user.bodyAttributes.let { if (it.display) it.field?.map { it.displayName } else null },
                 bodyDescription = user.bodyDescription.let { if (it.display) it.field else null },
                 sharedInterests = sharedInterests,
                 qas = userQAs.sortedBy { it.displayOrder }.map { it.toPublicDTO() }
