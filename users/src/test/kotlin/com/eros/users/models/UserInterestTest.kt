@@ -39,13 +39,22 @@ class UserInterestTest {
 
     @Test
     fun `displayName should convert enum names to proper case`() {
+        // Standard conversions
         assertEquals("City Trips", Activity.CITY_TRIPS.displayName)
         assertEquals("Formula 1", Interest.FORMULA_1.displayName)
-        assertEquals("Sci Fi", Entertainment.SCI_FI.displayName)
         assertEquals("Playing Instruments", Creative.PLAYING_INSTRUMENTS.displayName)
-        assertEquals("R And B", MusicGenre.R_AND_B.displayName)
-        assertEquals("Bbq", FoodAndDrink.BBQ.displayName)
         assertEquals("Kick Boxing", Sport.KICK_BOXING.displayName)
+
+        // Acronyms should preserve proper capitalization
+        assertEquals("AI", Interest.AI.displayName)
+        assertEquals("DIY", Creative.DIY.displayName)
+        assertEquals("Sci-Fi", Entertainment.SCI_FI.displayName)
+        assertEquals("EDM", MusicGenre.EDM.displayName)
+        assertEquals("Hip-Hop", MusicGenre.HIPHOP.displayName)
+        assertEquals("K-Pop", MusicGenre.K_POP.displayName)
+        assertEquals("R&B", MusicGenre.R_AND_B.displayName)
+        assertEquals("BBQ", FoodAndDrink.BBQ.displayName)
+        assertEquals("SUP", Sport.SUP.displayName)
     }
 
     @Test
