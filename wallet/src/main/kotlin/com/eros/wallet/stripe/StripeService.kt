@@ -10,6 +10,7 @@ import com.stripe.param.PaymentIntentCreateParams
 import com.stripe.param.RefundCreateParams
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.math.BigDecimal
 
 class StripeService {
 
@@ -26,12 +27,12 @@ class StripeService {
         tokenPackage: TokenPackage,
         paymentMethodId: String,
         idempotencyKey: String,
-        userCurrency: String
+        userCurrency: String,
+        cost: BigDecimal?
     ): PaymentIntent = withContext(Dispatchers.IO){
-        val amount = convertToUserCurrency(tokenPackage.priceGBP, userCurrency)
 
         val params = PaymentIntentCreateParams.builder()
-            .setAmount(amount.toLong())
+            .setAmount(cost?.toLong())
             .setCurrency(userCurrency)
             .setPaymentMethod(paymentMethodId)
             .setAutomaticPaymentMethods(
@@ -43,6 +44,7 @@ class StripeService {
             .putMetadata("userId", userId)
             .putMetadata("tokenAmount", tokenPackage.tokens.toString())
             .putMetadata("packageType", tokenPackage.name)
+            .putMetadata("idempotencyKey", idempotencyKey)
             .setDescription("Purchase ${tokenPackage.tokens} tokens")
             .build()
 

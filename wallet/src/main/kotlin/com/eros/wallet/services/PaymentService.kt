@@ -2,6 +2,7 @@ package com.eros.wallet.services
 
 import com.eros.common.DateActivity
 import com.eros.common.errors.BadRequestException
+import com.eros.common.errors.NotFoundException
 import com.eros.common.errors.ConflictException
 import com.eros.database.dbQuery
 import com.eros.wallet.convertToUserCurrency
@@ -17,7 +18,6 @@ import com.eros.wallet.models.TransactionStatus
 import com.eros.wallet.models.TransactionType
 import com.eros.wallet.models.WalletWithPending
 import com.eros.wallet.stripe.StripeService
-import io.ktor.server.plugins.NotFoundException
 
 /**
  * This function is used from calling
@@ -176,12 +176,11 @@ class PaymentService(
 
         // Idempotency Check - Avoid duplicates.
         val existing = transactionService.findByIdempotencyKey(request.idempotencyKey)
-        //todo: Add the price paid / currency to transaction, so it can be returned exactly + audit correctly
         if (existing != null) return Purchase(
             clientSecret = existing.stripePaymentIntentId ?: "",
             paymentIntentId = existing.stripePaymentIntentId ?: "",
-            amountPaid = convertToUserCurrency(existing.amountPaidGBP ?: 0.toBigDecimal(), wallet.currency),
-            currency = wallet.currency,
+            amountPaid = existing.amountPaid ?: convertToUserCurrency(existing.amountPaidGBP ?: 0.toBigDecimal(), wallet.currency),
+            currency = existing.paymentCurrency ?: wallet.currency,
             tokenAmount = existing.amount,
             status = existing.status.name,
             transactionId = existing.transactionId,
@@ -203,7 +202,8 @@ class PaymentService(
                 amountPaidGBP = tokenPackage.priceGBP,
                 stripePaymentIntentId = null,
                 idempotencyKey = request.idempotencyKey,
-                acceptedTerms = request.acceptedTerms
+                acceptedTerms = request.acceptedTerms,
+                currency = wallet.currency
             )
             transaction
         }
@@ -214,7 +214,8 @@ class PaymentService(
             val paymentIntent = stripeService.createPaymentIntent(
                 userId, tokenPackage,
                 request.paymentMethodId, request.idempotencyKey,
-                wallet.currency
+                wallet.currency,
+                transaction.amountPaid
             )
 
             // Update transaction and return purchase request.

@@ -6,31 +6,33 @@ import org.junit.jupiter.api.Assertions.*
 import java.math.BigDecimal
 import java.time.Instant
 
-class TransactionTest {
+// Test helper function
+fun transaction(
+    walletId : Long = 1L,
+    transactionId: Long = 1L,
+    type: TransactionType = TransactionType.PURCHASE,
+    amount: BigDecimal = 100.0.toBigDecimal(),
+    balanceAfter: BigDecimal = 200.0.toBigDecimal(),
+    description: String = "Test transaction",
+    status: TransactionStatus = TransactionStatus.COMPLETED,
+    relatedDateId: Long? = null,
+    relatedTransactionId: Long? = null,
+    stripePaymentIntentId: String? = null,
+    amountPaidGBP: BigDecimal? = null,
+    amountPaid: BigDecimal? = 700.0.toBigDecimal(),
+    currency: String? = "GBP",
+    idempotencyKey: String? = null,
+    metadata: Map<String, String> = emptyMap(),
+    acceptedTerms : Boolean? = true,
+    createdAt: Instant = Instant.now(),
+    updatedAt: Instant = Instant.now(),
+) = Transaction(
+    transactionId, walletId, type, amount, balanceAfter, description,
+    status, relatedDateId, relatedTransactionId, stripePaymentIntentId,
+    amountPaidGBP, amountPaid, currency, idempotencyKey, metadata, acceptedTerms,createdAt, updatedAt
+)
 
-    // Test helper function
-    private fun transaction(
-        walletId : Long = 1L,
-        transactionId: Long = 1L,
-        type: TransactionType = TransactionType.PURCHASE,
-        amount: BigDecimal = 100.0.toBigDecimal(),
-        balanceAfter: BigDecimal = 200.0.toBigDecimal(),
-        description: String = "Test transaction",
-        status: TransactionStatus = TransactionStatus.COMPLETED,
-        relatedDateId: Long? = null,
-        relatedTransactionId: Long? = null,
-        stripePaymentIntentId: String? = null,
-        amountPaidGBP: BigDecimal? = null,
-        idempotencyKey: String? = null,
-        metadata: Map<String, String> = emptyMap(),
-        acceptedTerms : Boolean? = true,
-        createdAt: Instant = Instant.now(),
-        updatedAt: Instant = Instant.now(),
-    ) = Transaction(
-        transactionId, walletId, type, amount, balanceAfter, description,
-        status, relatedDateId, relatedTransactionId, stripePaymentIntentId,
-        amountPaidGBP, idempotencyKey, metadata, acceptedTerms,createdAt, updatedAt
-    )
+class TransactionTest {
 
     @Nested
     inner class PurchaseTransactions {

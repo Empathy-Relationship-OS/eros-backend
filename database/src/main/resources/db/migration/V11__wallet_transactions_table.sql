@@ -21,6 +21,8 @@ CREATE TABLE IF NOT EXISTS transactions (
     related_transaction_id BIGINT REFERENCES transactions(transaction_id) ON DELETE SET NULL,
     stripe_payment_intent_id VARCHAR(255),
     amount_paid_gbp NUMERIC(10, 2),
+    amount_paid NUMERIC(10,2),
+    payment_currency VARCHAR(3),
     idempotency_key VARCHAR(255),
     metadata TEXT,
     accepted_terms BOOLEAN,
