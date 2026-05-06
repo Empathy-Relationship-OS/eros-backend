@@ -70,7 +70,7 @@ class WalletService(
         type: TransactionType,
         idempotencyKey: String,
     ): Wallet {
-        if (amount < BigDecimal(0.0)){
+        if (amount <= BigDecimal(0.0)){
             throw ConflictException("Amount must be positive")
         }
 
@@ -109,7 +109,7 @@ class WalletService(
         userId: String,
         amount: BigDecimal
     ): Wallet {
-        if (amount < BigDecimal(0.0)){
+        if (amount <= BigDecimal(0.0)){
             throw ConflictException("Amount must be positive")
         }
         // Lock wallet
@@ -131,7 +131,7 @@ class WalletService(
         userId: String,
         amount: BigDecimal,
     ): Wallet{
-        if (amount < BigDecimal(0.0)){
+        if (amount <= BigDecimal(0.0)){
             throw ConflictException("Amount must be positive")
         }
         // Lock wallet

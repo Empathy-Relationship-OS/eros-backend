@@ -3,6 +3,7 @@ package com.eros.wallet.services
 import com.eros.common.errors.ConflictException
 import com.eros.common.errors.NotFoundException
 import com.eros.database.dbQuery
+import com.eros.wallet.convertToUserCurrency
 import com.eros.wallet.models.Transaction
 import com.eros.wallet.models.TransactionHistory
 import com.eros.wallet.models.TransactionHistoryResponse
@@ -90,13 +91,16 @@ class TransactionService(
         idempotencyKey: String,
         status: TransactionStatus = TransactionStatus.PENDING,
         metadata: Map<String, String> = emptyMap(),
-        acceptedTerms: Boolean
+        acceptedTerms: Boolean,
+        currency: String = "GBP"
     ): Transaction {
         val transaction = Transaction(
             walletId = walletId,
             transactionId = 0L,
             type = TransactionType.PURCHASE,
             amount = tokenAmount,
+            amountPaid = convertToUserCurrency(amountPaidGBP, currency),
+            paymentCurrency = currency,
             balanceAfter = newBalance,
             description = "Purchased $tokenAmount tokens",
             status = status,

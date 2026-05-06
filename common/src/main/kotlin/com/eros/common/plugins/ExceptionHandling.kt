@@ -69,12 +69,7 @@ fun Application.configureExceptionHandling() {
         }
         exception<InsufficientBalanceException> { call, cause ->
             call.application.log.error("Insufficient balance error", cause)
-            call.respond(
-                HttpStatusCode.Conflict, ApiError(
-                    error = "insufficient_balance",
-                    message = "Balance is less than the required ${cause.requiredAmount} tokens"
-                )
-            )
+            call.respond(HttpStatusCode.Conflict, ApiError("insufficient_balance", "Insufficient balance for this operation."))
         }
         exception<SQLException> { call, cause ->
             call.application.log.error("SQL error", cause)

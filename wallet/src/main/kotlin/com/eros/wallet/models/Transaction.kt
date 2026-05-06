@@ -1,7 +1,6 @@
 package com.eros.wallet.models
 
 import com.eros.wallet.table.Transactions
-import com.fasterxml.jackson.annotation.JsonFormat
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
@@ -24,6 +23,8 @@ data class Transaction(
     val relatedTransactionId: Long? = null, // For refunds
     val stripePaymentIntentId: String? = null,
     val amountPaidGBP: BigDecimal? = null,
+    val amountPaid : BigDecimal? = null,
+    val paymentCurrency : String? = null,
     val idempotencyKey: String? = null,
     val metadata: Map<String, String> = emptyMap(),
     val acceptedTerms: Boolean?,
@@ -73,6 +74,7 @@ data class TransactionResponse(
     val stripePaymentIntentId: String? = null,
     @Serializable(with = BigDecimalSerializer::class)
     val amountPaid: BigDecimal? = null,
+    val paymentCurrency: String? = null,
     val acceptedTerms: Boolean?,
     val createdAt: String,
     val updatedAt: String,
@@ -89,6 +91,7 @@ fun Transaction.toDTO() = TransactionResponse(
     relatedDateId = this.relatedDateId,
     stripePaymentIntentId = this.stripePaymentIntentId,
     amountPaid = this.amountPaidGBP,
+    paymentCurrency = this.paymentCurrency,
     acceptedTerms = this.acceptedTerms,
     createdAt = this.createdAt.toString(),
     updatedAt = this.updatedAt.toString(),
@@ -109,6 +112,8 @@ fun ResultRow.toTransactionDomain(): Transaction {
         relatedTransactionId = this[Transactions.relatedTransactionId],
         stripePaymentIntentId = this[Transactions.stripePaymentIntentId],
         amountPaidGBP = this[Transactions.amountPaidGbp],
+        amountPaid = this[Transactions.amountPaid],
+        paymentCurrency = this[Transactions.paymentCurrency],
         idempotencyKey = this[Transactions.idempotencyKey],
         metadata = parseMetadata(this[Transactions.metadata]),
         acceptedTerms = this[Transactions.acceptedTerms],

@@ -8,19 +8,19 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-class WalletTest {
+// Test helper function
+fun wallet(
+    walletId: Long = 1L,
+    userId: String = "user-123",
+    tokenBalance: BigDecimal = 1000.toBigDecimal(),
+    lifetimeSpent: BigDecimal = 500.toBigDecimal(),
+    lifetimePurchased: BigDecimal = 1500.toBigDecimal(),
+    currency: String = "GBP",
+    createdAt: Instant = Instant.now(),
+    updatedAt: Instant = Instant.now()
+) = Wallet(walletId,userId, tokenBalance, lifetimeSpent, lifetimePurchased, currency, createdAt, updatedAt)
 
-    // Test helper function
-    private fun wallet(
-        walletId: Long = 1L,
-        userId: String = "user-123",
-        tokenBalance: BigDecimal = 1000.toBigDecimal(),
-        lifetimeSpent: BigDecimal = 500.toBigDecimal(),
-        lifetimePurchased: BigDecimal = 1500.toBigDecimal(),
-        currency: String = "GBP",
-        createdAt: Instant = Instant.now(),
-        updatedAt: Instant = Instant.now()
-    ) = Wallet(walletId,userId, tokenBalance, lifetimeSpent, lifetimePurchased, currency, createdAt, updatedAt)
+class WalletTest {
 
     @Nested
     inner class HasSufficientBalance {

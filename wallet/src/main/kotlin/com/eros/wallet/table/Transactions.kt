@@ -20,6 +20,8 @@ object Transactions : Table("transactions") {
     val relatedTransactionId = long("related_transaction_id").references(transactionId).nullable()
     val stripePaymentIntentId = varchar("stripe_payment_intent_id", 255).nullable()
     val amountPaidGbp = decimal("amount_paid_gbp", 10, 2).nullable()
+    val amountPaid = decimal("amount_paid", 10, 2).nullable()
+    val paymentCurrency = varchar("payment_currency", 3).nullable()
     val idempotencyKey = varchar("idempotency_key", 255).nullable().uniqueIndex()
     val metadata = text("metadata").nullable() // JSON
     val acceptedTerms = bool("accepted_terms").nullable()

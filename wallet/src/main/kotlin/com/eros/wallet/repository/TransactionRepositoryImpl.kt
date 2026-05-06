@@ -39,6 +39,8 @@ class TransactionRepositoryImpl(
             this[Transactions.walletId] = entity.walletId
             this[Transactions.type] = entity.type
             this[Transactions.amount] = entity.amount
+            this[Transactions.amountPaid] = entity.amountPaid
+            this[Transactions.paymentCurrency] = entity.paymentCurrency
             this[Transactions.balanceAfter] = entity.balanceAfter
             this[Transactions.description] = entity.description
             this[Transactions.status] = entity.status
