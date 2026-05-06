@@ -44,7 +44,6 @@ class StripeService {
             .putMetadata("userId", userId)
             .putMetadata("tokenAmount", tokenPackage.tokens.toString())
             .putMetadata("packageType", tokenPackage.name)
-            .putMetadata("idempotencyKey", idempotencyKey)
             .setDescription("Purchase ${tokenPackage.tokens} tokens")
             .build()
 
