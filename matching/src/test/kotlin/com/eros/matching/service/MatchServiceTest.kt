@@ -497,6 +497,7 @@ class MatchServiceTest {
             val dailyBatch = createTestDailyBatch(batchCount = 1)
 
             coEvery { dailyBatchRepository.getBatchCount("user1", today) } returns 0
+            coEvery { matchRepository.findServedUnactedMatches("user1", 7) } returns emptyList()
             coEvery { matchRepository.findUnservedMatches("user1", 7) } returns matches
             coEvery { matchRepository.markAsServed(any(), any()) } returns 2
             coEvery { dailyBatchRepository.incrementBatchCount("user1", today) } returns dailyBatch
@@ -544,6 +545,7 @@ class MatchServiceTest {
             val today = LocalDate.now()
 
             coEvery { dailyBatchRepository.getBatchCount("user1", today) } returns 0
+            coEvery { matchRepository.findServedUnactedMatches("user1", 7) } returns emptyList()
             coEvery { matchRepository.findUnservedMatches("user1", 7) } returns emptyList()
 
             val exception = assertThrows<NoMatchesAvailableException> {
@@ -566,6 +568,7 @@ class MatchServiceTest {
             val dailyBatch = createTestDailyBatch()
 
             coEvery { dailyBatchRepository.getBatchCount("user1", today) } returns 0
+            coEvery { matchRepository.findServedUnactedMatches("user1", 7) } returns emptyList()
             coEvery { matchRepository.findUnservedMatches("user1", 7) } returns matches
             coEvery { matchRepository.markAsServed(any(), any()) } returns 3
             coEvery { dailyBatchRepository.incrementBatchCount("user1", today) } returns dailyBatch
@@ -597,6 +600,7 @@ class MatchServiceTest {
             val dailyBatch = createTestDailyBatch()
 
             coEvery { dailyBatchRepository.getBatchCount("user1", today) } returns 0
+            coEvery { matchRepository.findServedUnactedMatches("user1", 7) } returns emptyList()
             coEvery { matchRepository.findUnservedMatches("user1", 7) } returns matches
             coEvery { matchRepository.markAsServed(any(), any()) } returns 7
             coEvery { dailyBatchRepository.incrementBatchCount("user1", today) } returns dailyBatch
@@ -619,6 +623,7 @@ class MatchServiceTest {
             val dailyBatch = createTestDailyBatch(batchCount = 3)
 
             coEvery { dailyBatchRepository.getBatchCount("user1", today) } returns 2
+            coEvery { matchRepository.findServedUnactedMatches("user1", 7) } returns emptyList()
             coEvery { matchRepository.findUnservedMatches("user1", 7) } returns matches
             coEvery { matchRepository.markAsServed(any(), any()) } returns 1
             coEvery { dailyBatchRepository.incrementBatchCount("user1", today) } returns dailyBatch
@@ -630,6 +635,66 @@ class MatchServiceTest {
             assertEquals(3, result.batchNumber) // batchCount was 2, so this is batch #3
             assertEquals(0, result.remainingBatches) // 3 - 3 = 0 remaining
             assertEquals(1, result.profiles.size)
+        }
+
+        @Test
+        fun `should return served unacted matches without incrementing batch count`() = runTest {
+            val today = LocalDate.now()
+            val servedAt = Instant.now()
+            val servedUnactedMatches = listOf(
+                createTestMatch(matchId = 1L, user1Id = "user1", user2Id = "user2", servedAt = servedAt, liked = null),
+                createTestMatch(matchId = 2L, user1Id = "user1", user2Id = "user3", servedAt = servedAt, liked = null)
+            )
+            val userData1 = createTestUserMatchProfileData(userId = "user2", name = "Alice", age = 28)
+            val userData2 = createTestUserMatchProfileData(userId = "user3", name = "Bob", age = 32)
+
+            coEvery { dailyBatchRepository.getBatchCount("user1", today) } returns 1
+            coEvery { matchRepository.findServedUnactedMatches("user1", 7) } returns servedUnactedMatches
+            coEvery { userService.getUserMatchProfileData("user2") } returns userData1
+            coEvery { userService.getUserMatchProfileData("user3") } returns userData2
+
+            val result = matchService.fetchDailyBatch("user1")
+
+            // Assert: batch count stays the same, no new matches served
+            assertEquals(1, result.batchNumber) // batchCount stays at 1
+            assertEquals(2, result.remainingBatches) // 3 - 1 = 2 remaining
+            assertEquals(2, result.profiles.size)
+            assertEquals("Alice", result.profiles[0].name)
+            assertEquals("Bob", result.profiles[1].name)
+
+            // Verify that batch count was not incremented and no new matches were marked as served
+            coVerify(exactly = 0) { dailyBatchRepository.incrementBatchCount(any(), any()) }
+            coVerify(exactly = 0) { matchRepository.markAsServed(any(), any()) }
+            coVerify(exactly = 0) { matchRepository.findUnservedMatches(any(), any()) }
+        }
+
+        @Test
+        fun `should fetch new batch when all served matches have been acted upon`() = runTest {
+            val today = LocalDate.now()
+            val newMatches = listOf(
+                createTestMatch(matchId = 3L, user1Id = "user1", user2Id = "user4", servedAt = null)
+            )
+            val userData = createTestUserMatchProfileData(userId = "user4", name = "Charlie", age = 29)
+            val dailyBatch = createTestDailyBatch(batchCount = 2)
+
+            coEvery { dailyBatchRepository.getBatchCount("user1", today) } returns 1
+            coEvery { matchRepository.findServedUnactedMatches("user1", 7) } returns emptyList()
+            coEvery { matchRepository.findUnservedMatches("user1", 7) } returns newMatches
+            coEvery { matchRepository.markAsServed(any(), any()) } returns 1
+            coEvery { dailyBatchRepository.incrementBatchCount("user1", today) } returns dailyBatch
+            coEvery { userService.getUserMatchProfileData("user4") } returns userData
+
+            val result = matchService.fetchDailyBatch("user1")
+
+            // Assert: batch count incremented, new matches served
+            assertEquals(2, result.batchNumber) // batchCount was 1, now 2
+            assertEquals(1, result.remainingBatches) // 3 - 2 = 1 remaining
+            assertEquals(1, result.profiles.size)
+            assertEquals("Charlie", result.profiles[0].name)
+
+            // Verify that batch count was incremented and new matches were marked as served
+            coVerify(exactly = 1) { dailyBatchRepository.incrementBatchCount("user1", today) }
+            coVerify(exactly = 1) { matchRepository.markAsServed(any(), any()) }
         }
     }
 
@@ -659,6 +724,7 @@ class MatchServiceTest {
             val dailyBatch = createTestDailyBatch()
 
             coEvery { dailyBatchRepository.getBatchCount("user1", today) } returns 0
+            coEvery { matchRepository.findServedUnactedMatches("user1", 7) } returns emptyList()
             coEvery { matchRepository.findUnservedMatches("user1", 7) } returns listOf(match)
             coEvery { matchRepository.markAsServed(any(), any()) } returns 1
             coEvery { dailyBatchRepository.incrementBatchCount("user1", today) } returns dailyBatch
@@ -694,6 +760,7 @@ class MatchServiceTest {
             val dailyBatch = createTestDailyBatch()
 
             coEvery { dailyBatchRepository.getBatchCount("user1", today) } returns 0
+            coEvery { matchRepository.findServedUnactedMatches("user1", 7) } returns emptyList()
             coEvery { matchRepository.findUnservedMatches("user1", 7) } returns listOf(match)
             coEvery { matchRepository.markAsServed(any(), any()) } returns 1
             coEvery { dailyBatchRepository.incrementBatchCount("user1", today) } returns dailyBatch

@@ -78,4 +78,18 @@ interface MatchRepository : IBaseDAO<Long, Match> {
      * @return List of matches that the user passed on in the last 24 hours
      */
     suspend fun findPassesInLast24Hours(userId: String): List<Match>
+
+    /**
+     * Finds served matches where the user has not yet taken action.
+     *
+     * Returns matches where:
+     * - user1_id matches the given userId
+     * - servedAt is not null (match has been served)
+     * - liked is null (no action taken yet)
+     *
+     * @param userId The user whose unacted served matches to retrieve
+     * @param limit Maximum number of matches to return
+     * @return List of served matches awaiting action
+     */
+    suspend fun findServedUnactedMatches(userId: String, limit: Int): List<Match>
 }

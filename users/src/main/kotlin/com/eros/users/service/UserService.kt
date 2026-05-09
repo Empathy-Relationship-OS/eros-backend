@@ -2,10 +2,20 @@ package com.eros.users.service
 
 import com.eros.common.errors.ConflictException
 import com.eros.common.errors.ForbiddenException
-import com.eros.users.models.*
 import com.eros.common.errors.NotFoundException
 import com.eros.database.dbQuery
 import com.eros.users.models.AdminUpdateUserRequest
+import com.eros.users.models.Badge
+import com.eros.users.models.CreateUserRequest
+import com.eros.users.models.ProfileStatus
+import com.eros.users.models.ProfileStatusUpdateRequest
+import com.eros.users.models.PublicProfile
+import com.eros.users.models.Role
+import com.eros.users.models.UpdateUserRequest
+import com.eros.users.models.User
+import com.eros.users.models.UserInterest
+import com.eros.users.models.UserMatchProfileData
+import com.eros.users.models.ValidationStatus
 import com.eros.users.repository.UserRepository
 import com.eros.users.table.badgeHelper
 import com.google.firebase.auth.FirebaseAuth
@@ -342,8 +352,7 @@ class UserService(
     suspend fun getUserMatchProfileData(userId: String): UserMatchProfileData? {
         val user = dbQuery { userRepository.findById(userId) } ?: return null
         val photos = photoService.getUserMedia(userId).media
-        val thumbnailUrl = photos.firstOrNull { it.isPrimary }?.thumbnailUrl
-            ?: photos.firstOrNull()?.thumbnailUrl
+        val thumbnailUrl = photos.firstOrNull { it.isPrimary }?.mediaUrl
 
         return UserMatchProfileData(
             userId = user.userId,
