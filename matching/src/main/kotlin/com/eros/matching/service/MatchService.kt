@@ -146,18 +146,22 @@ class MatchService(
      * Fetches the next batch of daily matches for a user.
      *
      * Business rules:
-     * - Maximum 7 profiles per batch
-     * - Maximum 3 batches per user per day (21 total matches)
-     * - First returns any served matches that haven't been acted upon yet (without incrementing batch count)
-     * - Only fetches new matches and increments batch count when all previously served matches are acted upon
-     * - Matches are marked as served with timestamp (for new matches only)
+     * - Maximum 7 profiles per batch (BATCH_SIZE)
+     * - Maximum 3 batches per user per day (MAX_DAILY_BATCHES = 21 total matches)
+     * - Carryover logic: Unacted matches from previous batches/days are carried forward
+     * - Batch composition: carryover matches + new matches to fill remaining slots = BATCH_SIZE
+     * - Each call increments today's batch count (even if some profiles are carryovers)
+     * - New matches are marked as served with current timestamp
+     * - Carryover matches keep their original servedAt timestamp
      * - Returns 204 No Content if no matches available
      * - Returns 429 Too Many Requests if daily limit reached
+     *
+     * Example: If 2 carryover matches exist, fetches 5 new matches to make a batch of 7
      *
      * @param userId The user requesting matches
      * @return DailyBatchResponse with profiles and batch metadata
      * @throws DailyBatchLimitExceededException if user has reached 3 batches today
-     * @throws NoMatchesAvailableException if no unserved matches exist
+     * @throws NoMatchesAvailableException if no matches available (served or unserved)
      */
     suspend fun fetchDailyBatch(userId: String): DailyBatchResponse = transactionManager.execute {
         val today = LocalDate.now(clock)
@@ -173,34 +177,22 @@ class MatchService(
             )
         }
 
-        // First, check for served matches that haven't been acted upon
+        // Check for served-but-unacted matches (carryover from previous batches/days)
         val servedUnactedMatches = matchRepository.findServedUnactedMatches(userId, BATCH_SIZE)
 
-        if (servedUnactedMatches.isNotEmpty()) {
-            // Return existing unacted matches without incrementing batch count
-            val profiles = servedUnactedMatches.mapNotNull { match ->
-                val servedAt = match.servedAt ?: return@mapNotNull null
-                buildUserMatchProfile(match, servedAt)
-            }
+        // Build profiles for carryover matches (keep original servedAt timestamp)
+        val carryoverProfiles = servedUnactedMatches.mapNotNull { match ->
+            val servedAt = match.servedAt ?: return@mapNotNull null
+            buildUserMatchProfile(match, servedAt)
+        }
 
-            if (profiles.isEmpty()) {
-                throw NoMatchesAvailableException("No valid user profiles available for matches")
-            }
+        // Calculate how many new matches we need to fill the batch
+        val slotsRemaining = BATCH_SIZE - carryoverProfiles.size
 
-            // Return existing batch - batch count stays the same
-            DailyBatchResponse(
-                profiles = profiles,
-                batchNumber = batchCount,
-                remainingBatches = MAX_DAILY_BATCHES - batchCount
-            )
-        } else {
-            // No unacted matches - fetch new batch
-            val unservedMatches = matchRepository.findUnservedMatches(userId, BATCH_SIZE)
-            if (unservedMatches.isEmpty()) {
-                throw NoMatchesAvailableException("No unserved matches available for user $userId")
-            }
+        // Fetch new unserved matches to fill remaining slots
+        val newProfiles = if (slotsRemaining > 0) {
+            val unservedMatches = matchRepository.findUnservedMatches(userId, slotsRemaining)
 
-            // Build lightweight profile responses first to ensure they're returnable
             val servedAt = Instant.now(clock)
             val successfulResults = unservedMatches.mapNotNull { match ->
                 buildUserMatchProfile(match, servedAt)?.let { profile ->
@@ -208,30 +200,37 @@ class MatchService(
                 }
             }
 
-            // Only mark matches as served if we have successful profiles to return
-            if (successfulResults.isEmpty()) {
-                throw NoMatchesAvailableException("No valid user profiles available for matches")
+            // Mark new matches as served
+            if (successfulResults.isNotEmpty()) {
+                val successfulMatchIds = successfulResults.map { it.first }
+                matchRepository.markAsServed(successfulMatchIds, servedAt)
             }
 
-            val successfulMatchIds = successfulResults.map { it.first }
-            val profiles = successfulResults.map { it.second }
-
-            // Mark only successful matches as served
-            matchRepository.markAsServed(successfulMatchIds, servedAt)
-
-            // Increment batch count only when serving new matches
-            dailyBatchRepository.incrementBatchCount(userId, today)
-
-            // Calculate batch metadata
-            val batchNumber = batchCount + 1
-            val remainingBatches = MAX_DAILY_BATCHES - batchNumber
-
-            DailyBatchResponse(
-                profiles = profiles,
-                batchNumber = batchNumber,
-                remainingBatches = remainingBatches
-            )
+            successfulResults.map { it.second }
+        } else {
+            emptyList()
         }
+
+        // Combine carryover and new profiles
+        val allProfiles = carryoverProfiles + newProfiles
+
+        // Ensure we have at least some profiles to return
+        if (allProfiles.isEmpty()) {
+            throw NoMatchesAvailableException("No matches available for user $userId")
+        }
+
+        // Increment batch count for today (this counts as serving a new daily batch)
+        val dailyBatch = dailyBatchRepository.incrementBatchCount(userId, today)
+
+        // Calculate batch metadata
+        val batchNumber = dailyBatch.batchCount
+        val remainingBatches = MAX_DAILY_BATCHES - batchNumber
+
+        DailyBatchResponse(
+            profiles = allProfiles,
+            batchNumber = batchNumber,
+            remainingBatches = remainingBatches
+        )
     }
 
     /**
