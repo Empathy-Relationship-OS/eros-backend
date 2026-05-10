@@ -50,6 +50,8 @@ import java.time.LocalDate
 import java.time.ZoneId
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 
 @Testcontainers
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -240,7 +242,10 @@ class UserServiceTest {
             secretAccessKey        = "test-secret",
             bucketName             = "test-bucket",
             cdnBaseUrl             = null,
-            presignedUrlTtlMinutes = 15L
+            presignedUrlTtlMinutes = 15L,
+            cloudFrontKeyPairId    = null,
+            cloudFrontPrivateKeyPath = null,
+            cloudFrontDistributionDomain = null
         )
         photoService = PhotoService(mockPhotoRepository, s3Config, mockS3Client, mockS3Presigner)
         mockQAService = mockk<QAService>(relaxed = true)
@@ -301,6 +306,37 @@ class UserServiceTest {
             coordinatesLongitude = 45.3246,
             coordinatesLatitude = -90.0,
         )
+    }
+
+    // -------------------------------------------------------------------------
+    // getUserMatchProfileData - photoExpiryHours parameter
+    // -------------------------------------------------------------------------
+
+    @Nested
+    inner class `getUserMatchProfileData() photoExpiryHours` {
+
+        @Test
+        fun `should return null when user does not exist`() {
+            val result = runBlocking {
+                service.getUserMatchProfileData("nonexistent-user-id")
+            }
+
+            assertNull(result, "Should return null for non-existent user")
+        }
+
+        @Test
+        fun `should return null thumbnailUrl when user has no photos`() {
+            val user = createValidUserRequest()
+
+            val result = runBlocking {
+                service.createUser(user)
+                coEvery { mockPhotoRepository.findByUserId(user.userId) } returns emptyList()
+                service.getUserMatchProfileData(user.userId)
+            }
+
+            assertNotNull(result)
+            assertNull(result.thumbnailUrl, "Should have null thumbnailUrl when user has no photos")
+        }
     }
 
 }

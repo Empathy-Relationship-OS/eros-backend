@@ -341,24 +341,36 @@ class UserService(
     }
 
     /**
-     * Gets lightweight user profile data for matching purposes.
+     * Gets lightweight user profile data for matching purposes, with time-limited photo access.
      *
      * This method is designed for cross-module communication, allowing the matching
      * module to retrieve minimal user profile data without directly accessing user repositories.
      *
      * @param userId Firebase UID of the user
+     * @param photoExpiryHours How long the photo URL should be valid (default: 48h for daily batches)
      * @return UserMatchProfileData containing basic profile info, or null if user not found
      */
-    suspend fun getUserMatchProfileData(userId: String): UserMatchProfileData? {
+    suspend fun getUserMatchProfileData(
+        userId: String,
+        photoExpiryHours: Long = 48 // Default: 48 hours for daily batch matches
+    ): UserMatchProfileData? {
         val user = dbQuery { userRepository.findById(userId) } ?: return null
         val photos = photoService.getUserMedia(userId).media
-        val thumbnailUrl = photos.firstOrNull { it.isPrimary }?.mediaUrl
+        val primaryPhoto = photos.firstOrNull { it.isPrimary }
+
+        // Generate time-limited access URL for thumbnail
+        val thumbnailUrl = primaryPhoto?.let { photo ->
+            photoService.generateAccessUrl(
+                mediaUrl = photo.mediaUrl,
+                expiryHours = photoExpiryHours
+            )
+        }
 
         return UserMatchProfileData(
             userId = user.userId,
             name = user.firstName,
             age = user.getAge(),
-            thumbnailUrl = thumbnailUrl,
+            thumbnailUrl = thumbnailUrl, // CloudFront signed URL with expiration
             badges = user.badges?.map { it.name }?.toSet()
         )
     }

@@ -249,10 +249,18 @@ class MatchService(
      *
      * @param match The match record
      * @param servedAt The timestamp when the match was served
+     * @param photoExpiryHours How long the photo URLs should be valid (default: 48h for daily batches)
      * @return UserMatchProfile or null if user not found
      */
-    private suspend fun buildUserMatchProfile(match: Match, servedAt: Instant): UserMatchProfile? {
-        val userData = userService.getUserMatchProfileData(match.user2Id) ?: return null
+    private suspend fun buildUserMatchProfile(
+        match: Match,
+        servedAt: Instant,
+        photoExpiryHours: Long = 48 // Default: 48 hours for unmatched profiles
+    ): UserMatchProfile? {
+        val userData = userService.getUserMatchProfileData(
+            userId = match.user2Id,
+            photoExpiryHours = photoExpiryHours
+        ) ?: return null
 
         return UserMatchProfile(
             matchId = match.matchId,
@@ -310,6 +318,7 @@ class MatchService(
      * - Only matches served within the last 24 hours
      * - Returns UserMatchProfile including matchId to enable re-action
      * - Returns empty list if no passes in last 24 hours
+     * - Photos have 24-hour access (shorter since user already saw them)
      *
      * @param userId The user whose passes to retrieve
      * @return List of UserMatchProfile for profiles the user passed on
@@ -317,10 +326,14 @@ class MatchService(
     suspend fun getPassesInLast24Hours(userId: String): List<UserMatchProfile> = transactionManager.execute {
         val passedMatches = matchRepository.findPassesInLast24Hours(userId)
 
-        // Build lightweight profile responses
+        // Build lightweight profile responses with 24-hour photo access
         passedMatches.mapNotNull { match ->
             val servedAt = match.servedAt ?: return@mapNotNull null
-            buildUserMatchProfile(match, servedAt)
+            buildUserMatchProfile(
+                match = match,
+                servedAt = servedAt,
+                photoExpiryHours = 24 // Reconsideration: 24-hour expiry
+            )
         }
     }
 }

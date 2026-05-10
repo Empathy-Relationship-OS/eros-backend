@@ -779,4 +779,143 @@ class MatchServiceTest {
             assertNull(profile.badges)
         }
     }
+
+    // -------------------------------------------------------------------------
+    // Context-aware photo expiry tests
+    // -------------------------------------------------------------------------
+
+    @Nested
+    inner class `Context-aware photo expiry` {
+
+        @Test
+        fun `fetchDailyBatch should use 48h photo expiry for unmatched profiles`() = runTest {
+            // Given: A match ready to be served in daily batch
+            val today = LocalDate.now(ZoneId.of("UTC"))
+            val match = createTestMatch(user2Id = "user2", createdAt = fixedInstant)
+            val userData = createTestUserMatchProfileData(userId = "user2")
+            val dailyBatch = createTestDailyBatch(batchDate = today)
+
+            coEvery { dailyBatchRepository.getBatchCount("user1", today) } returns 0
+            coEvery { matchRepository.findServedUnactedMatches("user1", 7) } returns emptyList()
+            coEvery { matchRepository.findUnservedMatches("user1", 7) } returns listOf(match)
+            coEvery { matchRepository.markAsServed(any(), any()) } returns 1
+            coEvery { dailyBatchRepository.incrementBatchCount("user1", today) } returns dailyBatch
+            coEvery { userService.getUserMatchProfileData("user2", any()) } returns userData
+
+            // When: Fetch daily batch
+            matchService.fetchDailyBatch("user1")
+
+            // Then: Should call getUserMatchProfileData with 48h expiry (default for daily batches)
+            coVerify(exactly = 1) {
+                userService.getUserMatchProfileData(
+                    userId = "user2",
+                    photoExpiryHours = 48 // Daily batch: 48-hour expiry
+                )
+            }
+        }
+
+        @Test
+        fun `getPassesInLast24Hours should use 24h photo expiry for reconsideration`() = runTest {
+            // Given: A passed match from last 24 hours
+            val passedMatch = createTestMatch(
+                user2Id = "user2",
+                liked = false,
+                createdAt = fixedInstant,
+                servedAt = fixedInstant.plusSeconds(3600) // Served 1 hour after creation
+            )
+            val userData = createTestUserMatchProfileData(userId = "user2")
+
+            coEvery { matchRepository.findPassesInLast24Hours("user1") } returns listOf(passedMatch)
+            coEvery { userService.getUserMatchProfileData("user2", any()) } returns userData
+
+            // When: Get passes for reconsideration
+            matchService.getPassesInLast24Hours("user1")
+
+            // Then: Should call getUserMatchProfileData with 24h expiry (reconsideration)
+            coVerify(exactly = 1) {
+                userService.getUserMatchProfileData(
+                    userId = "user2",
+                    photoExpiryHours = 24 // Reconsideration: 24-hour expiry
+                )
+            }
+        }
+
+        @Test
+        fun `fetchDailyBatch should apply 48h expiry to all profiles in batch`() = runTest {
+            // Given: Multiple matches in daily batch
+            val today = LocalDate.now(ZoneId.of("UTC"))
+            val match1 = createTestMatch(matchId = 1L, user2Id = "user2", createdAt = fixedInstant)
+            val match2 = createTestMatch(matchId = 2L, user2Id = "user3", createdAt = fixedInstant)
+            val match3 = createTestMatch(matchId = 3L, user2Id = "user4", createdAt = fixedInstant)
+
+            val userData2 = createTestUserMatchProfileData(userId = "user2", name = "Alice")
+            val userData3 = createTestUserMatchProfileData(userId = "user3", name = "Bob")
+            val userData4 = createTestUserMatchProfileData(userId = "user4", name = "Charlie")
+            val dailyBatch = createTestDailyBatch(batchDate = today)
+
+            coEvery { dailyBatchRepository.getBatchCount("user1", today) } returns 0
+            coEvery { matchRepository.findServedUnactedMatches("user1", 7) } returns emptyList()
+            coEvery { matchRepository.findUnservedMatches("user1", 7) } returns listOf(match1, match2, match3)
+            coEvery { matchRepository.markAsServed(any(), any()) } returns 1
+            coEvery { dailyBatchRepository.incrementBatchCount("user1", today) } returns dailyBatch
+            coEvery { userService.getUserMatchProfileData("user2", any()) } returns userData2
+            coEvery { userService.getUserMatchProfileData("user3", any()) } returns userData3
+            coEvery { userService.getUserMatchProfileData("user4", any()) } returns userData4
+
+            // When: Fetch daily batch with multiple profiles
+            val result = matchService.fetchDailyBatch("user1")
+
+            // Then: All profiles should have 48h expiry
+            assertEquals(3, result.profiles.size)
+
+            coVerify(exactly = 1) {
+                userService.getUserMatchProfileData(userId = "user2", photoExpiryHours = 48)
+            }
+            coVerify(exactly = 1) {
+                userService.getUserMatchProfileData(userId = "user3", photoExpiryHours = 48)
+            }
+            coVerify(exactly = 1) {
+                userService.getUserMatchProfileData(userId = "user4", photoExpiryHours = 48)
+            }
+        }
+
+        @Test
+        fun `getPassesInLast24Hours should apply 24h expiry to all passed profiles`() = runTest {
+            // Given: Multiple passed matches
+            val pass1 = createTestMatch(
+                matchId = 1L,
+                user2Id = "user2",
+                liked = false,
+                createdAt = fixedInstant,
+                servedAt = fixedInstant.plusSeconds(3600) // Served 1 hour after creation
+            )
+            val pass2 = createTestMatch(
+                matchId = 2L,
+                user2Id = "user3",
+                liked = false,
+                createdAt = fixedInstant,
+                servedAt = fixedInstant.plusSeconds(7200) // Served 2 hours after creation
+            )
+
+            val userData2 = createTestUserMatchProfileData(userId = "user2", name = "Alice")
+            val userData3 = createTestUserMatchProfileData(userId = "user3", name = "Bob")
+
+            coEvery { matchRepository.findPassesInLast24Hours("user1") } returns listOf(pass1, pass2)
+            coEvery { userService.getUserMatchProfileData("user2", any()) } returns userData2
+            coEvery { userService.getUserMatchProfileData("user3", any()) } returns userData3
+
+            // When: Get all passes for reconsideration
+            val result = matchService.getPassesInLast24Hours("user1")
+
+            // Then: All profiles should have 24h expiry
+            assertEquals(2, result.size)
+
+            coVerify(exactly = 1) {
+                userService.getUserMatchProfileData(userId = "user2", photoExpiryHours = 24)
+            }
+            coVerify(exactly = 1) {
+                userService.getUserMatchProfileData(userId = "user3", photoExpiryHours = 24)
+            }
+        }
+    }
 }
