@@ -47,4 +47,11 @@ local.properties
 firebase-service-account.json
 # But keep test credentials tracked
 !app/src/test/resources/test.json
+
+### CloudFront Private Keys ###
+# Exclude CloudFront private key files
+*.pem
+cloudfront-private-key.*
+pk-*.pem
+
 /node_modules/**
