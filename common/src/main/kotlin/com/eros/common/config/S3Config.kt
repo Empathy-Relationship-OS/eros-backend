@@ -13,6 +13,9 @@ import io.ktor.server.config.*
  * - AWS_S3_BUCKET_NAME          — S3 bucket name (default: eros-photos)
  * - AWS_CDN_BASE_URL            — CloudFront base URL (optional; blank = return S3 URLs)
  * - AWS_PRESIGNED_URL_TTL_MINUTES — Presigned URL expiry in minutes (default: 15)
+ * - CLOUDFRONT_DISTRIBUTION_DOMAIN — CloudFront distribution domain (e.g., d123.cloudfront.net)
+ * - CLOUDFRONT_KEY_PAIR_ID      — CloudFront key pair ID (required for signed URLs)
+ * - CLOUDFRONT_PRIVATE_KEY_PATH — Path to CloudFront private key PEM file
  */
 data class S3Config(
     val region: String,
@@ -20,21 +23,49 @@ data class S3Config(
     val secretAccessKey: String,
     val bucketName: String,
     val cdnBaseUrl: String?,
-    val presignedUrlTtlMinutes: Long
+    val presignedUrlTtlMinutes: Long,
+
+    // CloudFront signed URL configuration
+    val cloudFrontKeyPairId: String?,
+    val cloudFrontPrivateKeyPath: String?,
+    val cloudFrontDistributionDomain: String?
 ) {
     override fun toString(): String =
-        "S3Config(region=$region, bucketName=$bucketName, cdnBaseUrl=$cdnBaseUrl, presignedUrlTtlMinutes=$presignedUrlTtlMinutes)"
+        "S3Config(region=$region, bucketName=$bucketName, cdnBaseUrl=$cdnBaseUrl, " +
+        "presignedUrlTtlMinutes=$presignedUrlTtlMinutes, cloudFrontEnabled=${isCloudFrontEnabled()})"
+
+    /**
+     * Check if CloudFront signed URLs are properly configured.
+     */
+    fun isCloudFrontEnabled(): Boolean {
+        return !cloudFrontKeyPairId.isNullOrBlank() &&
+               !cloudFrontPrivateKeyPath.isNullOrBlank() &&
+               !cloudFrontDistributionDomain.isNullOrBlank()
+    }
+
+    /**
+     * Returns the base URL for CloudFront distribution.
+     * Falls back to cdnBaseUrl or S3 direct URL if CloudFront not configured.
+     */
+    fun getBaseUrl(): String {
+        return when {
+            !cloudFrontDistributionDomain.isNullOrBlank() ->
+                "https://${cloudFrontDistributionDomain.trimStart('/')}"
+            !cdnBaseUrl.isNullOrBlank() ->
+                cdnBaseUrl.trimEnd('/')
+            else ->
+                "https://$bucketName.s3.$region.amazonaws.com"
+        }
+    }
+
     /**
      * Returns the public URL for a given S3 object key.
-     * Uses CDN base URL if configured, otherwise falls back to a direct S3 URL.
+     *
+     * **Note:** If CloudFront is enabled, this returns an UNSIGNED URL.
+     * Use PhotoService.generateAccessUrl() for access-controlled URLs.
      */
     fun publicUrlFor(key: String): String {
-        val base = cdnBaseUrl?.trimEnd('/')
-        return if (!base.isNullOrBlank()) {
-            "$base/$key"
-        } else {
-            "https://$bucketName.s3.$region.amazonaws.com/$key"
-        }
+        return "${getBaseUrl()}/$key"
     }
 
     companion object {
@@ -48,7 +79,15 @@ data class S3Config(
                 cdnBaseUrl            = cdnBaseUrl?.ifBlank { null },
                 presignedUrlTtlMinutes = config.property("aws.presignedUrlTtlMinutes").getString()
                     .toLongOrNull()
-                    ?: error("aws.presignedUrlTtlMinutes must be a valid integer (got: ${config.property("aws.presignedUrlTtlMinutes").getString()})")
+                    ?: error("aws.presignedUrlTtlMinutes must be a valid integer (got: ${config.property("aws.presignedUrlTtlMinutes").getString()})"),
+
+                // CloudFront configuration (optional)
+                cloudFrontKeyPairId = config.propertyOrNull("aws.cloudFrontKeyPairId")
+                    ?.getString()?.ifBlank { null },
+                cloudFrontPrivateKeyPath = config.propertyOrNull("aws.cloudFrontPrivateKeyPath")
+                    ?.getString()?.ifBlank { null },
+                cloudFrontDistributionDomain = config.propertyOrNull("aws.cloudFrontDistributionDomain")
+                    ?.getString()?.ifBlank { null }
             )
         }
     }

@@ -42,6 +42,9 @@ dependencies {
     testImplementation(libs.flyway.database.postgresql)
     testImplementation(libs.mockk)
 
+    // Test access to common module's test classes (for TestFixtures)
+    testImplementation(project(path = ":common", configuration = "testClasses"))
+
     implementation(libs.logstash.logback.encoder)
 }
 

@@ -60,6 +60,8 @@ firebase-admin = { module = "com.google.firebase:firebase-admin", version.ref = 
 twilio = {module = "com.twilio.sdk:twilio", version.ref = "twilio"}
 mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
 aws-s3 = { module = "software.amazon.awssdk:s3", version.ref = "aws-sdk" }
+aws-cloudfront = { module = "software.amazon.awssdk:cloudfront", version.ref = "aws-sdk" }
+aws-cloudfront-url-signer = { module = "com.amazonaws:aws-java-sdk-cloudfront", version = "1.12.529" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }

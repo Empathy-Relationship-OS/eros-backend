@@ -21,6 +21,33 @@ dependencies {
     // AWS S3 (S3Config uses AWS SDK types)
     implementation(libs.aws.s3)
 
+    // AWS CloudFront for signed URLs
+    implementation(libs.aws.cloudfront)
+    implementation(libs.aws.cloudfront.url.signer)
+
     // Testing
     testImplementation(libs.kotlin.test.junit)
+    testImplementation(libs.junit.jupiter)
+    testImplementation(libs.mockk)
+    testRuntimeOnly(libs.junit.platform.launcher)
+}
+
+tasks.test {
+    useJUnitPlatform()
+}
+
+// Expose test classes for other modules to use test fixtures
+configurations {
+    create("testClasses") {
+        extendsFrom(configurations["testImplementation"])
+    }
+}
+
+tasks.register<Jar>("testJar") {
+    archiveClassifier.set("test")
+    from(sourceSets.test.get().output)
+}
+
+artifacts {
+    add("testClasses", tasks.named<Jar>("testJar"))
 }
