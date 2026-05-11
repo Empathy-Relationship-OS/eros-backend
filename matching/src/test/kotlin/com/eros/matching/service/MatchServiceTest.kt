@@ -640,7 +640,7 @@ class MatchServiceTest {
         @Test
         fun `should return carryover matches and fill with new matches to reach batch size`() = runTest {
             val today = LocalDate.now()
-            val servedAt = Instant.now().minusSeconds(3600) // Served 1 hour ago
+            val servedAt = Instant.now().minus(java.time.Duration.ofDays(1)) // Served yesterday
 
             // 2 carryover matches (served but not acted upon)
             val servedUnactedMatches = listOf(
@@ -690,8 +690,9 @@ class MatchServiceTest {
             assertEquals("Charlie", result.profiles[2].name) // New matches follow
             assertEquals("Grace", result.profiles[6].name) // Last new match
 
-            // Verify that batch count was incremented and only new matches were marked as served
+            // Verify that batch count was incremented and both carryover and new matches were marked as served
             coVerify(exactly = 1) { dailyBatchRepository.incrementBatchCount("user1", today) }
+            coVerify(exactly = 1) { matchRepository.markAsServed(match { it.size == 2 }, any()) } // 2 carryover matches re-marked
             coVerify(exactly = 1) { matchRepository.markAsServed(match { it.size == 5 }, any()) } // 5 new matches marked
             coVerify(exactly = 1) { matchRepository.findUnservedMatches("user1", 5) } // Fetched exactly 5
         }
@@ -699,7 +700,7 @@ class MatchServiceTest {
         @Test
         fun `should return only carryover matches when they fill entire batch size`() = runTest {
             val today = LocalDate.now()
-            val servedAt = Instant.now().minusSeconds(3600)
+            val servedAt = Instant.now().minus(java.time.Duration.ofDays(1)) // Served yesterday
 
             // 7 carryover matches - exactly batch size
             val servedUnactedMatches = List(7) { index ->
@@ -716,8 +717,9 @@ class MatchServiceTest {
 
             coEvery { dailyBatchRepository.getBatchCount("user1", today) } returns 0
             coEvery { matchRepository.findServedUnactedMatches("user1", 7) } returns servedUnactedMatches
+            coEvery { matchRepository.markAsServed(any(), any()) } returns 7 // Re-mark carryover matches with today's timestamp
             coEvery { dailyBatchRepository.incrementBatchCount("user1", today) } returns dailyBatch
-            coEvery { userService.getUserMatchProfileData(any()) } returns createTestUserMatchProfileData()
+            coEvery { userService.getUserMatchProfileData(any(), any()) } returns createTestUserMatchProfileData()
 
             val result = matchService.fetchDailyBatch("user1")
 
@@ -726,16 +728,16 @@ class MatchServiceTest {
             assertEquals(2, result.remainingBatches)
             assertEquals(7, result.profiles.size)
 
-            // Verify no new matches were fetched or marked as served (all slots filled by carryover)
+            // Verify carryover matches were re-marked with today's timestamp, but no new matches were fetched
             coVerify(exactly = 1) { dailyBatchRepository.incrementBatchCount("user1", today) }
             coVerify(exactly = 0) { matchRepository.findUnservedMatches(any(), any()) }
-            coVerify(exactly = 0) { matchRepository.markAsServed(any(), any()) }
+            coVerify(exactly = 1) { matchRepository.markAsServed(match { it.size == 7 }, any()) } // Re-mark all 7 carryovers
         }
 
         @Test
         fun `should handle partial carryover when some carryover profiles are unavailable`() = runTest {
             val today = LocalDate.now()
-            val servedAt = Instant.now().minusSeconds(3600)
+            val servedAt = Instant.now().minus(java.time.Duration.ofDays(1)) // Served yesterday
 
             // 3 carryover matches (but one will have unavailable user data)
             val servedUnactedMatches = listOf(
@@ -787,7 +789,7 @@ class MatchServiceTest {
         @Test
         fun `should throw NoMatchesAvailableException when only carryovers exist but all profiles unavailable`() = runTest {
             val today = LocalDate.now()
-            val servedAt = Instant.now().minusSeconds(3600)
+            val servedAt = Instant.now().minus(java.time.Duration.ofDays(1)) // Served yesterday
 
             val servedUnactedMatches = listOf(
                 createTestMatch(matchId = 1L, user1Id = "user1", user2Id = "user2", servedAt = servedAt, liked = null),
@@ -796,6 +798,7 @@ class MatchServiceTest {
 
             coEvery { dailyBatchRepository.getBatchCount("user1", today) } returns 0
             coEvery { matchRepository.findServedUnactedMatches("user1", 7) } returns servedUnactedMatches
+            coEvery { matchRepository.markAsServed(any(), any()) } returns 2 // Re-mark carryovers
             coEvery { matchRepository.findUnservedMatches("user1", 7) } returns emptyList() // 7 - 0 valid profiles = 7
             coEvery { userService.getUserMatchProfileData(eq("user2"), any()) } returns null
             coEvery { userService.getUserMatchProfileData(eq("user3"), any()) } returns null
@@ -805,6 +808,43 @@ class MatchServiceTest {
             }
 
             assertTrue(exception.message!!.contains("No matches available"))
+        }
+
+        @Test
+        fun `should return same batch without incrementing when called multiple times with unacted matches from today`() = runTest {
+            val today = LocalDate.now()
+            val servedAt = Instant.now().minusSeconds(3600) // Served 1 hour ago (today)
+
+            // 3 matches served today but not acted upon
+            val servedUnactedMatches = listOf(
+                createTestMatch(matchId = 1L, user1Id = "user1", user2Id = "user2", servedAt = servedAt, liked = null),
+                createTestMatch(matchId = 2L, user1Id = "user1", user2Id = "user3", servedAt = servedAt, liked = null),
+                createTestMatch(matchId = 3L, user1Id = "user1", user2Id = "user4", servedAt = servedAt, liked = null)
+            )
+
+            val dailyBatch = createTestDailyBatch(batchCount = 1)
+
+            coEvery { dailyBatchRepository.getBatchCount("user1", today) } returns 1
+            coEvery { matchRepository.findServedUnactedMatches("user1", 7) } returns servedUnactedMatches
+            coEvery { dailyBatchRepository.findByUserAndDate("user1", today) } returns dailyBatch
+            coEvery { userService.getUserMatchProfileData(eq("user2"), any()) } returns createTestUserMatchProfileData(userId = "user2", name = "Alice")
+            coEvery { userService.getUserMatchProfileData(eq("user3"), any()) } returns createTestUserMatchProfileData(userId = "user3", name = "Bob")
+            coEvery { userService.getUserMatchProfileData(eq("user4"), any()) } returns createTestUserMatchProfileData(userId = "user4", name = "Charlie")
+
+            val result = matchService.fetchDailyBatch("user1")
+
+            // Assert: batch count NOT incremented, same batch returned
+            assertEquals(1, result.batchNumber) // Still batch 1
+            assertEquals(2, result.remainingBatches) // 3 - 1 = 2 remaining
+            assertEquals(3, result.profiles.size)
+            assertEquals("Alice", result.profiles[0].name)
+            assertEquals("Bob", result.profiles[1].name)
+            assertEquals("Charlie", result.profiles[2].name)
+
+            // Verify that batch count was NOT incremented and NO matches were marked as served
+            coVerify(exactly = 0) { dailyBatchRepository.incrementBatchCount(any(), any()) }
+            coVerify(exactly = 0) { matchRepository.markAsServed(any(), any()) }
+            coVerify(exactly = 0) { matchRepository.findUnservedMatches(any(), any()) }
         }
 
         @Test

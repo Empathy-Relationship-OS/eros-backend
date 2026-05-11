@@ -11,12 +11,12 @@ import com.eros.matching.models.MutualMatchInfo
 import com.eros.matching.models.UserMatchProfile
 import com.eros.matching.repository.DailyBatchRepository
 import com.eros.matching.repository.MatchRepository
+import com.eros.matching.time.BatchWindowCalculator
+import com.eros.matching.time.MidnightUtcBatchWindowCalculator
 import com.eros.matching.transaction.TransactionManager
 import com.eros.users.service.UserService
 import java.time.Clock
 import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneId
 
 /**
  * Service layer for matching business logic.
@@ -28,7 +28,8 @@ class MatchService(
     private val dailyBatchRepository: DailyBatchRepository,
     private val userService: UserService,
     private val transactionManager: TransactionManager,
-    private val clock: Clock = Clock.systemUTC()
+    private val clock: Clock = Clock.systemUTC(),
+    private val batchWindowCalculator: BatchWindowCalculator = MidnightUtcBatchWindowCalculator(clock)
 ) {
 
     /**
@@ -164,26 +165,62 @@ class MatchService(
      * @throws NoMatchesAvailableException if no matches available (served or unserved)
      */
     suspend fun fetchDailyBatch(userId: String): DailyBatchResponse = transactionManager.execute {
-        val today = LocalDate.now(clock)
+        val currentWindow = batchWindowCalculator.getCurrentWindow()
+        val now = Instant.now(clock)
 
         // Check daily batch limit
-        val batchCount = dailyBatchRepository.getBatchCount(userId, today)
+        val batchCount = dailyBatchRepository.getBatchCount(userId, currentWindow)
         if (batchCount >= MAX_DAILY_BATCHES) {
             throw DailyBatchLimitExceededException(
                 userId = userId,
                 batchesUsed = batchCount,
                 maxBatches = MAX_DAILY_BATCHES,
-                resetAt = calculateMidnightUtc(today.plusDays(1))
+                resetAt = batchWindowCalculator.getNextWindowStart(currentWindow)
             )
         }
 
-        // Check for served-but-unacted matches (carryover from previous batches/days)
+        // Check for served-but-unacted matches (carryover from previous batches/windows)
         val servedUnactedMatches = matchRepository.findServedUnactedMatches(userId, BATCH_SIZE)
 
-        // Build profiles for carryover matches (keep original servedAt timestamp)
-        val carryoverProfiles = servedUnactedMatches.mapNotNull { match ->
-            val servedAt = match.servedAt ?: return@mapNotNull null
-            buildUserMatchProfile(match, servedAt)
+        // Separate carryover matches by whether they were served in the current window or previous windows
+        val (carryoverFromCurrentWindow, carryoverFromPreviousWindows) = servedUnactedMatches.partition { match ->
+            match.servedAt?.let { servedAt ->
+                batchWindowCalculator.isSameWindow(servedAt, now)
+            } ?: false
+        }
+
+        // If we have profiles served in the current window, just return them without incrementing
+        // This handles the case where the user is re-entering the matches tab without acting
+        if (carryoverFromCurrentWindow.isNotEmpty()) {
+            val profiles = carryoverFromCurrentWindow.mapNotNull { match ->
+                val servedAt = match.servedAt ?: return@mapNotNull null
+                buildUserMatchProfile(match, servedAt)
+            }
+
+            // Get current batch count (don't increment)
+            val currentBatch = dailyBatchRepository.findByUserAndDate(userId, currentWindow)
+                ?: dailyBatchRepository.incrementBatchCount(userId, currentWindow) // First batch of the window
+
+            return@execute DailyBatchResponse(
+                profiles = profiles,
+                batchNumber = currentBatch.batchCount,
+                remainingBatches = MAX_DAILY_BATCHES - currentBatch.batchCount
+            )
+        }
+
+        // If we reach here, either:
+        // 1. No carryover at all (need to fetch new batch)
+        // 2. Only carryover from previous windows (need to roll them forward into current window)
+
+        // Start building new batch - update servedAt for old carryovers to current window
+        val carryoverMatchIds = carryoverFromPreviousWindows.map { it.matchId }
+        if (carryoverMatchIds.isNotEmpty()) {
+            matchRepository.markAsServed(carryoverMatchIds, now)
+        }
+
+        // Build profiles for updated carryover matches (with new servedAt timestamp)
+        val carryoverProfiles = carryoverFromPreviousWindows.mapNotNull { match ->
+            buildUserMatchProfile(match, now)
         }
 
         // Calculate how many new matches we need to fill the batch
@@ -193,9 +230,8 @@ class MatchService(
         val newProfiles = if (slotsRemaining > 0) {
             val unservedMatches = matchRepository.findUnservedMatches(userId, slotsRemaining)
 
-            val servedAt = Instant.now(clock)
             val successfulResults = unservedMatches.mapNotNull { match ->
-                buildUserMatchProfile(match, servedAt)?.let { profile ->
+                buildUserMatchProfile(match, now)?.let { profile ->
                     match.matchId to profile
                 }
             }
@@ -203,7 +239,7 @@ class MatchService(
             // Mark new matches as served
             if (successfulResults.isNotEmpty()) {
                 val successfulMatchIds = successfulResults.map { it.first }
-                matchRepository.markAsServed(successfulMatchIds, servedAt)
+                matchRepository.markAsServed(successfulMatchIds, now)
             }
 
             successfulResults.map { it.second }
@@ -219,8 +255,8 @@ class MatchService(
             throw NoMatchesAvailableException("No matches available for user $userId")
         }
 
-        // Increment batch count for today (this counts as serving a new daily batch)
-        val dailyBatch = dailyBatchRepository.incrementBatchCount(userId, today)
+        // Increment batch count (we're serving a new batch for the current window)
+        val dailyBatch = dailyBatchRepository.incrementBatchCount(userId, currentWindow)
 
         // Calculate batch metadata
         val batchNumber = dailyBatch.batchCount
@@ -231,16 +267,6 @@ class MatchService(
             batchNumber = batchNumber,
             remainingBatches = remainingBatches
         )
-    }
-
-    /**
-     * Calculates midnight UTC for a given date.
-     *
-     * @param date The date to calculate midnight for
-     * @return Instant representing midnight UTC on the given date
-     */
-    private fun calculateMidnightUtc(date: LocalDate): Instant {
-        return date.atStartOfDay(ZoneId.of("UTC")).toInstant()
     }
 
     /**
@@ -289,21 +315,18 @@ class MatchService(
     /**
      * Checks if the target user is in the requesting user's current batch.
      *
-     * A "current batch" is defined as a match served today (within the current UTC day).
+     * A "current batch" is defined as a match served within the current batch window.
      *
      * @param userId The user whose batch to check
      * @param targetUserId The user to look for in the batch
-     * @return True if target user is in today's served matches, false otherwise
+     * @return True if target user is in the current batch window's served matches, false otherwise
      */
     suspend fun isInCurrentBatch(userId: String, targetUserId: String): Boolean = transactionManager.execute {
         val match = matchRepository.findByUserPair(userId, targetUserId) ?: return@execute false
 
-        // Check if match was served today
+        // Check if match was served in the current batch window
         val servedAt = match.servedAt ?: return@execute false
-        val today = LocalDate.now(clock)
-        val servedDate = LocalDate.ofInstant(servedAt, clock.zone)
-
-        servedDate.isAfter(today.minusDays(1))  && servedDate.isBefore(today.plusDays(1))
+        batchWindowCalculator.isSameWindow(servedAt, Instant.now(clock))
     }
 
     /**
