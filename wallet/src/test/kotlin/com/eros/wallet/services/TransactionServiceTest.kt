@@ -553,7 +553,7 @@ class TransactionServiceTest {
         }
 
         @Test
-        fun `should throw NotFoundException when stripe intent not found`() = runBlocking {
+        fun `should throw NotFoundException when stripe intent not found`() {
             coEvery { mockTransactionRepo.findByStripePaymentIntentId("pi_unknown") } returns null
 
             assertThrows<NotFoundException> {
@@ -561,7 +561,6 @@ class TransactionServiceTest {
                     service.completePurchaseTransaction("pi_unknown", BigDecimal("100.0"))
                 }
             }
-            Unit
         }
 
         @Test

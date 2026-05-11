@@ -434,7 +434,7 @@ class WalletRoutesTest {
                 setBody(request)
             }
 
-            assertEquals(HttpStatusCode.OK, response.status)
+            assertEquals(HttpStatusCode.Created, response.status)
         }
 
         @Test

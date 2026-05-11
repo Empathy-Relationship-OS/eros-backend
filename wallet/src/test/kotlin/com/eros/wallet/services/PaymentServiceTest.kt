@@ -19,7 +19,6 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 
 class PaymentServiceTest {
 
@@ -368,17 +367,6 @@ class PaymentServiceTest {
 
     @Test
     fun `purchaseTokens returns a pending purchase for a valid request`() = runTest {
-
-        val mockTransaction = mockk<org.jetbrains.exposed.v1.core.Transaction>(relaxed = true)
-
-        mockkStatic("com.eros.database.DatabasePluginKt")
-        coEvery {
-            dbQuery<Any>(any())
-        } coAnswers {
-            val block = firstArg<suspend org.jetbrains.exposed.v1.core.Transaction.() -> Any>()
-            block.invoke(mockTransaction)
-        }
-
         val wallet = createTestWallet(userId = userId, currency = "usd")
         val request = PurchaseRequest(
             packageType = "STARTER",

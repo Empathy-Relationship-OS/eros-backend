@@ -15,6 +15,7 @@ import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.greater
+import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.core.less
 import org.jetbrains.exposed.v1.core.statements.UpdateBuilder
 import org.jetbrains.exposed.v1.jdbc.select
@@ -159,7 +160,7 @@ class TransactionRepositoryImpl(
         status: TransactionStatus,
         stripePaymentIntentId: String?,
         failureReason: String?,
-        balanceAfter : BigDecimal?
+        balanceAfter: BigDecimal?
     ): Transaction? {
         val updated = Transactions.updateReturning(
             where = { Transactions.idempotencyKey eq idempotencyKey }
@@ -176,7 +177,7 @@ class TransactionRepositoryImpl(
                 )
             }
 
-            balanceAfter?.let{ balance ->
+            balanceAfter?.let { balance ->
                 it[Transactions.balanceAfter] = balanceAfter
             }
 
@@ -189,32 +190,41 @@ class TransactionRepositoryImpl(
     /**
      * Function to find all transactions
      */
-    override suspend fun findUserTransactionsAfterTime(createdAt: Instant, userId: String, type: TransactionType) : List<Transaction> {
+    override suspend fun findUserTransactionsAfterTime(
+        createdAt: Instant,
+        userId: String,
+        type: TransactionType
+    ): List<Transaction> {
         return (table innerJoin Wallets).selectAll().where {
             (Wallets.userId eq userId) and
                     (Transactions.createdAt greater createdAt) and
                     (Transactions.type eq type)
-        }.map {it.toDomain()}
+        }.map { it.toDomain() }
     }
 
 
     /**
      * Function to determine if a record exists that is linked to a specific transaction (it has been refunded or pending)
      */
-    override suspend fun hasBeenRefunded(transactionId: Long) : Boolean{
+    override suspend fun hasBeenRefunded(transactionId: Long): Boolean {
         return (table innerJoin Wallets).selectAll().where {
-            (Transactions.relatedTransactionId eq transactionId)
+            (Transactions.relatedTransactionId eq transactionId) and
+                    (Transactions.type eq TransactionType.REFUND) and
+                    (Transactions.status inList listOf(
+                        TransactionStatus.COMPLETED,
+                        TransactionStatus.PENDING
+                    ))
         }.empty().not()
-
     }
 
 
     /**
      * Find transaction with the id.
      */
-    override suspend fun getTransaction(transactionId: Long) : Transaction? {
+    override suspend fun getTransaction(transactionId: Long): Transaction? {
         return (table innerJoin Wallets).selectAll().where {
-            (Transactions.transactionId eq transactionId) }.singleOrNull()?.toDomain()
+            (Transactions.transactionId eq transactionId)
+        }.singleOrNull()?.toDomain()
     }
 
 

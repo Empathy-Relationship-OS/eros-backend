@@ -118,7 +118,7 @@ fun Route.paymentRoutes(paymentService: PaymentService) {
             val transaction = paymentService.spendToken(principal.uid, request)
 
             // Return the transaction to the user.
-            call.respond(HttpStatusCode.OK, transaction.toDTO())
+            call.respond(HttpStatusCode.Created, transaction.toDTO())
 
         }
 

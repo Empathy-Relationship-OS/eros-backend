@@ -17,10 +17,14 @@ class StripeService {
     /**
      * Creates a Stripe payment intent for token purchase.
      *
-     * @param userId User ID for metadata
-     * @param tokenPackage TokenPackage the user wishes to purchase.
-     * @param paymentMethodId ?
-     * @return Stripe PaymentIntent
+     * @param userId User ID attached to the payment intent metadata.
+     * @param tokenPackage Token package the user wishes to purchase; used to set metadata and description.
+     * @param paymentMethodId Stripe payment method ID to attach to the intent.
+     * @param idempotencyKey Unique key to safely retry the request without creating duplicate intents.
+     * @param userCurrency ISO 4217 currency code (e.g. "usd") used for the payment.
+     * @param cost Amount to charge in the smallest currency unit (e.g. cents). Must not be null.
+     * @return The created Stripe [PaymentIntent].
+     * @throws IllegalArgumentException if [cost] is null.
      */
     suspend fun createPaymentIntent(
         userId: String,
@@ -30,9 +34,9 @@ class StripeService {
         userCurrency: String,
         cost: BigDecimal?
     ): PaymentIntent = withContext(Dispatchers.IO){
-
+        require(cost != null)
         val params = PaymentIntentCreateParams.builder()
-            .setAmount(cost?.toLong())
+            .setAmount(cost.toLong())
             .setCurrency(userCurrency)
             .setPaymentMethod(paymentMethodId)
             .setAutomaticPaymentMethods(

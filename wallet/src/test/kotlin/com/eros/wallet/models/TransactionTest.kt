@@ -27,9 +27,24 @@ fun transaction(
     createdAt: Instant = Instant.now(),
     updatedAt: Instant = Instant.now(),
 ) = Transaction(
-    transactionId, walletId, type, amount, balanceAfter, description,
-    status, relatedDateId, relatedTransactionId, stripePaymentIntentId,
-    amountPaidGBP, amountPaid, currency, idempotencyKey, metadata, acceptedTerms,createdAt, updatedAt
+    transactionId = transactionId,
+    walletId = walletId,
+    type = type,
+    amount = amount,
+    balanceAfter = balanceAfter,
+    description = description,
+    status = status,
+    relatedDateId = relatedDateId,
+    relatedTransactionId = relatedTransactionId,
+    stripePaymentIntentId = stripePaymentIntentId,
+    amountPaidGBP = amountPaidGBP,
+    amountPaid = amountPaid,
+    paymentCurrency = currency,
+    idempotencyKey = idempotencyKey,
+    metadata = metadata,
+    acceptedTerms = acceptedTerms,
+    createdAt = createdAt,
+    updatedAt = updatedAt,
 )
 
 class TransactionTest {

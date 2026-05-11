@@ -33,21 +33,11 @@ import com.eros.wallet.services.WalletService
 import com.eros.wallet.stripe.StripeService
 import com.eros.wallet.stripe.StripeWebhookHandler
 import com.eros.users.repository.*
-import com.eros.wallet.models.PurchaseRequest
-import com.eros.wallet.models.RefundTokenRequest
-import com.eros.wallet.models.SpendTokenRequest
-import com.eros.wallet.models.toDTO
-import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
-//import io.ktor.server.plugins.openapi.*
 import io.ktor.server.plugins.requestvalidation.*
-import io.ktor.server.request.receive
-import io.ktor.server.request.receiveText
-//import io.ktor.server.plugins.swagger.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import kotlinx.serialization.json.Json
 
 fun Application.configureRouting() {
     install(RequestValidation) {
@@ -100,14 +90,6 @@ fun Application.configureRouting() {
 
         // placed outside the firebase-auth due to external token use.
         webhookRoute(webhookHandler)
-
-        // Swagger UI endpoint
-        swaggerUI(path = "swagger", swaggerFile = "openapi/documentation.yaml") {
-            version = "5.32.1"
-        }
-
-        // OpenAPI documentation endpoint
-        openAPI(path = "openapi", swaggerFile = "openapi/documentation.yaml")
 
         // All routes require Firebase authentication
         authenticate("firebase-auth") {

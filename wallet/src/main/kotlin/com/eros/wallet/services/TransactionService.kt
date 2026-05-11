@@ -247,6 +247,8 @@ class TransactionService(
 
 
     suspend fun isRefundable(transaction: Transaction, userId: String): Boolean {
+        if (transaction.type != TransactionType.PURCHASE) return false
+
         // Check transaction isn't already refunded.
         if (transactionRepository.hasBeenRefunded(transaction.transactionId)) {
             return false
@@ -264,8 +266,6 @@ class TransactionService(
             .filterNot { it.transactionId in refundRelatedIds }
             .filterNot { it.type == TransactionType.REFUND && it.status == TransactionStatus.REFUNDED }
         if (activeHistory.isEmpty()) return false
-
-        if (transaction.type != TransactionType.PURCHASE) return false
 
         // Total spent in the wallet's history (using filtered activeHistory)
         val totalSpent = activeHistory
