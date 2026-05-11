@@ -42,6 +42,16 @@ interface BatchWindowCalculator {
      * @return The current batch window identifier
      */
     fun getCurrentWindow(): LocalDate
+
+    /**
+     * Calculates when the next batch window starts (when the current window expires).
+     *
+     * This is used for the resetAt timestamp in rate limit errors.
+     *
+     * @param currentWindow The current batch window
+     * @return The instant when the next batch window begins
+     */
+    fun getNextWindowStart(currentWindow: LocalDate): Instant
 }
 
 /**
@@ -61,6 +71,11 @@ class MidnightUtcBatchWindowCalculator(
 
     override fun getCurrentWindow(): LocalDate {
         return LocalDate.now(clock)
+    }
+
+    override fun getNextWindowStart(currentWindow: LocalDate): Instant {
+        // Next window starts at midnight UTC on the next day
+        return currentWindow.plusDays(1).atStartOfDay(zoneId).toInstant()
     }
 }
 
@@ -94,5 +109,10 @@ class CustomHourBatchWindowCalculator(
 
     override fun getCurrentWindow(): LocalDate {
         return getBatchWindow(Instant.now(clock))
+    }
+
+    override fun getNextWindowStart(currentWindow: LocalDate): Instant {
+        // Next window starts at the reset hour on the next day
+        return currentWindow.plusDays(1).atTime(resetHour, 0).atZone(zoneId).toInstant()
     }
 }

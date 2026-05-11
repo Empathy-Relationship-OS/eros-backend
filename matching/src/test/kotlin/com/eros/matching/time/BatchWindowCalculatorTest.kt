@@ -56,6 +56,17 @@ class BatchWindowCalculatorTest {
 
             assertEquals(LocalDate.of(2024, 1, 15), calculator.getCurrentWindow())
         }
+
+        @Test
+        fun `should calculate next window start as midnight UTC next day`() {
+            val calculator = MidnightUtcBatchWindowCalculator(fixedClock)
+
+            val currentWindow = LocalDate.of(2024, 1, 15)
+            val nextWindowStart = calculator.getNextWindowStart(currentWindow)
+
+            // Next window should start at midnight UTC on Jan 16
+            assertEquals(Instant.parse("2024-01-16T00:00:00Z"), nextWindowStart)
+        }
     }
 
     @Nested
@@ -142,6 +153,28 @@ class BatchWindowCalculatorTest {
 
             assertEquals(LocalDate.of(2024, 1, 15), calculator.getBatchWindow(instant1))
             assertEquals(LocalDate.of(2024, 1, 15), calculator.getBatchWindow(instant2))
+        }
+
+        @Test
+        fun `should calculate next window start at custom reset hour`() {
+            val calculator = CustomHourBatchWindowCalculator(resetHour = 7, clock = fixedClock)
+
+            val currentWindow = LocalDate.of(2024, 1, 15)
+            val nextWindowStart = calculator.getNextWindowStart(currentWindow)
+
+            // Next window should start at 7 AM UTC on Jan 16
+            assertEquals(Instant.parse("2024-01-16T07:00:00Z"), nextWindowStart)
+        }
+
+        @Test
+        fun `should calculate next window start at midnight when reset hour is 0`() {
+            val calculator = CustomHourBatchWindowCalculator(resetHour = 0, clock = fixedClock)
+
+            val currentWindow = LocalDate.of(2024, 1, 15)
+            val nextWindowStart = calculator.getNextWindowStart(currentWindow)
+
+            // Next window should start at midnight UTC on Jan 16 (same as MidnightUtcBatchWindowCalculator)
+            assertEquals(Instant.parse("2024-01-16T00:00:00Z"), nextWindowStart)
         }
     }
 }
