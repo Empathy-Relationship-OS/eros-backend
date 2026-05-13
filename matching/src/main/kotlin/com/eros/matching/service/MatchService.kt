@@ -192,10 +192,12 @@ class MatchService(
         // If we have profiles served in the current window, just return them without incrementing
         // This handles the case where the user is re-entering the matches tab without acting
         if (carryoverFromCurrentWindow.isNotEmpty()) {
-            val profiles = carryoverFromCurrentWindow.mapNotNull { match ->
-                val servedAt = match.servedAt ?: return@mapNotNull null
-                buildUserMatchProfile(match, servedAt)
-            }
+            val profiles = carryoverFromCurrentWindow
+                .mapNotNull { match ->
+                    val servedAt = match.servedAt ?: return@mapNotNull null
+                    buildUserMatchProfile(match, servedAt)
+                }
+                .sortedBy { it.servedAt }
 
             // Get current batch count (don't increment)
             val currentBatch = dailyBatchRepository.findByUserAndDate(userId, currentWindow)
@@ -247,8 +249,9 @@ class MatchService(
             emptyList()
         }
 
-        // Combine carryover and new profiles
-        val allProfiles = carryoverProfiles + newProfiles
+        // Combine carryover and new profiles, sorted by servedAt for consistent ordering
+        val allProfiles = (carryoverProfiles + newProfiles)
+            .sortedBy { it.servedAt }
 
         // Ensure we have at least some profiles to return
         if (allProfiles.isEmpty()) {
