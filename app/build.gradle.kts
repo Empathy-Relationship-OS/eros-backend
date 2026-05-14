@@ -54,3 +54,7 @@ dependencies {
 
     implementation(libs.exposed.core)
 }
+
+tasks.shadowJar {
+    isZip64 = true
+}
