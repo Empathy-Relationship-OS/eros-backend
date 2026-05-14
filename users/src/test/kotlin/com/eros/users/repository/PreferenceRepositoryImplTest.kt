@@ -3,6 +3,8 @@ package com.eros.users.repository
 
 import com.eros.database.dbQuery
 import com.eros.users.models.Activity
+import com.eros.users.models.Entertainment
+import com.eros.users.models.MusicGenre
 import com.eros.users.models.City
 import com.eros.users.models.DateIntentions
 import com.eros.users.models.DisplayableField
@@ -117,7 +119,7 @@ class PreferenceRepositoryImplTest {
                 gender = Gender.MALE,
                 occupation = "",
                 bio = "",
-                interests = listOf("Reading", "Hiking", "Movies", "Music", "Travel"),
+                interests = listOf(Entertainment.READING, Activity.HIKING, Entertainment.MOVIES, MusicGenre.JAZZ, Activity.ROAD_TRIPS),
                 traits = listOf(Trait.ADVENTUROUS, Trait.HONEST, Trait.KIND),
                 preferredLanguage = Language.ENGLISH,
                 spokenLanguages = DisplayableField(listOf(Language.ENGLISH), false),
@@ -162,7 +164,7 @@ class PreferenceRepositoryImplTest {
                 gender = Gender.FEMALE,
                 occupation = "",
                 bio = "",
-                interests = listOf("Reading", "Hiking", "Movies", "Music", "Travel"),
+                interests = listOf(Entertainment.READING, Activity.HIKING, Entertainment.MOVIES, MusicGenre.JAZZ, Activity.ROAD_TRIPS),
                 traits = listOf(Trait.ADVENTUROUS, Trait.HONEST, Trait.KIND),
                 preferredLanguage = Language.ENGLISH,
                 spokenLanguages = DisplayableField(listOf(Language.ENGLISH), false),

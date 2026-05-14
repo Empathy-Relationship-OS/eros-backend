@@ -5,6 +5,7 @@ import com.eros.matching.models.Match
 import com.eros.matching.tables.Matches
 import com.eros.users.table.Users
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.deleteAll
@@ -126,7 +127,7 @@ class MatchRepositoryImplTest {
                     matchId = 0,
                     user1Id = user1Id,
                     user2Id = user2Id,
-                    liked = liked ?: false,
+                    liked = liked,
                     createdAt = createdAt,
                     updatedAt = updatedAt,
                     servedAt = servedAt
@@ -143,7 +144,7 @@ class MatchRepositoryImplTest {
     inner class `create function` {
 
         @Test
-        fun `should create match with correct fields`() = runBlocking {
+        fun `should create match with correct fields`() = runTest {
             val match = dbQuery {
                 repository.create(
                     Match(
@@ -162,14 +163,14 @@ class MatchRepositoryImplTest {
             assertTrue(match.matchId > 0)
             assertEquals("user1", match.user1Id)
             assertEquals("user2", match.user2Id)
-            assertFalse(match.liked)
+            assertFalse(match.liked!!)
             assertEquals(fixedInstant, match.createdAt)
             assertEquals(fixedInstant, match.updatedAt)
             assertNull(match.servedAt)
         }
 
         @Test
-        fun `should auto-increment match IDs`() = runBlocking {
+        fun `should auto-increment match IDs`() = runTest {
             val match1 = createMatch("user1", "user2")
             val match2 = createMatch("user1", "user3")
 
@@ -177,14 +178,14 @@ class MatchRepositoryImplTest {
         }
 
         @Test
-        fun `should create match with liked set to true`() = runBlocking {
+        fun `should create match with liked set to true`() = runTest {
             val match = createMatch("user1", "user2", liked = true)
 
-            assertTrue(match.liked)
+            assertEquals(true, match.liked)
         }
 
         @Test
-        fun `should create match with servedAt timestamp`() = runBlocking {
+        fun `should create match with servedAt timestamp`() = runTest {
             val servedAt = fixedInstant.plusSeconds(3600)
             val match = createMatch("user1", "user2", servedAt = servedAt)
 
@@ -193,7 +194,7 @@ class MatchRepositoryImplTest {
 
         @Test
         fun `should enforce unique user pair constraint`() {
-            runBlocking {
+            runTest {
                 createMatch("user1", "user2")
 
                 assertFails {
@@ -203,7 +204,7 @@ class MatchRepositoryImplTest {
         }
 
         @Test
-        fun `should allow different user pairs`() = runBlocking {
+        fun `should allow different user pairs`() = runTest {
             val match1 = createMatch("user1", "user2")
             val match2 = createMatch("user2", "user1")
 
@@ -221,7 +222,7 @@ class MatchRepositoryImplTest {
     inner class `findById function` {
 
         @Test
-        fun `should return match when found`() = runBlocking {
+        fun `should return match when found`() = runTest {
             val createdMatch = createMatch("user1", "user2")
 
             val foundMatch = dbQuery {
@@ -235,7 +236,7 @@ class MatchRepositoryImplTest {
         }
 
         @Test
-        fun `should return null when match not found`() = runBlocking {
+        fun `should return null when match not found`() = runTest {
             val result = dbQuery {
                 repository.findById(999L)
             }
@@ -244,7 +245,7 @@ class MatchRepositoryImplTest {
         }
 
         @Test
-        fun `should return correct match among multiple matches`() = runBlocking {
+        fun `should return correct match among multiple matches`() = runTest {
             val match1 = createMatch("user1", "user2")
             createMatch("user1", "user3")
             createMatch("user2", "user3")
@@ -267,7 +268,7 @@ class MatchRepositoryImplTest {
     inner class `update function` {
 
         @Test
-        fun `should update liked status successfully`() = runBlocking {
+        fun `should update liked status successfully`() = runTest {
             val match = createMatch("user1", "user2", liked = false)
 
             val updatedMatch = dbQuery {
@@ -275,12 +276,12 @@ class MatchRepositoryImplTest {
             }
 
             assertNotNull(updatedMatch)
-            assertTrue(updatedMatch.liked)
+            assertEquals(true, updatedMatch.liked)
             assertEquals(match.matchId, updatedMatch.matchId)
         }
 
         @Test
-        fun `should update servedAt timestamp`() = runBlocking {
+        fun `should update servedAt timestamp`() = runTest {
             val match = createMatch("user1", "user2", servedAt = null)
             val newServedAt = fixedInstant.plusSeconds(7200)
 
@@ -293,7 +294,7 @@ class MatchRepositoryImplTest {
         }
 
         @Test
-        fun `should update updatedAt timestamp`() = runBlocking {
+        fun `should update updatedAt timestamp`() = runTest {
             val match = createMatch("user1", "user2")
             val newUpdatedAt = fixedInstant.plusSeconds(3600)
 
@@ -307,7 +308,7 @@ class MatchRepositoryImplTest {
         }
 
         @Test
-        fun `should return null when updating non-existent match`() = runBlocking {
+        fun `should return null when updating non-existent match`() = runTest {
             val result = dbQuery {
                 repository.update(
                     999L,
@@ -334,7 +335,7 @@ class MatchRepositoryImplTest {
     inner class `delete function` {
 
         @Test
-        fun `should delete match and return 1 when match exists`() = runBlocking {
+        fun `should delete match and return 1 when match exists`() = runTest {
             val match = createMatch("user1", "user2")
 
             val deleted = dbQuery {
@@ -351,7 +352,7 @@ class MatchRepositoryImplTest {
         }
 
         @Test
-        fun `should return 0 when match does not exist`() = runBlocking {
+        fun `should return 0 when match does not exist`() = runTest {
             val deleted = dbQuery {
                 repository.delete(999L)
             }
@@ -360,7 +361,7 @@ class MatchRepositoryImplTest {
         }
 
         @Test
-        fun `should only delete specified match`() = runBlocking {
+        fun `should only delete specified match`() = runTest {
             val match1 = createMatch("user1", "user2")
             val match2 = createMatch("user1", "user3")
 
@@ -384,7 +385,7 @@ class MatchRepositoryImplTest {
     inner class `getLikeMatch function` {
 
         @Test
-        fun `should return match when users have liked each other`() = runBlocking {
+        fun `should return match when users have liked each other`() = runTest {
             createMatch("user1", "user2", liked = true)
 
             val match = dbQuery {
@@ -394,11 +395,11 @@ class MatchRepositoryImplTest {
             assertNotNull(match)
             assertEquals("user1", match.user1Id)
             assertEquals("user2", match.user2Id)
-            assertTrue(match.liked)
+            assertEquals(true, match.liked)
         }
 
         @Test
-        fun `should return null when liked is false`() = runBlocking {
+        fun `should return null when liked is false`() = runTest {
             createMatch("user1", "user2", liked = false)
 
             val match = dbQuery {
@@ -409,7 +410,7 @@ class MatchRepositoryImplTest {
         }
 
         @Test
-        fun `should return null when liked is null`() = runBlocking {
+        fun `should return null when liked is null`() = runTest {
             createMatch("user1", "user2", liked = null)
 
             val match = dbQuery {
@@ -420,7 +421,7 @@ class MatchRepositoryImplTest {
         }
 
         @Test
-        fun `should return null when no match exists`() = runBlocking {
+        fun `should return null when no match exists`() = runTest {
             val match = dbQuery {
                 repository.getLikeMatch("user1", "user2")
             }
@@ -429,7 +430,7 @@ class MatchRepositoryImplTest {
         }
 
         @Test
-        fun `should distinguish between user1 and user2 direction`() = runBlocking {
+        fun `should distinguish between user1 and user2 direction`() = runTest {
             createMatch("user1", "user2", liked = true)
             createMatch("user2", "user1", liked = false)
 
@@ -453,7 +454,7 @@ class MatchRepositoryImplTest {
     inner class `findUnservedMatches function` {
 
         @Test
-        fun `should return unserved matches for user`() = runBlocking {
+        fun `should return unserved matches for user`() = runTest {
             createMatch("user1", "user2", servedAt = null)
             createMatch("user1", "user3", servedAt = null)
 
@@ -467,7 +468,7 @@ class MatchRepositoryImplTest {
         }
 
         @Test
-        fun `should not return served matches`() = runBlocking {
+        fun `should not return served matches`() = runTest {
             createMatch("user1", "user2", servedAt = null)
             createMatch("user1", "user3", servedAt = fixedInstant)
 
@@ -480,7 +481,7 @@ class MatchRepositoryImplTest {
         }
 
         @Test
-        fun `should respect limit parameter`() = runBlocking {
+        fun `should respect limit parameter`() = runTest {
             createMatch("user1", "user2", servedAt = null)
             createMatch("user1", "user3", servedAt = null)
 
@@ -492,7 +493,7 @@ class MatchRepositoryImplTest {
         }
 
         @Test
-        fun `should return empty list when no unserved matches`() = runBlocking {
+        fun `should return empty list when no unserved matches`() = runTest {
             createMatch("user1", "user2", servedAt = fixedInstant)
 
             val matches = dbQuery {
@@ -503,7 +504,7 @@ class MatchRepositoryImplTest {
         }
 
         @Test
-        fun `should only return matches for specified user as user1`() = runBlocking {
+        fun `should only return matches for specified user as user1`() = runTest {
             createMatch("user1", "user2", servedAt = null)
             createMatch("user2", "user1", servedAt = null)
 
@@ -524,7 +525,7 @@ class MatchRepositoryImplTest {
     inner class `markAsServed function` {
 
         @Test
-        fun `should mark single match as served`() = runBlocking {
+        fun `should mark single match as served`() = runTest {
             val match = createMatch("user1", "user2", servedAt = null)
             val servedAt = fixedInstant.plusSeconds(3600)
 
@@ -542,7 +543,7 @@ class MatchRepositoryImplTest {
         }
 
         @Test
-        fun `should mark multiple matches as served`() = runBlocking {
+        fun `should mark multiple matches as served`() = runTest {
             val match1 = createMatch("user1", "user2", servedAt = null)
             val match2 = createMatch("user1", "user3", servedAt = null)
             val servedAt = fixedInstant.plusSeconds(3600)
@@ -563,7 +564,7 @@ class MatchRepositoryImplTest {
         }
 
         @Test
-        fun `should return 0 when marking non-existent matches`() = runBlocking {
+        fun `should return 0 when marking non-existent matches`() = runTest {
             val count = dbQuery {
                 repository.markAsServed(listOf(999L), fixedInstant)
             }
@@ -572,7 +573,7 @@ class MatchRepositoryImplTest {
         }
 
         @Test
-        fun `should handle empty list`() = runBlocking {
+        fun `should handle empty list`() = runTest {
             val count = dbQuery {
                 repository.markAsServed(emptyList(), fixedInstant)
             }
@@ -589,7 +590,7 @@ class MatchRepositoryImplTest {
     inner class `countServedToday function` {
 
         @Test
-        fun `should count matches served on specified date`() = runBlocking {
+        fun `should count matches served on specified date`() = runTest {
             val today = LocalDate.of(2024, 1, 15)
             val todayInstant = fixedInstant // Use fixedInstant which is in the correct date
 
@@ -604,7 +605,7 @@ class MatchRepositoryImplTest {
         }
 
         @Test
-        fun `should not count matches served on different dates`() = runBlocking {
+        fun `should not count matches served on different dates`() = runTest {
             val today = LocalDate.of(2024, 1, 15)
             val yesterday = LocalDate.of(2024, 1, 14)
             val todayInstant = fixedInstant
@@ -636,7 +637,7 @@ class MatchRepositoryImplTest {
         }
 
         @Test
-        fun `should not count unserved matches`() = runBlocking {
+        fun `should not count unserved matches`() = runTest {
             val today = LocalDate.of(2024, 1, 15)
             createMatch("user1", "user2", servedAt = null)
 
@@ -648,7 +649,7 @@ class MatchRepositoryImplTest {
         }
 
         @Test
-        fun `should return 0 when no matches for user`() = runBlocking {
+        fun `should return 0 when no matches for user`() = runTest {
             val today = LocalDate.of(2024, 1, 15)
 
             val count = dbQuery {
@@ -659,7 +660,7 @@ class MatchRepositoryImplTest {
         }
 
         @Test
-        fun `should only count matches for specified user`() = runBlocking {
+        fun `should only count matches for specified user`() = runTest {
             val today = LocalDate.of(2024, 1, 15)
             val todayInstant = fixedInstant
 
@@ -682,7 +683,7 @@ class MatchRepositoryImplTest {
     inner class `findByUserPair function` {
 
         @Test
-        fun `should find match by user pair`() = runBlocking {
+        fun `should find match by user pair`() = runTest {
             createMatch("user1", "user2")
 
             val match = dbQuery {
@@ -695,7 +696,7 @@ class MatchRepositoryImplTest {
         }
 
         @Test
-        fun `should return null when no match exists for pair`() = runBlocking {
+        fun `should return null when no match exists for pair`() = runTest {
             val match = dbQuery {
                 repository.findByUserPair("user1", "user2")
             }
@@ -704,7 +705,7 @@ class MatchRepositoryImplTest {
         }
 
         @Test
-        fun `should distinguish between different user pair directions`() = runBlocking {
+        fun `should distinguish between different user pair directions`() = runTest {
             createMatch("user1", "user2")
             createMatch("user2", "user1")
 
@@ -721,7 +722,7 @@ class MatchRepositoryImplTest {
         }
 
         @Test
-        fun `should find correct match among multiple matches`() = runBlocking {
+        fun `should find correct match among multiple matches`() = runTest {
             createMatch("user1", "user2")
             createMatch("user1", "user3")
             createMatch("user2", "user3")
@@ -744,7 +745,7 @@ class MatchRepositoryImplTest {
     inner class `integration tests` {
 
         @Test
-        fun `should handle full match lifecycle`() = runBlocking {
+        fun `should handle full match lifecycle`() = runTest {
             // Create unserved match
             val match = createMatch("user1", "user2", servedAt = null)
             assertNotNull(match.matchId)
@@ -766,7 +767,7 @@ class MatchRepositoryImplTest {
             }
 
             assertNotNull(updatedMatch)
-            assertTrue(updatedMatch.liked)
+            assertEquals(true, updatedMatch.liked)
             assertEquals(servedAt, updatedMatch.servedAt)
             assertEquals(actionTime, updatedMatch.updatedAt)
 
@@ -778,7 +779,7 @@ class MatchRepositoryImplTest {
         }
 
         @Test
-        fun `should handle batch serving workflow`() = runBlocking {
+        fun `should handle batch serving workflow`() = runTest {
             // Create multiple unserved matches
             listOf(
                 createMatch("user1", "user2", servedAt = null),
@@ -813,7 +814,7 @@ class MatchRepositoryImplTest {
         }
 
         @Test
-        fun `should handle mutual match scenario`() = runBlocking {
+        fun `should handle mutual match scenario`() = runTest {
             // Both users like each other
             createMatch("user1", "user2", liked = true)
             createMatch("user2", "user1", liked = true)
@@ -827,8 +828,8 @@ class MatchRepositoryImplTest {
 
             assertNotNull(user1LikesUser2)
             assertNotNull(user2LikesUser1)
-            assertTrue(user1LikesUser2.liked)
-            assertTrue(user2LikesUser1.liked)
+            assertTrue(user1LikesUser2.liked!!)
+            assertTrue(user2LikesUser1.liked!!)
         }
     }
 }

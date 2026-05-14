@@ -39,7 +39,7 @@ class ProfileCompletenessTest {
         coordinatesLongitude: Double = -0.1278,
         occupation: String = "toilet seat inspector",
         bio: String = "",
-        interests: List<String> = List(5) { "Interest$it" },
+        interests: List<UserInterest> = listOf(Activity.HIKING, Interest.NATURE, Entertainment.MOVIES, Creative.PHOTOGRAPHY, Sport.YOGA),
         traits: List<Trait> = List(3) { Trait.entries[it] },
         spokenLanguages: DisplayableField<List<Language>> = DisplayableField(listOf(Language.ENGLISH), false),
         religion: DisplayableField<Religion?> = DisplayableField(null, false),

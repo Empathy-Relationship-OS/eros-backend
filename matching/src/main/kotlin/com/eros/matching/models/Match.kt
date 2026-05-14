@@ -1,8 +1,8 @@
 package com.eros.matching.models
 
 import com.eros.common.serializers.InstantSerializer
-import com.eros.matching.service.MatchService.Companion.BATCH_SIZE
-import com.eros.matching.service.MatchService.Companion.MAX_DAILY_BATCHES
+import com.eros.matching.MatchingConstants.BATCH_SIZE
+import com.eros.matching.MatchingConstants.MAX_DAILY_BATCHES
 import kotlinx.serialization.Serializable
 import java.time.Duration
 import java.time.Instant
@@ -23,7 +23,7 @@ import java.time.ZoneId
  * @property matchId Auto-incrementing primary key
  * @property user1Id First user in the match pair (the user who will see this match)
  * @property user2Id Second user in the match pair (the potential match)
- * @property liked Whether user1 liked user2
+ * @property liked Whether user1 liked user2 (null = no action, true = liked, false = passed)
  * @property createdAt When the match was created (determines batch date)
  * @property updatedAt When the match was last updated (changes when user acts)
  * @property servedAt When the match was served to user1 (null if not yet shown)
@@ -32,7 +32,7 @@ data class Match(
     val matchId: Long,
     val user1Id: String,
     val user2Id: String,
-    val liked: Boolean = false,
+    val liked: Boolean? = null,
     val createdAt: Instant,
     val updatedAt: Instant,
     val servedAt: Instant? = null
@@ -63,19 +63,19 @@ data class Match(
 
     /**
      * Check if user1 has taken action (like or pass) on this match.
-     * User has acted if the match has been served and subsequently updated.
+     * User has acted if liked is not null (explicit true or false).
      */
-    fun hasUserActed(): Boolean = servedAt != null && updatedAt > servedAt
+    fun hasUserActed(): Boolean = liked != null
 
     /**
      * Check if user1 liked user2.
      */
-    fun isLiked(): Boolean = liked
+    fun isLiked(): Boolean = liked == true
 
     /**
-     * Check if user1 passed on user2 (served but not liked).
+     * Check if user1 passed on user2 (explicitly chose not to like).
      */
-    fun isPassed(): Boolean = isServed() && !liked
+    fun isPassed(): Boolean = liked == false
 
     // -----------------------------------------------------------------------
     // Time-based helpers

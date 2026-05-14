@@ -28,9 +28,6 @@ CREATE TABLE IF NOT EXISTS matches (
 CREATE INDEX idx_matches_user1_id ON matches(user1_id);
 CREATE INDEX idx_matches_user2_id ON matches(user2_id);
 
--- Composite index for the unique user pair (already covered by UNIQUE constraint, but explicit for query optimization)
-CREATE INDEX idx_matches_user_pair ON matches(user1_id, user2_id);
-
 -- Comments for documentation
 COMMENT ON TABLE matches IS 'Match candidates between users with like/pass tracking and serving timestamps';
 COMMENT ON COLUMN matches.match_id IS 'Auto-incrementing primary key';

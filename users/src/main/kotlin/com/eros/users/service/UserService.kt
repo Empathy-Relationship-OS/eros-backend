@@ -25,6 +25,7 @@ import java.time.Instant
 class UserService(
     private val userRepository: UserRepository,
     private val photoService: PhotoService,
+    private val qaService: QAService,
     private val clock: Clock = Clock.systemUTC()
 ) {
 
@@ -36,12 +37,12 @@ class UserService(
      * @param request CreateUserRequest containing all required user profile data
      * @return The created User
      * @throws IllegalArgumentException if input validation fails
-     * @throws IllegalStateException if user already exists
+     * @throws ConflictException if user already exists
      */
     suspend fun createUser(request: CreateUserRequest): User = dbQuery {
         // Check if user already exists
         if (userRepository.doesExist(request.userId)) {
-            throw IllegalStateException("User with ID ${request.userId} already exists")
+            throw ConflictException("User with ID ${request.userId} already exists")
         }
 
         val now = Instant.now(clock)
@@ -211,7 +212,7 @@ class UserService(
      *
      * @param userId Firebase UID of the user to update
      * @param request AdminUpdateUserRequest containing admin-level fields to update
-     * @return The updated User
+     * @return The updated User, or null if user not found
      * @throws IllegalArgumentException if input validation fails
      * @throws NotFoundException if no user with id of [userId] is found
      */
@@ -266,8 +267,9 @@ class UserService(
             targetUser to principalUser
         }
         val media = photoService.getUserMedia(targetUserId)
+        val qas = qaService.getAllUserQAs(targetUserId)
         val sharedInterests = getSharedInterests(principalUser.interests, targetUser.interests)
-        return PublicProfile.from(targetUser, media, sharedInterests)
+        return PublicProfile.from(targetUser, media, sharedInterests, qas)
     }
 
 
@@ -316,14 +318,18 @@ class UserService(
     /**
      * Function to return the shared interests of two users.
      *
-     * @param user1Interests [User] List of Strings of user 1's interests.
-     * @param user2Interests [User] List of Strings of user 2's interests.
+     * @param user1Interests [User] List of UserInterests of user 1's interests.
+     * @param user2Interests [User] List of UserInterests of user 2's interests.
      *
-     * @return List of strings containing only interests that are in both user 1 and user 2's lists.
+     * @return List of strings (displayNames) containing only interests that are in both user 1 and user 2's lists.
      */
-    fun getSharedInterests(user1Interests: List<String>, user2Interests: List<String>): List<String> {
-        return if (user1Interests == user2Interests){user1Interests}
-        else(user1Interests intersect user2Interests.toSet()).toList()
+    fun getSharedInterests(user1Interests: List<UserInterest>, user2Interests: List<UserInterest>): List<String> {
+        val shared = if (user1Interests == user2Interests) {
+            user1Interests
+        } else {
+            (user1Interests intersect user2Interests.toSet()).toList()
+        }
+        return shared.map { it.displayName }
     }
 
     /**
@@ -335,16 +341,13 @@ class UserService(
      * @param userId Firebase UID of the user
      * @return UserMatchProfileData containing basic profile info, or null if user not found
      */
-    suspend fun getUserMatchProfileData(userId: String): UserMatchProfileData? = dbQuery {
-        val user = userRepository.findById(userId) ?: return@dbQuery null
+    suspend fun getUserMatchProfileData(userId: String): UserMatchProfileData? {
+        val user = dbQuery { userRepository.findById(userId) } ?: return null
+        val photos = photoService.getUserMedia(userId).media
+        val thumbnailUrl = photos.firstOrNull { it.isPrimary }?.thumbnailUrl
+            ?: photos.firstOrNull()?.thumbnailUrl
 
-        val thumbnailUrl = photoService.let { service ->
-            val photos = service.getUserMedia(userId).media
-            photos.firstOrNull { it.isPrimary }?.thumbnailUrl
-                ?: photos.firstOrNull()?.thumbnailUrl
-        }
-
-        UserMatchProfileData(
+        return UserMatchProfileData(
             userId = user.userId,
             name = user.firstName,
             age = user.getAge(),

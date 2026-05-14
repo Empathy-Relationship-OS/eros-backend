@@ -1,6 +1,5 @@
 package com.eros.users.models
 
-import com.eros.common.serializers.InstantSerializer
 import kotlinx.serialization.Serializable
 import java.time.Instant
 
@@ -21,7 +20,7 @@ object MediaConstants {
         "image/webp"
     )
 
-    const val MIN_FILE_SIZE_BYTES = 500L * 1024          // 500 KB
+    const val MIN_FILE_SIZE_BYTES = 100L * 1024          // 100 KB
     const val MAX_FILE_SIZE_BYTES = 10L * 1024 * 1024    // 10 MB
     const val MIN_PHOTOS_PER_USER = 3
     const val MAX_PHOTOS_PER_USER = 6

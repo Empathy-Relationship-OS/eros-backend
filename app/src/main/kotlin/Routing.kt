@@ -1,6 +1,9 @@
 package com.eros
 
 import com.eros.common.config.S3Config
+import com.eros.marketing.repository.MarketingRepositoryImpl
+import com.eros.marketing.routes.marketingRoutes
+import com.eros.marketing.service.MarketingPreferenceService
 import com.eros.matching.repository.DailyBatchRepositoryImpl
 import com.eros.matching.repository.MatchRepositoryImpl
 import com.eros.matching.routes.matchRoutes
@@ -35,7 +38,9 @@ import com.eros.wallet.stripe.StripeWebhookHandler
 import com.eros.users.repository.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
+import io.ktor.server.plugins.openapi.*
 import io.ktor.server.plugins.requestvalidation.*
+import io.ktor.server.plugins.swagger.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
@@ -65,21 +70,24 @@ fun Application.configureRouting() {
     val matchRepository = MatchRepositoryImpl()
     val dailyBatchRepository = DailyBatchRepositoryImpl()
 
+    val marketingRepository = MarketingRepositoryImpl()
+
     // Initialize configs
     val s3Config = S3Config.fromApplicationConfig(environment.config)
 
     // Initialize services
     val photoService = PhotoService(photoRepository, s3Config)
-    val userService = UserService(userRepository, photoService)
     val cityService = CityService(cityRepositoryImpl)
     val preferenceService = PreferenceService(preferenceRepositoryImpl, userService)
     val qaService = QAService(questionRepository, qaRepository)
+    val userService = UserService(userRepository, photoService, qaService)
     val transactionService = TransactionService(transactionRepository)
     val walletService = WalletService(walletRepository, transactionService)
     val stripeService = StripeService()
     val paymentService = PaymentService(walletService,transactionService, stripeService)
     val webhookHandler = StripeWebhookHandler(walletService, transactionService)
     val matchService = MatchService(matchRepository, dailyBatchRepository, userService, transactionManager)
+    val marketingPreferenceService = MarketingPreferenceService(marketingRepository)
 
     val matchAccessChecker = MatchAccessCheckerImpl(matchService)
     val profileAccessControl = ProfileAccessControl(matchAccessChecker)
@@ -87,6 +95,14 @@ fun Application.configureRouting() {
         get("/") {
             call.respondText("Hello World!")
         }
+
+        // Swagger UI endpoint
+        swaggerUI(path = "swagger", swaggerFile = "openapi/documentation.yaml") {
+            version = "5.32.1"
+        }
+
+        // OpenAPI documentation endpoint
+        openAPI(path = "openapi", swaggerFile = "openapi/documentation.yaml")
 
         // placed outside the firebase-auth due to external token use.
         webhookRoute(webhookHandler)
@@ -110,6 +126,8 @@ fun Application.configureRouting() {
             paymentRoutes(paymentService)
 
             matchRoutes(matchService)
+
+            marketingRoutes(marketingPreferenceService)
         }
     }
 }
