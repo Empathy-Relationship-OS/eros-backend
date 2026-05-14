@@ -1,16 +1,20 @@
 package com.eros.wallet.repository
 
 import com.eros.database.dbQuery
+import com.eros.users.models.Activity
 import com.eros.users.models.AlcoholConsumption
 import com.eros.users.models.Badge
 import com.eros.users.models.BodyAttribute
 import com.eros.users.models.BrainAttribute
+import com.eros.users.models.Creative
 import com.eros.users.models.DateIntentions
 import com.eros.users.models.Diet
 import com.eros.users.models.DisplayableField
 import com.eros.users.models.EducationLevel
+import com.eros.users.models.Entertainment
 import com.eros.users.models.Ethnicity
 import com.eros.users.models.Gender
+import com.eros.users.models.Interest
 import com.eros.users.models.KidsPreference
 import com.eros.users.models.Language
 import com.eros.users.models.PoliticalView
@@ -21,9 +25,11 @@ import com.eros.users.models.Religion
 import com.eros.users.models.Role
 import com.eros.users.models.SexualOrientation
 import com.eros.users.models.SmokingStatus
+import com.eros.users.models.Sport
 import com.eros.users.models.StarSign
 import com.eros.users.models.Trait
 import com.eros.users.models.User
+import com.eros.users.models.UserInterest
 import com.eros.users.models.ValidationStatus
 import com.eros.users.repository.UserRepositoryImpl
 import com.eros.users.table.Users
@@ -638,7 +644,7 @@ class WalletRepositoryImplTest {
         gender: Gender = Gender.MALE,
         occupation: String = "Engineer",
         bio: String = "Test bio",
-        interests: List<String> = List(5) { "Interest$it" },
+        interests: List<UserInterest> = listOf(Activity.HIKING, Interest.NATURE, Entertainment.MOVIES, Creative.PHOTOGRAPHY, Sport.YOGA),
         traits: List<Trait> = List(3) { Trait.entries[it] },
         preferredLanguage: Language = Language.ENGLISH,
         spokenLanguages: DisplayableField<List<Language>> = DisplayableField(listOf(Language.ENGLISH), false),

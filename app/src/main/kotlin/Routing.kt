@@ -78,9 +78,9 @@ fun Application.configureRouting() {
     // Initialize services
     val photoService = PhotoService(photoRepository, s3Config)
     val cityService = CityService(cityRepositoryImpl)
-    val preferenceService = PreferenceService(preferenceRepositoryImpl, userService)
     val qaService = QAService(questionRepository, qaRepository)
     val userService = UserService(userRepository, photoService, qaService)
+    val preferenceService = PreferenceService(preferenceRepositoryImpl, userService)
     val transactionService = TransactionService(transactionRepository)
     val walletService = WalletService(walletRepository, transactionService)
     val stripeService = StripeService()

@@ -751,7 +751,7 @@ class TransactionRepositoryImplTest {
         gender: Gender = Gender.MALE,
         occupation: String = "Engineer",
         bio: String = "Test bio",
-        interests: List<String> = List(5) { "Interest$it" },
+        interests: List<UserInterest> = listOf(Activity.HIKING, Interest.NATURE, Entertainment.MOVIES, Creative.PHOTOGRAPHY, Sport.YOGA),
         traits: List<Trait> = List(3) { Trait.entries[it] },
         preferredLanguage: Language = Language.ENGLISH,
         spokenLanguages: DisplayableField<List<Language>> = DisplayableField(listOf(Language.ENGLISH), false),
