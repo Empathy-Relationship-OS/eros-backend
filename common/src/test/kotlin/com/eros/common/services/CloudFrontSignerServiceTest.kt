@@ -108,7 +108,7 @@ class CloudFrontSignerServiceTest {
                 val signer = CloudFrontSignerService(s3Config, cache)
 
                 // Generate and cache URL
-                val url1 = signer.generateSignedUrl("photos/user123/test.jpg", 48)
+                signer.generateSignedUrl("photos/user123/test.jpg", 48)
 
                 // Invalidate cache
                 signer.invalidateCache("photos/user123/test.jpg")
@@ -241,7 +241,7 @@ class CloudFrontSignerServiceTest {
     }
 
     @Nested
-    inner class `statistics` {
+    inner class statistics {
 
         @Test
         fun `should return cache statistics`() {

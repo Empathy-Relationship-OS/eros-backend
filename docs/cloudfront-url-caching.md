@@ -258,7 +258,7 @@ Add metrics to track:
 3. **Signature generation time**:
    ```kotlin
    metrics.timer("cloudfront.signature.generation") {
-       CloudFrontUrlSigner.getSignedURLWithCannedPolicy(...)
+       CloudFrontUrlSigner.getSignedURLWithCannedPolicy()
    }
    ```
 

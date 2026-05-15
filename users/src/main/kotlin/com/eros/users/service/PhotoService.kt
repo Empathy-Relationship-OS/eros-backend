@@ -105,7 +105,7 @@ class PhotoService(
      * @throws IllegalStateException if CloudFront is not configured
      */
     fun generateAccessUrl(mediaUrl: String, expiryHours: Long = 48): String {
-        return if (cloudFrontSigner != null && s3Config.isCloudFrontEnabled()) {
+        return if (cloudFrontSigner != null) {
             // Use CloudFront signed URL
             val objectKey = cloudFrontSigner.extractObjectKey(mediaUrl)
             cloudFrontSigner.generateSignedUrl(objectKey, expiryHours)
