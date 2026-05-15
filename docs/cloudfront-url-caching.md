@@ -4,7 +4,7 @@
 
 When users refresh their daily batch, the backend was regenerating CloudFront signed URLs on every request:
 
-```
+```text
 User refreshes daily batch 10 times in 5 minutes:
 → 10 calls to CloudFrontSigner.generateSignedUrl()
 → 10 RSA private key signing operations (CPU intensive)
@@ -18,7 +18,7 @@ We implemented an in-memory cache that stores signed URLs with TTL matching thei
 
 ### Architecture
 
-```
+```text
 ┌─────────────────────┐
 │  MatchService       │
 │  fetchDailyBatch()  │
@@ -84,7 +84,7 @@ data class CacheEntry(
 ### Cache Behavior
 
 1. **First Request** (cache miss):
-   ```
+   ```text
    User A requests daily batch
    → Cache miss for "photos/userB/photo1.jpg:48"
    → Generate CloudFront signed URL (RSA signing operation)
@@ -93,7 +93,7 @@ data class CacheEntry(
    ```
 
 2. **Subsequent Requests** (cache hit):
-   ```
+   ```text
    User A refreshes daily batch
    → Cache hit for "photos/userB/photo1.jpg:48"
    → URL still valid (expires in 47h)
@@ -102,7 +102,7 @@ data class CacheEntry(
    ```
 
 3. **After Expiry** (cache miss):
-   ```
+   ```text
    User A requests batch after 48 hours
    → Cache entry expired and removed
    → Generate new CloudFront signed URL
@@ -114,7 +114,7 @@ data class CacheEntry(
 
 ### Before Caching
 
-```
+```text
 User refreshes daily batch 10 times:
 - 10 RSA private key operations
 - ~10-20ms per signature generation
@@ -124,7 +124,7 @@ User refreshes daily batch 10 times:
 
 ### After Caching
 
-```
+```text
 User refreshes daily batch 10 times:
 - 1 RSA private key operation (first request)
 - 9 cache lookups (subsequent requests)
@@ -185,7 +185,7 @@ cloudFrontSigner.urlCache.clear()
 
 ### Memory Usage Estimation
 
-```
+```text
 Average CloudFront signed URL length: ~300 characters
 Cache entry overhead (Instant + key): ~100 bytes
 Total per entry: ~400 bytes
