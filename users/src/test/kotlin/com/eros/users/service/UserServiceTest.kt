@@ -14,8 +14,11 @@ import com.eros.users.models.Gender
 import com.eros.users.models.Interest
 import com.eros.users.models.KidsPreference
 import com.eros.users.models.Language
+import com.eros.users.models.MediaType
 import com.eros.users.models.ProfileStatus
 import com.eros.users.models.Question
+import com.eros.users.models.UserMediaCollection
+import com.eros.users.models.UserMediaItem
 import com.eros.users.models.RelationshipType
 import com.eros.users.models.SexualOrientation
 import com.eros.users.models.SmokingStatus
@@ -191,6 +194,327 @@ class UserServiceTest {
 
             // Verify the QAs list is empty
             assertEquals(0, result.profile.qas.size)
+        }
+    }
+
+    @Nested
+    inner class `Get Public Profile - CloudFront Signed URLs` {
+
+        @Test
+        fun `should throw IllegalStateException when CloudFront is not configured`() {
+            // Create two users in the database
+            val requestingUser = createValidUserRequest("requesting-cf-1", "requesting-cf-1@example.com")
+            val targetUser = createValidUserRequest("target-cf-1", "target-cf-1@example.com")
+
+            runBlocking {
+                service.createUser(requestingUser)
+                service.createUser(targetUser)
+            }
+
+            // Mock photo repository to return photos with S3 URLs
+            val testPhotos = listOf(
+                UserMediaItem(
+                    id = 1L,
+                    userId = "target-cf-1",
+                    mediaUrl = "https://test-bucket.s3.eu-west-2.amazonaws.com/photos/user123/photo1.jpg",
+                    thumbnailUrl = null,
+                    mediaType = MediaType.PHOTO,
+                    displayOrder = 1,
+                    isPrimary = true,
+                    createdAt = fixedInstant,
+                    updatedAt = fixedInstant
+                )
+            )
+            coEvery { mockPhotoRepository.findByUserId("target-cf-1") } returns testPhotos
+            coEvery { mockQAService.getAllUserQAs("target-cf-1") } returns emptyList()
+
+            // Call should throw because CloudFront is not configured in test setup
+            val exception = runCatching {
+                runBlocking {
+                    service.getPublicProfile("requesting-cf-1", "target-cf-1")
+                }
+            }.exceptionOrNull()
+
+            assertNotNull(exception, "Should throw exception when CloudFront not configured")
+            assertEquals(
+                IllegalStateException::class,
+                exception!!::class,
+                "Should throw IllegalStateException"
+            )
+        }
+    }
+
+    @Nested
+    inner class `Get Public Profile - With CloudFront Enabled` {
+
+        private lateinit var serviceWithCloudFront: UserService
+        private lateinit var mockPhotoServiceWithCloudFront: PhotoService
+
+        @BeforeEach
+        fun setupCloudFront() {
+            // This test verifies the integration would work if CloudFront was properly configured
+            // In real scenarios, CloudFront configuration would generate signed URLs
+            mockPhotoServiceWithCloudFront = mockk<PhotoService>()
+            serviceWithCloudFront = UserService(
+                userRepository,
+                mockPhotoServiceWithCloudFront,
+                mockQAService
+            )
+        }
+
+        @Test
+        fun `should generate CloudFront signed URLs for all photos`() {
+            // Create two users in the database
+            val requestingUser = createValidUserRequest("requesting-cf-2", "requesting-cf-2@example.com")
+            val targetUser = createValidUserRequest("target-cf-2", "target-cf-2@example.com")
+
+            runBlocking {
+                serviceWithCloudFront.createUser(requestingUser)
+                serviceWithCloudFront.createUser(targetUser)
+            }
+
+            // Mock S3 URLs (what's stored in the database)
+            val s3Photo1 = "https://test-bucket.s3.eu-west-2.amazonaws.com/photos/user123/photo1.jpg"
+            val s3Photo2 = "https://test-bucket.s3.eu-west-2.amazonaws.com/photos/user123/photo2.jpg"
+            val s3Thumb1 = "https://test-bucket.s3.eu-west-2.amazonaws.com/photos/user123/thumb1.jpg"
+
+            // Mock CloudFront signed URLs (what should be returned)
+            val signedPhoto1 = "https://d111111abcdef8.cloudfront.net/photos/user123/photo1.jpg?Expires=1234&Signature=abc"
+            val signedPhoto2 = "https://d111111abcdef8.cloudfront.net/photos/user123/photo2.jpg?Expires=1234&Signature=def"
+            val signedThumb1 = "https://d111111abcdef8.cloudfront.net/photos/user123/thumb1.jpg?Expires=1234&Signature=ghi"
+
+            val testPhotos = listOf(
+                UserMediaItem(
+                    id = 1L,
+                    userId = "target-cf-2",
+                    mediaUrl = s3Photo1,
+                    thumbnailUrl = s3Thumb1,
+                    mediaType = MediaType.PHOTO,
+                    displayOrder = 1,
+                    isPrimary = true,
+                    createdAt = fixedInstant,
+                    updatedAt = fixedInstant
+                ),
+                UserMediaItem(
+                    id = 2L,
+                    userId = "target-cf-2",
+                    mediaUrl = s3Photo2,
+                    thumbnailUrl = null,
+                    mediaType = MediaType.PHOTO,
+                    displayOrder = 2,
+                    isPrimary = false,
+                    createdAt = fixedInstant,
+                    updatedAt = fixedInstant
+                )
+            )
+
+            // Mock getUserMedia to return S3 URLs
+            coEvery { mockPhotoServiceWithCloudFront.getUserMedia("target-cf-2") } returns
+                UserMediaCollection("target-cf-2", testPhotos, testPhotos.size)
+
+            // Mock generateAccessUrl to convert S3 URLs to CloudFront signed URLs
+            coEvery { mockPhotoServiceWithCloudFront.generateAccessUrl(s3Photo1, 48) } returns signedPhoto1
+            coEvery { mockPhotoServiceWithCloudFront.generateAccessUrl(s3Photo2, 48) } returns signedPhoto2
+            coEvery { mockPhotoServiceWithCloudFront.generateAccessUrl(s3Thumb1, 48) } returns signedThumb1
+
+            coEvery { mockQAService.getAllUserQAs("target-cf-2") } returns emptyList()
+
+            // Call the method
+            val result = runBlocking {
+                serviceWithCloudFront.getPublicProfile("requesting-cf-2", "target-cf-2")
+            }
+
+            // Verify that all photo URLs are CloudFront signed URLs, not S3 URLs
+            assertEquals(2, result.profile.photos.size, "Should have 2 photos")
+            assertEquals(signedPhoto1, result.profile.photos[0], "First photo should be signed URL")
+            assertEquals(signedPhoto2, result.profile.photos[1], "Second photo should be signed URL")
+            assertEquals(signedPhoto1, result.profile.coverPhoto, "Cover photo should be signed URL (primary)")
+        }
+
+        @Test
+        fun `should use custom photoExpiryHours parameter`() {
+            // Create two users
+            val requestingUser = createValidUserRequest("requesting-cf-3", "requesting-cf-3@example.com")
+            val targetUser = createValidUserRequest("target-cf-3", "target-cf-3@example.com")
+
+            runBlocking {
+                serviceWithCloudFront.createUser(requestingUser)
+                serviceWithCloudFront.createUser(targetUser)
+            }
+
+            val s3Photo = "https://test-bucket.s3.eu-west-2.amazonaws.com/photos/user123/photo.jpg"
+            val signedPhoto = "https://d111111abcdef8.cloudfront.net/photos/user123/photo.jpg?Expires=5678"
+
+            val testPhotos = listOf(
+                UserMediaItem(
+                    id = 1L,
+                    userId = "target-cf-3",
+                    mediaUrl = s3Photo,
+                    thumbnailUrl = null,
+                    mediaType = MediaType.PHOTO,
+                    displayOrder = 1,
+                    isPrimary = true,
+                    createdAt = fixedInstant,
+                    updatedAt = fixedInstant
+                )
+            )
+
+            coEvery { mockPhotoServiceWithCloudFront.getUserMedia("target-cf-3") } returns
+                UserMediaCollection("target-cf-3", testPhotos, testPhotos.size)
+
+            // Verify that custom expiry hours (24) is used instead of default (48)
+            coEvery { mockPhotoServiceWithCloudFront.generateAccessUrl(s3Photo, 24) } returns signedPhoto
+            coEvery { mockQAService.getAllUserQAs("target-cf-3") } returns emptyList()
+
+            // Call with custom expiry
+            val result = runBlocking {
+                serviceWithCloudFront.getPublicProfile("requesting-cf-3", "target-cf-3", photoExpiryHours = 24)
+            }
+
+            // Verify the signed URL was generated with correct expiry
+            assertEquals(signedPhoto, result.profile.photos[0])
+        }
+
+        @Test
+        fun `should handle photos without thumbnails correctly`() {
+            // Create two users
+            val requestingUser = createValidUserRequest("requesting-cf-4", "requesting-cf-4@example.com")
+            val targetUser = createValidUserRequest("target-cf-4", "target-cf-4@example.com")
+
+            runBlocking {
+                serviceWithCloudFront.createUser(requestingUser)
+                serviceWithCloudFront.createUser(targetUser)
+            }
+
+            val s3Photo = "https://test-bucket.s3.eu-west-2.amazonaws.com/photos/user123/photo.jpg"
+            val signedPhoto = "https://d111111abcdef8.cloudfront.net/photos/user123/photo.jpg?Expires=9999"
+
+            // Photo without thumbnail (thumbnailUrl = null)
+            val testPhotos = listOf(
+                UserMediaItem(
+                    id = 1L,
+                    userId = "target-cf-4",
+                    mediaUrl = s3Photo,
+                    thumbnailUrl = null, // No thumbnail
+                    mediaType = MediaType.PHOTO,
+                    displayOrder = 1,
+                    isPrimary = true,
+                    createdAt = fixedInstant,
+                    updatedAt = fixedInstant
+                )
+            )
+
+            coEvery { mockPhotoServiceWithCloudFront.getUserMedia("target-cf-4") } returns
+                UserMediaCollection("target-cf-4", testPhotos, testPhotos.size)
+
+            coEvery { mockPhotoServiceWithCloudFront.generateAccessUrl(s3Photo, 48) } returns signedPhoto
+            coEvery { mockQAService.getAllUserQAs("target-cf-4") } returns emptyList()
+
+            // Should not throw when thumbnail is null
+            val result = runBlocking {
+                serviceWithCloudFront.getPublicProfile("requesting-cf-4", "target-cf-4")
+            }
+
+            assertNotNull(result, "Should successfully return profile even without thumbnails")
+            assertEquals(signedPhoto, result.profile.photos[0])
+        }
+    }
+
+    @Nested
+    inner class `Get Public Profile - Parameter Validation` {
+
+        @Test
+        fun `should reject negative photoExpiryHours`() {
+            // Create two users in the database
+            val requestingUser = createValidUserRequest("requesting-param-1", "requesting-param-1@example.com")
+            val targetUser = createValidUserRequest("target-param-1", "target-param-1@example.com")
+
+            runBlocking {
+                service.createUser(requestingUser)
+                service.createUser(targetUser)
+            }
+
+            // Mock photo repository to return empty list (doesn't matter for this test)
+            coEvery { mockPhotoRepository.findByUserId("target-param-1") } returns emptyList()
+            coEvery { mockQAService.getAllUserQAs("target-param-1") } returns emptyList()
+
+            // Call with negative photoExpiryHours should throw
+            val exception = runCatching {
+                runBlocking {
+                    service.getPublicProfile("requesting-param-1", "target-param-1", photoExpiryHours = -1)
+                }
+            }.exceptionOrNull()
+
+            assertNotNull(exception, "Should throw exception for negative photoExpiryHours")
+            assertEquals(IllegalArgumentException::class, exception!!::class, "Should throw IllegalArgumentException")
+            assert(exception.message!!.contains("photoExpiryHours must be positive")) {
+                "Exception message should mention photoExpiryHours validation"
+            }
+            assert(exception.message!!.contains("target-param-1")) {
+                "Exception message should include targetUserId"
+            }
+        }
+
+        @Test
+        fun `should reject zero photoExpiryHours`() {
+            // Create two users in the database
+            val requestingUser = createValidUserRequest("requesting-param-2", "requesting-param-2@example.com")
+            val targetUser = createValidUserRequest("target-param-2", "target-param-2@example.com")
+
+            runBlocking {
+                service.createUser(requestingUser)
+                service.createUser(targetUser)
+            }
+
+            // Mock photo repository to return empty list (doesn't matter for this test)
+            coEvery { mockPhotoRepository.findByUserId("target-param-2") } returns emptyList()
+            coEvery { mockQAService.getAllUserQAs("target-param-2") } returns emptyList()
+
+            // Call with zero photoExpiryHours should throw
+            val exception = runCatching {
+                runBlocking {
+                    service.getPublicProfile("requesting-param-2", "target-param-2", photoExpiryHours = 0)
+                }
+            }.exceptionOrNull()
+
+            assertNotNull(exception, "Should throw exception for zero photoExpiryHours")
+            assertEquals(IllegalArgumentException::class, exception!!::class, "Should throw IllegalArgumentException")
+            assert(exception.message!!.contains("photoExpiryHours must be positive")) {
+                "Exception message should mention photoExpiryHours validation"
+            }
+        }
+
+        @Test
+        fun `should accept positive photoExpiryHours`() {
+            // Create two users in the database
+            val requestingUser = createValidUserRequest("requesting-param-3", "requesting-param-3@example.com")
+            val targetUser = createValidUserRequest("target-param-3", "target-param-3@example.com")
+
+            runBlocking {
+                service.createUser(requestingUser)
+                service.createUser(targetUser)
+            }
+
+            // Mock photo repository to return empty list
+            coEvery { mockPhotoRepository.findByUserId("target-param-3") } returns emptyList()
+            coEvery { mockQAService.getAllUserQAs("target-param-3") } returns emptyList()
+
+            // Call with positive photoExpiryHours should succeed (even if CloudFront fails later)
+            val result = runCatching {
+                runBlocking {
+                    service.getPublicProfile("requesting-param-3", "target-param-3", photoExpiryHours = 1)
+                }
+            }
+
+            // We expect it might fail due to CloudFront not being configured, but NOT due to parameter validation
+            // If it throws, it should NOT be IllegalArgumentException about photoExpiryHours
+            result.exceptionOrNull()?.let { exception ->
+                assertNotEquals(
+                    IllegalArgumentException::class,
+                    exception::class,
+                    "Should not throw IllegalArgumentException for valid photoExpiryHours"
+                )
+            }
         }
     }
 

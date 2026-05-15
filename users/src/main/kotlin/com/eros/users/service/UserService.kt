@@ -257,15 +257,28 @@ class UserService(
     }
 
     /**
-     * Get and return a users full PUBLIC profile.
+     * Get and return a users full PUBLIC profile with CloudFront signed URLs.
+     *
+     * Generates time-limited CloudFront signed URLs for all photos (48-hour expiry)
+     * to ensure secure CDN-based access instead of direct S3 URLs.
      *
      * @param requestingUserId Firebase user ID of the user.
      * @param targetUserId Firebase user ID of the other user to get their profile.
+     * @param photoExpiryHours How long the photo URLs should be valid (default: 48h)
      * @return [PublicProfile] if user is found.
      *
      * @throws NotFoundException if either user profile is not found.
      */
-    suspend fun getPublicProfile(requestingUserId: String, targetUserId: String): PublicProfile {
+    suspend fun getPublicProfile(
+        requestingUserId: String,
+        targetUserId: String,
+        photoExpiryHours: Long = 48 // Default: 48 hours for public profile access
+    ): PublicProfile {
+        // Validate photoExpiryHours before any URL signing operations
+        require(photoExpiryHours > 0) {
+            "photoExpiryHours must be positive for targetUserId=$targetUserId (got $photoExpiryHours)"
+        }
+
         val (targetUser, principalUser) = dbQuery {
             val targetUser = userRepository.findById(targetUserId)
                 ?: throw NotFoundException("Target User ($targetUserId) profile not found.")
@@ -275,9 +288,19 @@ class UserService(
             targetUser to principalUser
         }
         val media = photoService.getUserMedia(targetUserId)
+
+        // Generate CloudFront signed URLs for all photos
+        val mediaWithSignedUrls = media.copy(
+            media = media.media.map { photo ->
+                photo.copy(
+                    mediaUrl = photoService.generateAccessUrl(photo.mediaUrl, photoExpiryHours),
+                )
+            }
+        )
+
         val qas = qaService.getAllUserQAs(targetUserId)
         val sharedInterests = getSharedInterests(principalUser.interests, targetUser.interests)
-        return PublicProfile.from(targetUser, media, sharedInterests, qas)
+        return PublicProfile.from(targetUser, mediaWithSignedUrls, sharedInterests, qas)
     }
 
 
