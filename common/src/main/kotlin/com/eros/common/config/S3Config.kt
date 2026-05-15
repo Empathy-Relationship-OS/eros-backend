@@ -31,8 +31,14 @@ data class S3Config(
     val cloudFrontDistributionDomain: String?
 ) {
     override fun toString(): String =
-        "S3Config(region=$region, bucketName=$bucketName, cdnBaseUrl=$cdnBaseUrl, " +
-        "presignedUrlTtlMinutes=$presignedUrlTtlMinutes, cloudFrontEnabled=${isCloudFrontEnabled()})"
+        "S3Config(region=$region, bucketName=$bucketName, " +
+        "accessKeyId=REDACTED, secretAccessKey=REDACTED, " +
+        "cdnBaseUrl=${if (cdnBaseUrl.isNullOrBlank()) "null" else "REDACTED"}, " +
+        "presignedUrlTtlMinutes=$presignedUrlTtlMinutes, " +
+        "cloudFrontKeyPairId=${if (cloudFrontKeyPairId.isNullOrBlank()) "null" else "REDACTED"}, " +
+        "cloudFrontPrivateKeyPath=${if (cloudFrontPrivateKeyPath.isNullOrBlank()) "null" else "REDACTED"}, " +
+        "cloudFrontDistributionDomain=${cloudFrontDistributionDomain ?: "null"}, " +
+        "cloudFrontEnabled=${isCloudFrontEnabled()})"
 
     /**
      * Check if CloudFront signed URLs are properly configured.

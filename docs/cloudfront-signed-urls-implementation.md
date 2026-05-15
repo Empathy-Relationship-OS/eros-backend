@@ -6,7 +6,7 @@ This document outlines the implementation of **CloudFront with Origin Access Con
 
 ### Solution Architecture
 
-```
+```text
 ┌─────────────┐      ┌──────────────────┐      ┌─────────────┐      ┌─────────────┐
 │   Client    │─────▶│  Ktor Backend    │─────▶│ CloudFront  │─────▶│  S3 Bucket  │
 │ (iOS/Web)   │      │ (Signed URL Gen) │      │   (CDN)     │      │  (Private)  │
@@ -48,8 +48,10 @@ openssl rsa -text -in cloudfront-private-key.pem -noout
 ```
 
 **Security Note:**
-- Store `cloudfront-private-key.pem` securely (AWS Secrets Manager, encrypted environment variable)
-- Never commit private key to version control
+- **Production**: Store `cloudfront-private-key.pem` in a secure secret store such as **AWS Secrets Manager**, **AWS KMS-encrypted Secrets/SSM Parameter Store**, or other secrets management systems. **DO NOT store private keys in plain text environment variables in production.**
+- **Local/Dev**: Plain text environment variables pointing to local PEM files may be acceptable only in local development with caution. Ensure file permissions are restricted (e.g., `chmod 600 cloudfront-private-key.pem`).
+- Enable key rotation and least-privilege access to private keys.
+- Never commit private key to version control.
 - Add to `.gitignore`: `*.pem`, `cloudfront-private-key.*`
 
 #### 1.2 Upload Public Key to AWS
@@ -287,14 +289,12 @@ Update `build.gradle.kts` to include CloudFront SDK:
 ```kotlin
 // common/build.gradle.kts or app/build.gradle.kts
 dependencies {
-    // Existing S3 dependencies
-    implementation("software.amazon.awssdk:s3:2.20.26")
-    implementation("software.amazon.awssdk:s3-transfer-manager:2.20.26")
+    // AWS SDK v2 dependencies (use consistent version)
+    implementation("software.amazon.awssdk:s3:2.44.2")
+    implementation("software.amazon.awssdk:s3-transfer-manager:2.44.2")
+    implementation("software.amazon.awssdk:cloudfront:2.44.2")
 
-    // Add CloudFront SDK for signed URLs
-    implementation("software.amazon.awssdk:cloudfront:2.20.26")
-
-    // For URL signing (utilities)
+    // For URL signing (utilities) - AWS SDK v1 for CloudFrontUrlSigner
     implementation("com.amazonaws:aws-java-sdk-cloudfront:1.12.529")
 }
 ```
@@ -328,8 +328,14 @@ data class S3Config(
     val cloudFrontDistributionDomain: String?
 ) {
     override fun toString(): String =
-        "S3Config(region=$region, bucketName=$bucketName, cdnBaseUrl=$cdnBaseUrl, " +
-        "presignedUrlTtlMinutes=$presignedUrlTtlMinutes, cloudFrontEnabled=${isCloudFrontEnabled()})"
+        "S3Config(region=$region, bucketName=$bucketName, " +
+        "accessKeyId=REDACTED, secretAccessKey=REDACTED, " +
+        "cdnBaseUrl=${if (cdnBaseUrl.isNullOrBlank()) "null" else "REDACTED"}, " +
+        "presignedUrlTtlMinutes=$presignedUrlTtlMinutes, " +
+        "cloudFrontKeyPairId=${if (cloudFrontKeyPairId.isNullOrBlank()) "null" else "REDACTED"}, " +
+        "cloudFrontPrivateKeyPath=${if (cloudFrontPrivateKeyPath.isNullOrBlank()) "null" else "REDACTED"}, " +
+        "cloudFrontDistributionDomain=${cloudFrontDistributionDomain ?: "null"}, " +
+        "cloudFrontEnabled=${isCloudFrontEnabled()})"
 
     /**
      * Check if CloudFront signed URLs are properly configured.
@@ -810,6 +816,10 @@ AWS_S3_BUCKET_NAME=eros-photos
 AWS_PRESIGNED_URL_TTL_MINUTES=15
 
 # CloudFront Configuration (for signed URLs)
+# NOTE: These example values are for local development/staging only.
+# PRODUCTION: Store CloudFront private keys in AWS Secrets Manager or other secure
+# secret stores per the security guidance in docs/cloudfront-signed-urls-implementation.md.
+# DO NOT use plain text file paths for private keys in production environments.
 CLOUDFRONT_DISTRIBUTION_DOMAIN=d1234567890.cloudfront.net
 CLOUDFRONT_KEY_PAIR_ID=APKAXXXXXXXXXXXXXXXX
 CLOUDFRONT_PRIVATE_KEY_PATH=/path/to/cloudfront-private-key.pem
