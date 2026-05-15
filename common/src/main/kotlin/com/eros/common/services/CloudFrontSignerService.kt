@@ -203,10 +203,13 @@ class CloudFrontSignerService(
      * Extracts the S3 object key from a full URL.
      *
      * Handles CloudFront URLs, CDN URLs, and S3 direct URLs.
+     * Strips query strings and fragments to return only the path portion.
      */
     fun extractObjectKey(url: String): String {
         val baseUrl = s3Config.getBaseUrl().trimEnd('/')
-        return when {
+
+        // First, extract the path based on URL format
+        val path = when {
             url.startsWith(baseUrl) -> url.removePrefix("$baseUrl/")
             url.startsWith("https://") || url.startsWith("http://") -> {
                 // Extract path from URL (everything after domain)
@@ -214,6 +217,13 @@ class CloudFrontSignerService(
             }
             else -> url // Already an object key
         }
+
+        // Strip query strings (everything from '?' onward) and fragments (everything from '#' onward)
+        val pathWithoutQuery = path.substringBefore('?')
+        val pathWithoutFragment = pathWithoutQuery.substringBefore('#')
+
+        // Trim leading/trailing slashes for consistency
+        return pathWithoutFragment.trim('/')
     }
 
     /**
