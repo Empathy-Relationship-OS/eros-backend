@@ -153,7 +153,9 @@ class MatchService(
      * - Batch composition: carryover matches + new matches to fill remaining slots = BATCH_SIZE
      * - Each call increments today's batch count (even if some profiles are carryovers)
      * - New matches are marked as served with current timestamp
-     * - Carryover matches keep their original servedAt timestamp
+     * - Carryover timestamp behavior:
+     *   - Current-window carryovers: Keep their original servedAt timestamp
+     *   - Previous-window carryovers: Get updated with current timestamp (rolled forward)
      * - Returns 204 No Content if no matches available
      * - Returns 429 Too Many Requests if daily limit reached
      *
