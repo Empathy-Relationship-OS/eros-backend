@@ -225,9 +225,7 @@ class CloudFrontSignerService(
      */
     fun invalidateCache(objectKey: String) {
         // Invalidate all expiry variants of this object key
-        listOf(24L, 48L, 30 * 24L, 90 * 24L).forEach { expiryHours ->
-            urlCache.invalidate("$objectKey:$expiryHours")
-        }
+        urlCache.invalidateByPrefix("$objectKey:")
         logger.debug("Invalidated cache for: $objectKey")
     }
 

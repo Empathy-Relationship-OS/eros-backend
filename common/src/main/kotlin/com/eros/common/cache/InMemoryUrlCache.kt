@@ -90,6 +90,18 @@ class InMemoryUrlCache : UrlCache {
     }
 
     /**
+     * Invalidates all cache entries matching a prefix.
+     *
+     * Removes all keys that start with the specified prefix.
+     * Useful for invalidating all expiry variants of an object key.
+     *
+     * @param prefix The prefix to match (e.g., "photos/user123/abc.jpg:")
+     */
+    override fun invalidateByPrefix(prefix: String) {
+        cache.keys.removeIf { it.startsWith(prefix) }
+    }
+
+    /**
      * Clears the entire cache.
      *
      * Useful for testing or maintenance.

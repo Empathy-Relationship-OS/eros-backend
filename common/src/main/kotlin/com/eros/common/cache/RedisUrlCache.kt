@@ -42,6 +42,10 @@ class RedisUrlCache : UrlCache {
         logger.warn("RedisUrlCache.invalidateUser() not yet implemented")
     }
 
+    override fun invalidateByPrefix(prefix: String) {
+        logger.warn("RedisUrlCache.invalidateByPrefix() not yet implemented")
+    }
+
     override fun clear() {
         logger.warn("RedisUrlCache.clear() not yet implemented")
     }
