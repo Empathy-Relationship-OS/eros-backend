@@ -274,6 +274,11 @@ class UserService(
         targetUserId: String,
         photoExpiryHours: Long = 48 // Default: 48 hours for public profile access
     ): PublicProfile {
+        // Validate photoExpiryHours before any URL signing operations
+        require(photoExpiryHours > 0) {
+            "photoExpiryHours must be positive for targetUserId=$targetUserId (got $photoExpiryHours)"
+        }
+
         val (targetUser, principalUser) = dbQuery {
             val targetUser = userRepository.findById(targetUserId)
                 ?: throw NotFoundException("Target User ($targetUserId) profile not found.")

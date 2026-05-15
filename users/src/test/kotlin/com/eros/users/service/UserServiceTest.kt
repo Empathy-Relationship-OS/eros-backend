@@ -420,6 +420,104 @@ class UserServiceTest {
         }
     }
 
+    @Nested
+    inner class `Get Public Profile - Parameter Validation` {
+
+        @Test
+        fun `should reject negative photoExpiryHours`() {
+            // Create two users in the database
+            val requestingUser = createValidUserRequest("requesting-param-1", "requesting-param-1@example.com")
+            val targetUser = createValidUserRequest("target-param-1", "target-param-1@example.com")
+
+            runBlocking {
+                service.createUser(requestingUser)
+                service.createUser(targetUser)
+            }
+
+            // Mock photo repository to return empty list (doesn't matter for this test)
+            coEvery { mockPhotoRepository.findByUserId("target-param-1") } returns emptyList()
+            coEvery { mockQAService.getAllUserQAs("target-param-1") } returns emptyList()
+
+            // Call with negative photoExpiryHours should throw
+            val exception = runCatching {
+                runBlocking {
+                    service.getPublicProfile("requesting-param-1", "target-param-1", photoExpiryHours = -1)
+                }
+            }.exceptionOrNull()
+
+            assertNotNull(exception, "Should throw exception for negative photoExpiryHours")
+            assertEquals(IllegalArgumentException::class, exception!!::class, "Should throw IllegalArgumentException")
+            assert(exception.message!!.contains("photoExpiryHours must be positive")) {
+                "Exception message should mention photoExpiryHours validation"
+            }
+            assert(exception.message!!.contains("target-param-1")) {
+                "Exception message should include targetUserId"
+            }
+        }
+
+        @Test
+        fun `should reject zero photoExpiryHours`() {
+            // Create two users in the database
+            val requestingUser = createValidUserRequest("requesting-param-2", "requesting-param-2@example.com")
+            val targetUser = createValidUserRequest("target-param-2", "target-param-2@example.com")
+
+            runBlocking {
+                service.createUser(requestingUser)
+                service.createUser(targetUser)
+            }
+
+            // Mock photo repository to return empty list (doesn't matter for this test)
+            coEvery { mockPhotoRepository.findByUserId("target-param-2") } returns emptyList()
+            coEvery { mockQAService.getAllUserQAs("target-param-2") } returns emptyList()
+
+            // Call with zero photoExpiryHours should throw
+            val exception = runCatching {
+                runBlocking {
+                    service.getPublicProfile("requesting-param-2", "target-param-2", photoExpiryHours = 0)
+                }
+            }.exceptionOrNull()
+
+            assertNotNull(exception, "Should throw exception for zero photoExpiryHours")
+            assertEquals(IllegalArgumentException::class, exception!!::class, "Should throw IllegalArgumentException")
+            assert(exception.message!!.contains("photoExpiryHours must be positive")) {
+                "Exception message should mention photoExpiryHours validation"
+            }
+        }
+
+        @Test
+        fun `should accept positive photoExpiryHours`() {
+            // Create two users in the database
+            val requestingUser = createValidUserRequest("requesting-param-3", "requesting-param-3@example.com")
+            val targetUser = createValidUserRequest("target-param-3", "target-param-3@example.com")
+
+            runBlocking {
+                service.createUser(requestingUser)
+                service.createUser(targetUser)
+            }
+
+            // Mock photo repository to return empty list
+            coEvery { mockPhotoRepository.findByUserId("target-param-3") } returns emptyList()
+            coEvery { mockQAService.getAllUserQAs("target-param-3") } returns emptyList()
+
+            // Call with positive photoExpiryHours should succeed (even if CloudFront fails later)
+            val result = runCatching {
+                runBlocking {
+                    service.getPublicProfile("requesting-param-3", "target-param-3", photoExpiryHours = 1)
+                }
+            }
+
+            // We expect it might fail due to CloudFront not being configured, but NOT due to parameter validation
+            // If it throws, it should NOT be IllegalArgumentException about photoExpiryHours
+            result.exceptionOrNull()?.let { exception ->
+                assertNotEquals(
+                    IllegalArgumentException::class,
+                    exception::class,
+                    "Should not throw IllegalArgumentException for valid photoExpiryHours"
+                )
+            }
+        }
+    }
+
     // =============================//
     // ========== Setup ============//
     // =============================//
