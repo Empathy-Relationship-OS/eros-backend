@@ -11,12 +11,12 @@ import com.eros.matching.models.MutualMatchInfo
 import com.eros.matching.models.UserMatchProfile
 import com.eros.matching.repository.DailyBatchRepository
 import com.eros.matching.repository.MatchRepository
+import com.eros.matching.time.BatchWindowCalculator
+import com.eros.matching.time.MidnightUtcBatchWindowCalculator
 import com.eros.matching.transaction.TransactionManager
 import com.eros.users.service.UserService
 import java.time.Clock
 import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneId
 
 /**
  * Service layer for matching business logic.
@@ -28,7 +28,8 @@ class MatchService(
     private val dailyBatchRepository: DailyBatchRepository,
     private val userService: UserService,
     private val transactionManager: TransactionManager,
-    private val clock: Clock = Clock.systemUTC()
+    private val clock: Clock = Clock.systemUTC(),
+    private val batchWindowCalculator: BatchWindowCalculator = MidnightUtcBatchWindowCalculator(clock)
 ) {
 
     /**
@@ -146,79 +147,138 @@ class MatchService(
      * Fetches the next batch of daily matches for a user.
      *
      * Business rules:
-     * - Maximum 7 profiles per batch
-     * - Maximum 3 batches per user per day (21 total matches)
-     * - Only unserved matches are returned
-     * - Matches are marked as served with timestamp
+     * - Maximum 7 profiles per batch (BATCH_SIZE)
+     * - Maximum 3 batches per user per day (MAX_DAILY_BATCHES = 21 total matches)
+     * - Carryover logic: Unacted matches from previous batches/days are carried forward
+     * - Batch composition: carryover matches + new matches to fill remaining slots = BATCH_SIZE
+     * - Each call increments today's batch count (even if some profiles are carryovers)
+     * - New matches are marked as served with current timestamp
+     * - Carryover timestamp behavior:
+     *   - Current-window carryovers: Keep their original servedAt timestamp
+     *   - Previous-window carryovers: Get updated with current timestamp (rolled forward)
      * - Returns 204 No Content if no matches available
      * - Returns 429 Too Many Requests if daily limit reached
+     *
+     * Example: If 2 carryover matches exist, fetches 5 new matches to make a batch of 7
      *
      * @param userId The user requesting matches
      * @return DailyBatchResponse with profiles and batch metadata
      * @throws DailyBatchLimitExceededException if user has reached 3 batches today
-     * @throws NoMatchesAvailableException if no unserved matches exist
+     * @throws NoMatchesAvailableException if no matches available (served or unserved)
      */
     suspend fun fetchDailyBatch(userId: String): DailyBatchResponse = transactionManager.execute {
-        val today = LocalDate.now(clock)
+        val currentWindow = batchWindowCalculator.getCurrentWindow()
+        val now = Instant.now(clock)
 
-        // Check daily batch limit
-        val batchCount = dailyBatchRepository.getBatchCount(userId, today)
+        // Check for served-but-unacted matches (carryover from previous batches/windows)
+        // This check happens BEFORE the limit check to allow users to re-enter and see
+        // matches they were already served in the current window, even if at the daily limit
+        val servedUnactedMatches = matchRepository.findServedUnactedMatches(userId, BATCH_SIZE)
+
+        // Separate carryover matches by whether they were served in the current window or previous windows
+        val (carryoverFromCurrentWindow, carryoverFromPreviousWindows) = servedUnactedMatches.partition { match ->
+            match.servedAt?.let { servedAt ->
+                batchWindowCalculator.isSameWindow(servedAt, now)
+            } ?: false
+        }
+
+        // If we have profiles served in the current window, try to return them without incrementing
+        // This handles the case where the user is re-entering the matches tab without acting
+        if (carryoverFromCurrentWindow.isNotEmpty()) {
+            val profiles = carryoverFromCurrentWindow
+                .mapNotNull { match ->
+                    val servedAt = match.servedAt ?: return@mapNotNull null
+                    buildUserMatchProfile(match, servedAt)
+                }
+                .sortedBy { it.servedAt }
+
+            // Only return early if we successfully built profiles
+            // If all profiles mapped to null (e.g., users no longer exist), fall through to fetch new batch
+            if (profiles.isNotEmpty()) {
+                // Get current batch count (don't increment)
+                val currentBatch = dailyBatchRepository.findByUserAndDate(userId, currentWindow)
+                    ?: dailyBatchRepository.incrementBatchCount(userId, currentWindow) // First batch of the window
+
+                return@execute DailyBatchResponse(
+                    profiles = profiles,
+                    batchNumber = currentBatch.batchCount,
+                    remainingBatches = MAX_DAILY_BATCHES - currentBatch.batchCount
+                )
+            }
+        }
+
+        // Check daily batch limit (only if no valid current-window carryover exists)
+        // This allows users to re-enter and see their existing matches even at the limit
+        val batchCount = dailyBatchRepository.getBatchCount(userId, currentWindow)
         if (batchCount >= MAX_DAILY_BATCHES) {
             throw DailyBatchLimitExceededException(
                 userId = userId,
                 batchesUsed = batchCount,
                 maxBatches = MAX_DAILY_BATCHES,
-                resetAt = calculateMidnightUtc(today.plusDays(1))
+                resetAt = batchWindowCalculator.getNextWindowStart(currentWindow)
             )
         }
 
-        // Fetch unserved matches
-        val unservedMatches = matchRepository.findUnservedMatches(userId, BATCH_SIZE)
-        if (unservedMatches.isEmpty()) {
-            throw NoMatchesAvailableException("No unserved matches available for user $userId")
+        // If we reach here, either:
+        // 1. No carryover at all (need to fetch new batch)
+        // 2. Only carryover from previous windows (need to roll them forward into current window)
+
+        // Start building new batch - update servedAt for old carryovers to current window
+        val carryoverMatchIds = carryoverFromPreviousWindows.map { it.matchId }
+        if (carryoverMatchIds.isNotEmpty()) {
+            matchRepository.markAsServed(carryoverMatchIds, now)
         }
 
-        // Build lightweight profile responses first to ensure they're returnable
-        val servedAt = Instant.now(clock)
-        val successfulResults = unservedMatches.mapNotNull { match ->
-            buildUserMatchProfile(match, servedAt)?.let { profile ->
-                match.matchId to profile
+        // Build profiles for updated carryover matches (with new servedAt timestamp)
+        val carryoverProfiles = carryoverFromPreviousWindows.mapNotNull { match ->
+            buildUserMatchProfile(match, now)
+        }
+
+        // Calculate how many new matches we need to fill the batch
+        val slotsRemaining = BATCH_SIZE - carryoverProfiles.size
+
+        // Fetch new unserved matches to fill remaining slots
+        val newProfiles = if (slotsRemaining > 0) {
+            val unservedMatches = matchRepository.findUnservedMatches(userId, slotsRemaining)
+
+            val successfulResults = unservedMatches.mapNotNull { match ->
+                buildUserMatchProfile(match, now)?.let { profile ->
+                    match.matchId to profile
+                }
             }
+
+            // Mark new matches as served
+            if (successfulResults.isNotEmpty()) {
+                val successfulMatchIds = successfulResults.map { it.first }
+                matchRepository.markAsServed(successfulMatchIds, now)
+            }
+
+            successfulResults.map { it.second }
+        } else {
+            emptyList()
         }
 
-        // Only mark matches as served if we have successful profiles to return
-        if (successfulResults.isEmpty()) {
-            throw NoMatchesAvailableException("No valid user profiles available for matches")
+        // Combine carryover and new profiles, sorted by servedAt for consistent ordering
+        val allProfiles = (carryoverProfiles + newProfiles)
+            .sortedBy { it.servedAt }
+
+        // Ensure we have at least some profiles to return
+        if (allProfiles.isEmpty()) {
+            throw NoMatchesAvailableException("No matches available for user $userId")
         }
 
-        val successfulMatchIds = successfulResults.map { it.first }
-        val profiles = successfulResults.map { it.second }
-
-        // Mark only successful matches as served
-        matchRepository.markAsServed(successfulMatchIds, servedAt)
-
-        // Increment batch count only by the number of successfully served profiles
-        dailyBatchRepository.incrementBatchCount(userId, today)
+        // Increment batch count (we're serving a new batch for the current window)
+        val dailyBatch = dailyBatchRepository.incrementBatchCount(userId, currentWindow)
 
         // Calculate batch metadata
-        val batchNumber = batchCount + 1
+        val batchNumber = dailyBatch.batchCount
         val remainingBatches = MAX_DAILY_BATCHES - batchNumber
 
         DailyBatchResponse(
-            profiles = profiles,
+            profiles = allProfiles,
             batchNumber = batchNumber,
             remainingBatches = remainingBatches
         )
-    }
-
-    /**
-     * Calculates midnight UTC for a given date.
-     *
-     * @param date The date to calculate midnight for
-     * @return Instant representing midnight UTC on the given date
-     */
-    private fun calculateMidnightUtc(date: LocalDate): Instant {
-        return date.atStartOfDay(ZoneId.of("UTC")).toInstant()
     }
 
     /**
@@ -226,10 +286,18 @@ class MatchService(
      *
      * @param match The match record
      * @param servedAt The timestamp when the match was served
+     * @param photoExpiryHours How long the photo URLs should be valid (default: 48h for daily batches)
      * @return UserMatchProfile or null if user not found
      */
-    private suspend fun buildUserMatchProfile(match: Match, servedAt: Instant): UserMatchProfile? {
-        val userData = userService.getUserMatchProfileData(match.user2Id) ?: return null
+    private suspend fun buildUserMatchProfile(
+        match: Match,
+        servedAt: Instant,
+        photoExpiryHours: Long = 48 // Default: 48 hours for unmatched profiles
+    ): UserMatchProfile? {
+        val userData = userService.getUserMatchProfileData(
+            userId = match.user2Id,
+            photoExpiryHours = photoExpiryHours
+        ) ?: return null
 
         return UserMatchProfile(
             matchId = match.matchId,
@@ -259,21 +327,18 @@ class MatchService(
     /**
      * Checks if the target user is in the requesting user's current batch.
      *
-     * A "current batch" is defined as a match served today (within the current UTC day).
+     * A "current batch" is defined as a match served within the current batch window.
      *
      * @param userId The user whose batch to check
      * @param targetUserId The user to look for in the batch
-     * @return True if target user is in today's served matches, false otherwise
+     * @return True if target user is in the current batch window's served matches, false otherwise
      */
     suspend fun isInCurrentBatch(userId: String, targetUserId: String): Boolean = transactionManager.execute {
         val match = matchRepository.findByUserPair(userId, targetUserId) ?: return@execute false
 
-        // Check if match was served today
+        // Check if match was served in the current batch window
         val servedAt = match.servedAt ?: return@execute false
-        val today = LocalDate.now(clock)
-        val servedDate = LocalDate.ofInstant(servedAt, clock.zone)
-
-        servedDate.isAfter(today.minusDays(1))  && servedDate.isBefore(today.plusDays(1))
+        batchWindowCalculator.isSameWindow(servedAt, Instant.now(clock))
     }
 
     /**
@@ -287,6 +352,7 @@ class MatchService(
      * - Only matches served within the last 24 hours
      * - Returns UserMatchProfile including matchId to enable re-action
      * - Returns empty list if no passes in last 24 hours
+     * - Photos have 24-hour access (shorter since user already saw them)
      *
      * @param userId The user whose passes to retrieve
      * @return List of UserMatchProfile for profiles the user passed on
@@ -294,10 +360,14 @@ class MatchService(
     suspend fun getPassesInLast24Hours(userId: String): List<UserMatchProfile> = transactionManager.execute {
         val passedMatches = matchRepository.findPassesInLast24Hours(userId)
 
-        // Build lightweight profile responses
+        // Build lightweight profile responses with 24-hour photo access
         passedMatches.mapNotNull { match ->
             val servedAt = match.servedAt ?: return@mapNotNull null
-            buildUserMatchProfile(match, servedAt)
+            buildUserMatchProfile(
+                match = match,
+                servedAt = servedAt,
+                photoExpiryHours = 24 // Reconsideration: 24-hour expiry
+            )
         }
     }
 }

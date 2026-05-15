@@ -1,8 +1,15 @@
 package com.eros.users.service
 
 import com.eros.common.config.S3Config
+import com.eros.common.services.CloudFrontSignerService
 import com.eros.database.dbQuery
-import com.eros.users.models.*
+import com.eros.users.models.ConfirmUploadRequest
+import com.eros.users.models.MediaConstants
+import com.eros.users.models.MediaType
+import com.eros.users.models.PresignedUploadRequest
+import com.eros.users.models.PresignedUploadResponse
+import com.eros.users.models.UserMediaCollection
+import com.eros.users.models.UserMediaItem
 import com.eros.users.repository.PhotoRepository
 import org.slf4j.LoggerFactory
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
@@ -30,7 +37,7 @@ import java.util.*
  * **Step 2** — [confirmUpload]:
  *   - Client posts back the object key after the direct-to-S3 upload completes.
  *   - Backend performs a `HeadObject` check to verify the file exists in S3.
- *   - If the requested [displayOrder] slot is already occupied the old S3 object
+ *   - If the requested [com.eros.users.table.UserMedia.displayOrder] slot is already occupied the old S3 object
  *     (original + thumbnail) is deleted before the new record is inserted.
  *   - Persists the record and returns the [UserMediaItem].
  *
@@ -46,6 +53,9 @@ class PhotoService(
     private val s3Config: S3Config,
     private val s3Client: S3Client = buildS3Client(s3Config),
     private val s3Presigner: S3Presigner = buildS3Presigner(s3Config),
+    private val cloudFrontSigner: CloudFrontSignerService? = if (s3Config.isCloudFrontEnabled()) {
+        CloudFrontSignerService(s3Config)
+    } else null
 ) {
     companion object {
         private val logger = LoggerFactory.getLogger(PhotoService::class.java)
@@ -77,6 +87,33 @@ class PhotoService(
                 )
             }
             return builder.build()
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Access URL Generation (CloudFront Signed or S3 Presigned)
+    // -------------------------------------------------------------------------
+
+    /**
+     * Generates a time-limited access URL for an image.
+     *
+     * Uses CloudFront signed URLs if configured, otherwise throws an error.
+     *
+     * @param mediaUrl The stored media URL (from database)
+     * @param expiryHours How long the URL should be valid (default: 48 hours)
+     * @return Time-limited access URL
+     * @throws IllegalStateException if CloudFront is not configured
+     */
+    fun generateAccessUrl(mediaUrl: String, expiryHours: Long = 48): String {
+        return if (cloudFrontSigner != null) {
+            // Use CloudFront signed URL
+            val objectKey = cloudFrontSigner.extractObjectKey(mediaUrl)
+            cloudFrontSigner.generateSignedUrl(objectKey, expiryHours)
+        } else {
+            throw IllegalStateException(
+                "CloudFront signed URLs are not configured. " +
+                "Set CLOUDFRONT_DISTRIBUTION_DOMAIN, CLOUDFRONT_KEY_PAIR_ID, and CLOUDFRONT_PRIVATE_KEY_PATH."
+            )
         }
     }
 
@@ -135,8 +172,8 @@ class PhotoService(
         val presignedUrl = s3Presigner.presignPutObject(presignRequest).url().toString()
 
         return PresignedUploadResponse(
-            uploadUrl        = presignedUrl,
-            objectKey        = objectKey,
+            uploadUrl = presignedUrl,
+            objectKey = objectKey,
             expiresInMinutes = s3Config.presignedUrlTtlMinutes
         )
     }
@@ -230,6 +267,17 @@ class PhotoService(
         // Only delete from S3 after the DB transaction has successfully committed
         result.urlsToDelete.forEach { url ->
             deleteFromS3(url)
+            // Invalidate cached signed URLs for deleted photos
+            cloudFrontSigner?.let { signer ->
+                val objectKey = signer.extractObjectKey(url)
+                signer.invalidateCache(objectKey)
+            }
+        }
+
+        // Invalidate cache for the new photo URL to ensure fresh signed URLs
+        cloudFrontSigner?.let { signer ->
+            val objectKey = signer.extractObjectKey(result.newItem.mediaUrl)
+            signer.invalidateCache(objectKey)
         }
 
         return result.newItem
@@ -245,8 +293,8 @@ class PhotoService(
     suspend fun getUserMedia(userId: String): UserMediaCollection = dbQuery {
         val items = photoRepository.findByUserId(userId)
         UserMediaCollection(
-            userId     = userId,
-            media      = items,
+            userId = userId,
+            media = items,
             totalCount = items.size
         )
     }
@@ -268,6 +316,16 @@ class PhotoService(
 
         deleteFromS3(item.mediaUrl) // We either wrap this in a transaction such that they all roll back on failure. OR we add some cleanup script to the s3 to detect orphans
         item.thumbnailUrl?.let { deleteFromS3(it) }
+
+        // Invalidate cached signed URLs for deleted photos
+        cloudFrontSigner?.let { signer ->
+            val objectKey = signer.extractObjectKey(item.mediaUrl)
+            signer.invalidateCache(objectKey)
+            item.thumbnailUrl?.let { thumbUrl ->
+                val thumbKey = signer.extractObjectKey(thumbUrl)
+                signer.invalidateCache(thumbKey)
+            }
+        }
 
         photoRepository.deleteById(photoId)
         item
