@@ -86,7 +86,7 @@ class InMemoryUrlCache : UrlCache {
      * @param userId The user whose URLs should be invalidated
      */
     override fun invalidateUser(userId: String) {
-        cache.keys.removeIf { it.contains("photos/$userId/") }
+        cache.keys.removeIf { it.startsWith("photos/$userId/") }
     }
 
     /**
