@@ -6,7 +6,7 @@ The URL caching system uses the **Strategy Pattern** with dependency injection t
 
 ## Architecture
 
-```
+```text
 ┌─────────────────────────────────┐
 │    CloudFrontSignerService      │
 │                                 │
@@ -34,6 +34,7 @@ The URL caching system uses the **Strategy Pattern** with dependency injection t
 ### 1. Dependency Inversion Principle (SOLID)
 
 **Before (Concrete Dependency):**
+
 ```kotlin
 class CloudFrontSignerService(
     private val cache: InMemoryUrlCache  // ❌ Depends on concrete class
@@ -41,6 +42,7 @@ class CloudFrontSignerService(
 ```
 
 **After (Interface Dependency):**
+
 ```kotlin
 class CloudFrontSignerService(
     private val cache: UrlCache  // ✅ Depends on abstraction
@@ -107,6 +109,7 @@ Open for extension (add new implementations), closed for modification (don't cha
 - ⚠️ Lost on restart
 
 **Example:**
+
 ```kotlin
 val cache = InMemoryUrlCache()
 val signer = CloudFrontSignerService(s3Config, cache)
@@ -130,6 +133,7 @@ val signer = CloudFrontSignerService(s3Config, cache)
 - ⚠️ External dependency (Redis server)
 
 **Example (when implemented):**
+
 ```kotlin
 val redisClient = RedisClient.create("redis://localhost:6379")
 val cache = RedisUrlCache(redisClient)
@@ -152,12 +156,13 @@ class MultiTierUrlCache(
         expiryHours: Long,
         generator: () -> String
     ): String {
-        // Try L1 (in-memory) first
-        val l1Result = l1Cache.getOrGenerate(key, expiryHours) { "" }
-        if (l1Result.isNotBlank()) return l1Result
-
-        // Fall back to L2 (Redis)
-        return l2Cache.getOrGenerate(key, expiryHours, generator)
+        // Try L1 (in-memory) first - check if it exists
+        // Note: This assumes a direct lookup method exists, or we use the generator
+        // to populate L1 from L2 if L1 misses
+        return l1Cache.getOrGenerate(key, expiryHours) {
+            // L1 cache miss - fall back to L2 (Redis)
+            l2Cache.getOrGenerate(key, expiryHours, generator)
+        }
     }
 
     // ... implement other methods
@@ -217,6 +222,7 @@ class CloudFrontSignerService(
 ```
 
 **Usage:**
+
 ```kotlin
 // Use default (InMemoryUrlCache)
 val signer = CloudFrontSignerService(s3Config)

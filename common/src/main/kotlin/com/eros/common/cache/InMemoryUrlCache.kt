@@ -44,19 +44,23 @@ class InMemoryUrlCache : UrlCache {
         // Clean expired entries periodically (every time cache is accessed)
         cleanExpiredEntries()
 
-        val existing = cache[key]
+        // Atomically check and generate to prevent concurrent generator() calls
+        val entry = cache.compute(key) { _, existing ->
+            val now = Instant.now()
+            val bufferSeconds = 300L // 5-minute buffer before expiry
 
-        // Return cached URL if still valid (with 5-minute buffer before expiry)
-        if (existing != null && existing.expiresAt.isAfter(Instant.now().plusSeconds(300))) {
-            return existing.signedUrl
+            // Return existing entry if still valid
+            if (existing != null && existing.expiresAt.isAfter(now.plusSeconds(bufferSeconds))) {
+                existing
+            } else {
+                // Generate new URL and cache it
+                val newUrl = generator()
+                val expiresAt = now.plusSeconds(expiryHours * 3600)
+                CacheEntry(newUrl, expiresAt)
+            }
         }
 
-        // Generate new URL and cache it
-        val newUrl = generator()
-        val expiresAt = Instant.now().plusSeconds(expiryHours * 3600)
-        cache[key] = CacheEntry(newUrl, expiresAt)
-
-        return newUrl
+        return entry!!.signedUrl
     }
 
     /**
@@ -86,7 +90,19 @@ class InMemoryUrlCache : UrlCache {
      * @param userId The user whose URLs should be invalidated
      */
     override fun invalidateUser(userId: String) {
-        cache.keys.removeIf { it.contains("photos/$userId/") }
+        cache.keys.removeIf { it.startsWith("photos/$userId/") }
+    }
+
+    /**
+     * Invalidates all cache entries matching a prefix.
+     *
+     * Removes all keys that start with the specified prefix.
+     * Useful for invalidating all expiry variants of an object key.
+     *
+     * @param prefix The prefix to match (e.g., "photos/user123/abc.jpg:")
+     */
+    override fun invalidateByPrefix(prefix: String) {
+        cache.keys.removeIf { it.startsWith(prefix) }
     }
 
     /**

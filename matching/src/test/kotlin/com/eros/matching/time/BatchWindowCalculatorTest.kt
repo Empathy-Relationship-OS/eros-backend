@@ -17,7 +17,7 @@ class BatchWindowCalculatorTest {
     private val fixedClock = Clock.fixed(fixedInstant, ZoneId.of("UTC"))
 
     @Nested
-    inner class `MidnightUtcBatchWindowCalculator` {
+    inner class MidnightUtcBatchWindowCalculator {
 
         @Test
         fun `should return LocalDate for midnight UTC boundary`() {
@@ -58,6 +58,23 @@ class BatchWindowCalculatorTest {
         }
 
         @Test
+        fun `should use UTC semantics for getCurrentWindow even with non-UTC clock`() {
+            // Regression test: verify getCurrentWindow() uses UTC regardless of clock's zone
+            val instant = Instant.parse("2024-01-15T00:30:00Z") // 00:30 UTC on Jan 15
+
+            val utcClock = Clock.fixed(instant, ZoneId.of("UTC"))
+            val pstClock = Clock.fixed(instant, ZoneId.of("America/Los_Angeles"))
+
+            val utcCalculator = MidnightUtcBatchWindowCalculator(utcClock)
+            val pstCalculator = MidnightUtcBatchWindowCalculator(pstClock)
+
+            // Both should return the same UTC-based date (Jan 15)
+            val expectedUtcDate = LocalDate.of(2024, 1, 15)
+            assertEquals(expectedUtcDate, utcCalculator.getCurrentWindow())
+            assertEquals(expectedUtcDate, pstCalculator.getCurrentWindow())
+        }
+
+        @Test
         fun `should calculate next window start as midnight UTC next day`() {
             val calculator = MidnightUtcBatchWindowCalculator(fixedClock)
 
@@ -70,7 +87,7 @@ class BatchWindowCalculatorTest {
     }
 
     @Nested
-    inner class `CustomHourBatchWindowCalculator` {
+    inner class CustomHourBatchWindowCalculator {
 
         @Test
         fun `should throw exception for invalid reset hour`() {

@@ -153,7 +153,9 @@ class MatchService(
      * - Batch composition: carryover matches + new matches to fill remaining slots = BATCH_SIZE
      * - Each call increments today's batch count (even if some profiles are carryovers)
      * - New matches are marked as served with current timestamp
-     * - Carryover matches keep their original servedAt timestamp
+     * - Carryover timestamp behavior:
+     *   - Current-window carryovers: Keep their original servedAt timestamp
+     *   - Previous-window carryovers: Get updated with current timestamp (rolled forward)
      * - Returns 204 No Content if no matches available
      * - Returns 429 Too Many Requests if daily limit reached
      *
@@ -168,18 +170,9 @@ class MatchService(
         val currentWindow = batchWindowCalculator.getCurrentWindow()
         val now = Instant.now(clock)
 
-        // Check daily batch limit
-        val batchCount = dailyBatchRepository.getBatchCount(userId, currentWindow)
-        if (batchCount >= MAX_DAILY_BATCHES) {
-            throw DailyBatchLimitExceededException(
-                userId = userId,
-                batchesUsed = batchCount,
-                maxBatches = MAX_DAILY_BATCHES,
-                resetAt = batchWindowCalculator.getNextWindowStart(currentWindow)
-            )
-        }
-
         // Check for served-but-unacted matches (carryover from previous batches/windows)
+        // This check happens BEFORE the limit check to allow users to re-enter and see
+        // matches they were already served in the current window, even if at the daily limit
         val servedUnactedMatches = matchRepository.findServedUnactedMatches(userId, BATCH_SIZE)
 
         // Separate carryover matches by whether they were served in the current window or previous windows
@@ -189,7 +182,7 @@ class MatchService(
             } ?: false
         }
 
-        // If we have profiles served in the current window, just return them without incrementing
+        // If we have profiles served in the current window, try to return them without incrementing
         // This handles the case where the user is re-entering the matches tab without acting
         if (carryoverFromCurrentWindow.isNotEmpty()) {
             val profiles = carryoverFromCurrentWindow
@@ -199,14 +192,30 @@ class MatchService(
                 }
                 .sortedBy { it.servedAt }
 
-            // Get current batch count (don't increment)
-            val currentBatch = dailyBatchRepository.findByUserAndDate(userId, currentWindow)
-                ?: dailyBatchRepository.incrementBatchCount(userId, currentWindow) // First batch of the window
+            // Only return early if we successfully built profiles
+            // If all profiles mapped to null (e.g., users no longer exist), fall through to fetch new batch
+            if (profiles.isNotEmpty()) {
+                // Get current batch count (don't increment)
+                val currentBatch = dailyBatchRepository.findByUserAndDate(userId, currentWindow)
+                    ?: dailyBatchRepository.incrementBatchCount(userId, currentWindow) // First batch of the window
 
-            return@execute DailyBatchResponse(
-                profiles = profiles,
-                batchNumber = currentBatch.batchCount,
-                remainingBatches = MAX_DAILY_BATCHES - currentBatch.batchCount
+                return@execute DailyBatchResponse(
+                    profiles = profiles,
+                    batchNumber = currentBatch.batchCount,
+                    remainingBatches = MAX_DAILY_BATCHES - currentBatch.batchCount
+                )
+            }
+        }
+
+        // Check daily batch limit (only if no valid current-window carryover exists)
+        // This allows users to re-enter and see their existing matches even at the limit
+        val batchCount = dailyBatchRepository.getBatchCount(userId, currentWindow)
+        if (batchCount >= MAX_DAILY_BATCHES) {
+            throw DailyBatchLimitExceededException(
+                userId = userId,
+                batchesUsed = batchCount,
+                maxBatches = MAX_DAILY_BATCHES,
+                resetAt = batchWindowCalculator.getNextWindowStart(currentWindow)
             )
         }
 

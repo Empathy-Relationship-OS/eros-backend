@@ -57,3 +57,8 @@ dependencies {
 
     implementation(libs.exposed.core)
 }
+
+// Enable ZIP64 for Shadow JAR to support more than 65535 entries
+tasks.shadowJar {
+    isZip64 = true
+}

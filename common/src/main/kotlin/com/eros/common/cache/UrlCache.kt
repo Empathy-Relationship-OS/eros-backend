@@ -42,6 +42,13 @@ interface UrlCache {
     fun invalidateUser(userId: String)
 
     /**
+     * Invalidates all cache entries matching a prefix.
+     *
+     * @param prefix The prefix to match (e.g., "photos/user123/abc.jpg:")
+     */
+    fun invalidateByPrefix(prefix: String)
+
+    /**
      * Clears the entire cache.
      *
      * Useful for testing or maintenance operations.

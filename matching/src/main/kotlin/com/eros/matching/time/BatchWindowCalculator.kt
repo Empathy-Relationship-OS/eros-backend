@@ -70,7 +70,7 @@ class MidnightUtcBatchWindowCalculator(
     }
 
     override fun getCurrentWindow(): LocalDate {
-        return LocalDate.now(clock)
+        return getBatchWindow(clock.instant())
     }
 
     override fun getNextWindowStart(currentWindow: LocalDate): Instant {
