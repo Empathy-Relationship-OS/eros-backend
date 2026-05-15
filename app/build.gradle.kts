@@ -59,6 +59,6 @@ dependencies {
 }
 
 // Enable ZIP64 for Shadow JAR to support more than 65535 entries
-tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJar") {
+tasks.shadowJar {
     isZip64 = true
 }
