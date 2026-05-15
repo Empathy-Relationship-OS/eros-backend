@@ -6,7 +6,7 @@ The URL caching system uses the **Strategy Pattern** with dependency injection t
 
 ## Architecture
 
-```
+```text
 ┌─────────────────────────────────┐
 │    CloudFrontSignerService      │
 │                                 │
@@ -34,6 +34,7 @@ The URL caching system uses the **Strategy Pattern** with dependency injection t
 ### 1. Dependency Inversion Principle (SOLID)
 
 **Before (Concrete Dependency):**
+
 ```kotlin
 class CloudFrontSignerService(
     private val cache: InMemoryUrlCache  // ❌ Depends on concrete class
@@ -41,6 +42,7 @@ class CloudFrontSignerService(
 ```
 
 **After (Interface Dependency):**
+
 ```kotlin
 class CloudFrontSignerService(
     private val cache: UrlCache  // ✅ Depends on abstraction
@@ -107,6 +109,7 @@ Open for extension (add new implementations), closed for modification (don't cha
 - ⚠️ Lost on restart
 
 **Example:**
+
 ```kotlin
 val cache = InMemoryUrlCache()
 val signer = CloudFrontSignerService(s3Config, cache)
@@ -130,6 +133,7 @@ val signer = CloudFrontSignerService(s3Config, cache)
 - ⚠️ External dependency (Redis server)
 
 **Example (when implemented):**
+
 ```kotlin
 val redisClient = RedisClient.create("redis://localhost:6379")
 val cache = RedisUrlCache(redisClient)
@@ -217,6 +221,7 @@ class CloudFrontSignerService(
 ```
 
 **Usage:**
+
 ```kotlin
 // Use default (InMemoryUrlCache)
 val signer = CloudFrontSignerService(s3Config)
