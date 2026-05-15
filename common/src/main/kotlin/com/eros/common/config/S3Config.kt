@@ -55,8 +55,8 @@ data class S3Config(
      */
     fun getBaseUrl(): String {
         return when {
-            !cloudFrontDistributionDomain.isNullOrBlank() -> {
-                require(!cloudFrontDistributionDomain.startsWith("/")) {
+            isCloudFrontEnabled() -> {
+                require(!cloudFrontDistributionDomain!!.startsWith("/")) {
                     "CloudFront distribution domain must not start with '/'. Got: $cloudFrontDistributionDomain"
                 }
                 "https://$cloudFrontDistributionDomain"
