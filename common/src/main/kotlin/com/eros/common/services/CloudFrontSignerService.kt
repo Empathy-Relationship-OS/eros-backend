@@ -5,11 +5,46 @@ import com.amazonaws.services.cloudfront.util.SignerUtils
 import com.eros.common.cache.InMemoryUrlCache
 import com.eros.common.cache.UrlCache
 import com.eros.common.config.S3Config
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.security.PrivateKey
 import java.time.Instant
-import java.util.Date
+import java.util.*
+
+/**
+ * CloudFront custom policy data structures for JSON serialization.
+ */
+@Serializable
+private data class CloudFrontPolicy(
+    val Statement: List<CloudFrontStatement>
+)
+
+@Serializable
+private data class CloudFrontStatement(
+    val Resource: String,
+    val Condition: CloudFrontCondition
+)
+
+@Serializable
+private data class CloudFrontCondition(
+    val DateLessThan: DateLessThan,
+    val IpAddress: IpAddress? = null
+)
+
+@Serializable
+private data class DateLessThan(
+    @SerialName("AWS:EpochTime")
+    val epochTime: Long
+)
+
+@Serializable
+private data class IpAddress(
+    @SerialName("AWS:SourceIp")
+    val sourceIp: String
+)
 
 /**
  * Service for generating CloudFront signed URLs with time-limited access.
@@ -113,6 +148,8 @@ class CloudFrontSignerService(
 
     /**
      * Builds a custom CloudFront policy for URL signing.
+     *
+     * Uses kotlinx.serialization to properly escape JSON values and prevent injection.
      */
     private fun buildCustomPolicy(
         resourceUrl: String,
@@ -120,22 +157,21 @@ class CloudFrontSignerService(
         ipRange: String?
     ): String {
         val epochExpires = expiresAt.time / 1000
-        val ipCondition = if (ipRange != null) {
-            ""","IpAddress":{"AWS:SourceIp":"$ipRange"}"""
-        } else {
-            ""
-        }
 
-        return """
-        {
-            "Statement": [{
-                "Resource": "$resourceUrl",
-                "Condition": {
-                    "DateLessThan": {"AWS:EpochTime": $epochExpires}$ipCondition
-                }
-            }]
-        }
-        """.trimIndent()
+        val condition = CloudFrontCondition(
+            DateLessThan = DateLessThan(epochTime = epochExpires),
+            IpAddress = ipRange?.let { IpAddress(sourceIp = it) }
+        )
+
+        val statement = CloudFrontStatement(
+            Resource = resourceUrl,
+            Condition = condition
+        )
+
+        val policy = CloudFrontPolicy(Statement = listOf(statement))
+
+        // Serialize to JSON with proper escaping
+        return Json.encodeToString(policy)
     }
 
     /**

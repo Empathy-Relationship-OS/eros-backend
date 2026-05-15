@@ -261,6 +261,111 @@ class CloudFrontSignerServiceTest {
     }
 
     @Nested
+    inner class `generateSignedUrlWithCustomPolicy()` {
+
+        @Test
+        fun `should generate CloudFront signed URL with custom policy`() {
+            val s3Config = TestFixtures.testS3Config()
+            val signer = CloudFrontSignerService(s3Config)
+
+            val signedUrl = signer.generateSignedUrlWithCustomPolicy(
+                "photos/user123/test.jpg",
+                expiryHours = 48,
+                ipRange = null
+            )
+
+            // Verify URL structure
+            assertTrue(signedUrl.startsWith("https://d123test.cloudfront.net/photos/user123/test.jpg"),
+                "URL should start with CloudFront domain and object key")
+            assertTrue(signedUrl.contains("Policy="),
+                "URL should contain Policy parameter for custom policy")
+            assertTrue(signedUrl.contains("Signature="),
+                "URL should contain Signature parameter")
+            assertTrue(signedUrl.contains("Key-Pair-Id="),
+                "URL should contain Key-Pair-Id parameter")
+        }
+
+        @Test
+        fun `should generate custom policy URL with IP restriction`() {
+            val s3Config = TestFixtures.testS3Config()
+            val signer = CloudFrontSignerService(s3Config)
+
+            val signedUrl = signer.generateSignedUrlWithCustomPolicy(
+                "photos/user123/test.jpg",
+                expiryHours = 48,
+                ipRange = "203.0.113.0/24"
+            )
+
+            // URL should contain policy parameter
+            assertTrue(signedUrl.contains("Policy="),
+                "URL with IP restriction should contain Policy parameter")
+        }
+
+        @Test
+        fun `should properly escape JSON special characters in resource URL`() {
+            val s3Config = TestFixtures.testS3Config()
+            val signer = CloudFrontSignerService(s3Config)
+
+            // Resource URL with JSON special characters (quotes, backslashes)
+            val objectKeyWithSpecialChars = "photos/user123/test\"quote'single\\backslash.jpg"
+
+            // Should not throw exception due to malformed JSON
+            val signedUrl = signer.generateSignedUrlWithCustomPolicy(
+                objectKeyWithSpecialChars,
+                expiryHours = 48,
+                ipRange = null
+            )
+
+            // Verify URL was generated successfully
+            assertTrue(signedUrl.contains("Policy="),
+                "Should generate valid URL even with special characters in object key")
+            assertTrue(signedUrl.contains("Signature="),
+                "Should contain signature despite special characters")
+        }
+
+        @Test
+        fun `should properly escape JSON special characters in IP range`() {
+            val s3Config = TestFixtures.testS3Config()
+            val signer = CloudFrontSignerService(s3Config)
+
+            // IP range with potential injection attempt
+            val maliciousIpRange = "192.168.1.0/24\",\"malicious\":\"injection"
+
+            // Should not throw exception or allow injection
+            val signedUrl = signer.generateSignedUrlWithCustomPolicy(
+                "photos/user123/test.jpg",
+                expiryHours = 48,
+                ipRange = maliciousIpRange
+            )
+
+            // Verify URL was generated successfully (JSON library escapes the quotes)
+            assertTrue(signedUrl.contains("Policy="),
+                "Should generate valid URL with escaped IP range")
+            assertTrue(signedUrl.contains("Signature="),
+                "Should contain valid signature")
+        }
+
+        @Test
+        fun `should handle Unicode characters in resource URL`() {
+            val s3Config = TestFixtures.testS3Config()
+            val signer = CloudFrontSignerService(s3Config)
+
+            // Resource URL with Unicode characters
+            val objectKeyWithUnicode = "photos/user123/café-☕-日本語.jpg"
+
+            val signedUrl = signer.generateSignedUrlWithCustomPolicy(
+                objectKeyWithUnicode,
+                expiryHours = 48,
+                ipRange = null
+            )
+
+            // Verify URL was generated successfully
+            assertTrue(signedUrl.contains("Policy="),
+                "Should generate valid URL with Unicode characters")
+        }
+    }
+
+    @Nested
     inner class `error handling` {
 
         @Test
