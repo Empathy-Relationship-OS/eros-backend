@@ -44,7 +44,7 @@ We implemented an in-memory cache that stores signed URLs with TTL matching thei
            │
            ↓
 ┌─────────────────────────────┐
-│  SignedUrlCache             │
+│  InMemoryUrlCache           │
 │  getOrGenerate()            │
 │                             │
 │  Cache Key:                 │
@@ -368,7 +368,7 @@ if (existing.expiresAt.isAfter(Instant.now().plusSeconds(300))) {
 ```kotlin
 @Test
 fun `should return cached URL on subsequent requests`() {
-    val cache = SignedUrlCache()
+    val cache = InMemoryUrlCache()
     val key = "photos/user123/test.jpg:48"
 
     var generationCount = 0
@@ -389,7 +389,7 @@ fun `should return cached URL on subsequent requests`() {
 
 @Test
 fun `should regenerate URL after expiry`() {
-    val cache = SignedUrlCache()
+    val cache = InMemoryUrlCache()
     val key = "photos/user123/test.jpg:0" // 0-hour expiry (expires immediately)
 
     var generationCount = 0
