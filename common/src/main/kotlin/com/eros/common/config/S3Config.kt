@@ -49,8 +49,12 @@ data class S3Config(
      */
     fun getBaseUrl(): String {
         return when {
-            !cloudFrontDistributionDomain.isNullOrBlank() ->
-                "https://${cloudFrontDistributionDomain.trimStart('/')}"
+            !cloudFrontDistributionDomain.isNullOrBlank() -> {
+                require(!cloudFrontDistributionDomain.startsWith("/")) {
+                    "CloudFront distribution domain must not start with '/'. Got: $cloudFrontDistributionDomain"
+                }
+                "https://$cloudFrontDistributionDomain"
+            }
             !cdnBaseUrl.isNullOrBlank() ->
                 cdnBaseUrl.trimEnd('/')
             else ->
