@@ -13,6 +13,7 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
 import io.ktor.util.AttributeKey
+import kotlinx.serialization.Serializable
 
 
 /**
@@ -69,19 +70,26 @@ fun Application.configureCache() {
 
             if (healthy) {
                 call.respond(
-                    HttpStatusCode.OK, mapOf(
-                    "status" to "healthy",
-                    "backend" to stats.backend,
-                    "connected" to stats.connected,
-                    "keyCount" to stats.keyCount,
-                    "memoryUsedBytes" to stats.memoryUsedBytes
-                ))
+                    HttpStatusCode.OK,
+                    CacheHealthResponse(
+                        status = "healthy",
+                        backend = stats.backend,
+                        connected = stats.connected,
+                        keyCount = stats.keyCount,
+                        memoryUsedBytes = stats.memoryUsedBytes
+                    )
+                )
             } else {
-                call.respond(HttpStatusCode.ServiceUnavailable, mapOf(
-                    "status" to "unhealthy",
-                    "backend" to stats.backend,
-                    "connected" to stats.connected
-                ))
+                call.respond(
+                    HttpStatusCode.ServiceUnavailable,
+                    CacheHealthResponse(
+                        status = "unhealthy",
+                        backend = stats.backend,
+                        connected = stats.connected,
+                        keyCount = null,
+                        memoryUsedBytes = null
+                    )
+                )
             }
         }
     }
@@ -98,3 +106,15 @@ fun Application.configureCache() {
  * ```
  */
 val CacheKey = AttributeKey<Cache>("Cache")
+
+/**
+ * Cache health check response.
+ */
+@Serializable
+data class CacheHealthResponse(
+    val status: String,
+    val backend: String,
+    val connected: Boolean,
+    val keyCount: Long? = null,
+    val memoryUsedBytes: Long? = null
+)
