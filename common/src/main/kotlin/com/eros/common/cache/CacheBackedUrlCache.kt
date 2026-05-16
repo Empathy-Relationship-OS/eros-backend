@@ -1,7 +1,6 @@
 package com.eros.common.cache
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import kotlinx.coroutines.runBlocking
 
 /**
  * Adapter that implements UrlCache using the generic Cache interface.
@@ -31,11 +30,13 @@ class CacheBackedUrlCache(
         private val logger = KotlinLogging.logger {}
     }
 
-    override fun getOrGenerate(
+    override suspend fun getOrGenerate(
         key: String,
         expiryHours: Long,
         generator: () -> String
-    ): String = runBlocking {
+    ): String {
+        require(expiryHours > 0) { "TTL must be positive, got expiryHours=$expiryHours" }
+
         val fullKey = "$KEY_PREFIX$key"
 
         // Try to get from cache
@@ -47,7 +48,7 @@ class CacheBackedUrlCache(
         // where a cached URL is returned but expires before the client can use it
         if (cached != null && ttl != null && ttl > bufferMinutes * 60) {
             logger.debug { "Cache hit for key: $key (TTL: ${ttl}s remaining)" }
-            return@runBlocking cached
+            return cached
         }
 
         // Cache miss or expiring soon - regenerate
@@ -64,38 +65,39 @@ class CacheBackedUrlCache(
         // Store in cache with TTL in seconds
         cache.set(fullKey, generated, expiryHours * 3600)
 
-        generated
+        return generated
     }
 
-    override fun invalidate(key: String) = runBlocking {
+    override suspend fun invalidate(key: String) {
         val fullKey = "$KEY_PREFIX$key"
         cache.delete(fullKey)
         logger.debug { "Invalidated cache key: $key" }
     }
 
-    override fun invalidateUser(userId: String) = runBlocking {
+    override suspend fun invalidateUser(userId: String) {
         // Pattern: "cloudfront:signed-url:photos/{userId}/*"
-        val pattern = "$KEY_PREFIX*$userId*"
+        // Stricter pattern to only match keys for this specific user
+        val pattern = "${KEY_PREFIX}photos/$userId/*"
         cache.deleteByPattern(pattern)
         logger.debug { "Invalidated all cache entries for user: $userId" }
     }
 
-    override fun invalidateByPrefix(prefix: String) = runBlocking {
+    override suspend fun invalidateByPrefix(prefix: String) {
         val pattern = "$KEY_PREFIX$prefix*"
         cache.deleteByPattern(pattern)
         logger.debug { "Invalidated all cache entries matching prefix: $prefix" }
     }
 
-    override fun clear() = runBlocking {
+    override suspend fun clear() {
         // Only clear CloudFront signed URL entries, not the entire cache
         cache.deleteByPattern("$KEY_PREFIX*")
         logger.warn { "Cleared all CloudFront signed URL cache entries" }
     }
 
-    override fun getStats(): UrlCache.CacheStats = runBlocking {
+    override suspend fun getStats(): UrlCache.CacheStats {
         val cacheStats = cache.getStats()
 
-        UrlCache.CacheStats(
+        return UrlCache.CacheStats(
             size = cacheStats.keyCount?.toInt() ?: 0,
             entries = emptyList(),  // Would require expensive SCAN operation
             implementation = cacheStats.backend

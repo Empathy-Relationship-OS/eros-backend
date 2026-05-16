@@ -25,7 +25,7 @@ class RedisUrlCache : UrlCache {
         private const val KEY_PREFIX = "cloudfront:signed-url:"
     }
 
-    override fun getOrGenerate(
+    override suspend fun getOrGenerate(
         key: String,
         expiryHours: Long,
         generator: () -> String
@@ -34,23 +34,23 @@ class RedisUrlCache : UrlCache {
         return generator()
     }
 
-    override fun invalidate(key: String) {
+    override suspend fun invalidate(key: String) {
         logger.warn("RedisUrlCache.invalidate() not yet implemented")
     }
 
-    override fun invalidateUser(userId: String) {
+    override suspend fun invalidateUser(userId: String) {
         logger.warn("RedisUrlCache.invalidateUser() not yet implemented")
     }
 
-    override fun invalidateByPrefix(prefix: String) {
+    override suspend fun invalidateByPrefix(prefix: String) {
         logger.warn("RedisUrlCache.invalidateByPrefix() not yet implemented")
     }
 
-    override fun clear() {
+    override suspend fun clear() {
         logger.warn("RedisUrlCache.clear() not yet implemented")
     }
 
-    override fun getStats(): UrlCache.CacheStats {
+    override suspend fun getStats(): UrlCache.CacheStats {
         return UrlCache.CacheStats(
             size = 0,
             entries = emptyList(),

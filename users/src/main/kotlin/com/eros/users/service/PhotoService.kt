@@ -104,7 +104,7 @@ class PhotoService(
      * @return Time-limited access URL
      * @throws IllegalStateException if CloudFront is not configured
      */
-    fun generateAccessUrl(mediaUrl: String, expiryHours: Long = 48): String {
+    suspend fun generateAccessUrl(mediaUrl: String, expiryHours: Long = 48): String {
         return if (cloudFrontSigner != null) {
             // Use CloudFront signed URL
             val objectKey = cloudFrontSigner.extractObjectKey(mediaUrl)

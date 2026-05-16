@@ -3,9 +3,10 @@ package com.eros.common.services
 import com.eros.common.TestFixtures
 import com.eros.common.cache.InMemoryUrlCache
 import com.eros.common.cache.UrlCache
-import io.mockk.every
+import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
-import io.mockk.verify
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -22,7 +23,7 @@ class CloudFrontSignerServiceTest {
         inner class `URL generation` {
 
             @Test
-            fun `should generate CloudFront signed URL with correct structure`() {
+            fun `should generate CloudFront signed URL with correct structure`() = runTest {
                 val s3Config = TestFixtures.testS3Config()
                 val signer = CloudFrontSignerService(s3Config)
 
@@ -40,7 +41,7 @@ class CloudFrontSignerServiceTest {
             }
 
             @Test
-            fun `should include correct Key-Pair-Id in URL`() {
+            fun `should include correct Key-Pair-Id in URL`() = runTest {
                 val s3Config = TestFixtures.testS3Config(
                     cloudFrontKeyPairId = "APKATEST123456"
                 )
@@ -53,7 +54,7 @@ class CloudFrontSignerServiceTest {
             }
 
             @Test
-            fun `should generate different signatures for different object keys`() {
+            fun `should generate different signatures for different object keys`() = runTest {
                 val s3Config = TestFixtures.testS3Config()
                 val signer = CloudFrontSignerService(s3Config)
 
@@ -69,25 +70,25 @@ class CloudFrontSignerServiceTest {
         inner class `caching behavior` {
 
             @Test
-            fun `should use cached URL when available`() {
+            fun `should use cached URL when available`() = runTest {
                 val mockCache = mockk<UrlCache>()
                 val s3Config = TestFixtures.testS3Config()
                 val signer = CloudFrontSignerService(s3Config, mockCache)
 
                 val cachedUrl = "https://d123test.cloudfront.net/photos/test.jpg?Expires=123&Signature=cached&Key-Pair-Id=TEST"
 
-                every { mockCache.getOrGenerate(any(), any(), any()) } returns cachedUrl
+                coEvery { mockCache.getOrGenerate(any(), any(), any()) } returns cachedUrl
 
                 val result = signer.generateSignedUrl("photos/test.jpg", 48)
 
                 assertEquals(cachedUrl, result, "Should return cached URL")
-                verify(exactly = 1) {
+                coVerify(exactly = 1) {
                     mockCache.getOrGenerate("photos/test.jpg:48", 48, any())
                 }
             }
 
             @Test
-            fun `should cache generated URLs for repeated calls`() {
+            fun `should cache generated URLs for repeated calls`() = runTest {
                 val s3Config = TestFixtures.testS3Config()
                 val cache = InMemoryUrlCache()
                 val signer = CloudFrontSignerService(s3Config, cache)
@@ -102,7 +103,7 @@ class CloudFrontSignerServiceTest {
             }
 
             @Test
-            fun `should regenerate URL after cache invalidation`() {
+            fun `should regenerate URL after cache invalidation`() = runTest {
                 val s3Config = TestFixtures.testS3Config()
                 val cache = InMemoryUrlCache()
                 val signer = CloudFrontSignerService(s3Config, cache)
@@ -127,7 +128,7 @@ class CloudFrontSignerServiceTest {
         inner class `different expiry times` {
 
             @Test
-            fun `should generate different cache keys for different expiry times`() {
+            fun `should generate different cache keys for different expiry times`() = runTest {
                 val s3Config = TestFixtures.testS3Config()
                 val cache = InMemoryUrlCache()
                 val signer = CloudFrontSignerService(s3Config, cache)
@@ -192,7 +193,7 @@ class CloudFrontSignerServiceTest {
     inner class `cache invalidation` {
 
         @Test
-        fun `should invalidate cache for all expiry variants when invalidating object`() {
+        fun `should invalidate cache for all expiry variants when invalidating object`() = runTest {
             val s3Config = TestFixtures.testS3Config()
             val cache = InMemoryUrlCache()
             val signer = CloudFrontSignerService(s3Config, cache)
@@ -213,7 +214,7 @@ class CloudFrontSignerServiceTest {
         }
 
         @Test
-        fun `should invalidate all user photos when invalidating user`() {
+        fun `should invalidate all user photos when invalidating user`() = runTest {
             val s3Config = TestFixtures.testS3Config()
             val cache = InMemoryUrlCache()
             val signer = CloudFrontSignerService(s3Config, cache)
@@ -244,7 +245,7 @@ class CloudFrontSignerServiceTest {
     inner class statistics {
 
         @Test
-        fun `should return cache statistics`() {
+        fun `should return cache statistics`() = runTest {
             val s3Config = TestFixtures.testS3Config()
             val cache = InMemoryUrlCache()
             val signer = CloudFrontSignerService(s3Config, cache)
@@ -264,7 +265,7 @@ class CloudFrontSignerServiceTest {
     inner class `generateSignedUrlWithCustomPolicy()` {
 
         @Test
-        fun `should generate CloudFront signed URL with custom policy`() {
+        fun `should generate CloudFront signed URL with custom policy`() = runTest {
             val s3Config = TestFixtures.testS3Config()
             val signer = CloudFrontSignerService(s3Config)
 
@@ -286,7 +287,7 @@ class CloudFrontSignerServiceTest {
         }
 
         @Test
-        fun `should generate custom policy URL with IP restriction`() {
+        fun `should generate custom policy URL with IP restriction`() = runTest {
             val s3Config = TestFixtures.testS3Config()
             val signer = CloudFrontSignerService(s3Config)
 
@@ -302,7 +303,7 @@ class CloudFrontSignerServiceTest {
         }
 
         @Test
-        fun `should properly escape JSON special characters in resource URL`() {
+        fun `should properly escape JSON special characters in resource URL`() = runTest {
             val s3Config = TestFixtures.testS3Config()
             val signer = CloudFrontSignerService(s3Config)
 
@@ -324,7 +325,7 @@ class CloudFrontSignerServiceTest {
         }
 
         @Test
-        fun `should properly escape JSON special characters in IP range`() {
+        fun `should properly escape JSON special characters in IP range`() = runTest {
             val s3Config = TestFixtures.testS3Config()
             val signer = CloudFrontSignerService(s3Config)
 
@@ -346,7 +347,7 @@ class CloudFrontSignerServiceTest {
         }
 
         @Test
-        fun `should handle Unicode characters in resource URL`() {
+        fun `should handle Unicode characters in resource URL`() = runTest {
             val s3Config = TestFixtures.testS3Config()
             val signer = CloudFrontSignerService(s3Config)
 

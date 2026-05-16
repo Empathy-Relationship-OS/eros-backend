@@ -21,7 +21,7 @@ interface UrlCache {
      * @param generator Function to generate the URL if not cached
      * @return The URL (cached or freshly generated)
      */
-    fun getOrGenerate(
+    suspend fun getOrGenerate(
         key: String,
         expiryHours: Long,
         generator: () -> String
@@ -32,35 +32,35 @@ interface UrlCache {
      *
      * @param key The cache key to invalidate
      */
-    fun invalidate(key: String)
+    suspend fun invalidate(key: String)
 
     /**
      * Invalidates all cache entries for a specific user.
      *
      * @param userId The user whose URLs should be invalidated
      */
-    fun invalidateUser(userId: String)
+    suspend fun invalidateUser(userId: String)
 
     /**
      * Invalidates all cache entries matching a prefix.
      *
      * @param prefix The prefix to match (e.g., "photos/user123/abc.jpg:")
      */
-    fun invalidateByPrefix(prefix: String)
+    suspend fun invalidateByPrefix(prefix: String)
 
     /**
      * Clears the entire cache.
      *
      * Useful for testing or maintenance operations.
      */
-    fun clear()
+    suspend fun clear()
 
     /**
      * Returns cache statistics for monitoring.
      *
      * @return CacheStats containing metrics about cache usage
      */
-    fun getStats(): CacheStats
+    suspend fun getStats(): CacheStats
 
     /**
      * Cache statistics for monitoring and observability.

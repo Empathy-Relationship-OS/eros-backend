@@ -87,7 +87,7 @@ class CloudFrontSignerService(
      * @return CloudFront signed URL with expiration parameters (cached or freshly generated)
      * @throws IllegalStateException if CloudFront is not properly configured
      */
-    fun generateSignedUrl(objectKey: String, expiryHours: Long = 48): String {
+    suspend fun generateSignedUrl(objectKey: String, expiryHours: Long = 48): String {
         val cacheKey = "$objectKey:$expiryHours"
 
         return urlCache.getOrGenerate(cacheKey, expiryHours) {
@@ -233,7 +233,7 @@ class CloudFrontSignerService(
      *
      * @param objectKey S3 object key to invalidate (e.g., "photos/user123/abc.jpg")
      */
-    fun invalidateCache(objectKey: String) {
+    suspend fun invalidateCache(objectKey: String) {
         // Invalidate all expiry variants of this object key
         urlCache.invalidateByPrefix("$objectKey:")
         logger.debug("Invalidated cache for: $objectKey")
@@ -246,7 +246,7 @@ class CloudFrontSignerService(
      *
      * @param userId The user whose URLs should be invalidated
      */
-    fun invalidateUserCache(userId: String) {
+    suspend fun invalidateUserCache(userId: String) {
         urlCache.invalidateUser(userId)
         logger.debug("Invalidated cache for user: $userId")
     }
@@ -254,7 +254,7 @@ class CloudFrontSignerService(
     /**
      * Returns cache statistics for monitoring.
      */
-    fun getCacheStats(): UrlCache.CacheStats {
+    suspend fun getCacheStats(): UrlCache.CacheStats {
         return urlCache.getStats()
     }
 }

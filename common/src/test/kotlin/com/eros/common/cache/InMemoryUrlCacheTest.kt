@@ -1,5 +1,7 @@
 package com.eros.common.cache
 
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import java.util.concurrent.CountDownLatch
@@ -17,7 +19,7 @@ class InMemoryUrlCacheTest {
         inner class `cache hits` {
 
             @Test
-            fun `should return generated URL on first request (cache miss)`() {
+            fun `should return generated URL on first request (cache miss)`() = runTest {
                 val cache = InMemoryUrlCache()
                 var generationCount = 0
 
@@ -31,7 +33,7 @@ class InMemoryUrlCacheTest {
             }
 
             @Test
-            fun `should return cached URL on subsequent requests (cache hit)`() {
+            fun `should return cached URL on subsequent requests (cache hit)`() = runTest {
                 val cache = InMemoryUrlCache()
                 var generationCount = 0
 
@@ -59,7 +61,7 @@ class InMemoryUrlCacheTest {
             }
 
             @Test
-            fun `should cache different URLs for different keys`() {
+            fun `should cache different URLs for different keys`() = runTest {
                 val cache = InMemoryUrlCache()
 
                 val url1 = cache.getOrGenerate("photos/user1/abc.jpg:48", 48) {
@@ -76,7 +78,7 @@ class InMemoryUrlCacheTest {
             }
 
             @Test
-            fun `should cache different URLs for same object with different expiry times`() {
+            fun `should cache different URLs for same object with different expiry times`() = runTest {
                 val cache = InMemoryUrlCache()
 
                 val url48h = cache.getOrGenerate("photos/user1/abc.jpg:48", 48) {
@@ -97,7 +99,7 @@ class InMemoryUrlCacheTest {
         inner class `cache misses and expiry` {
 
             @Test
-            fun `should regenerate URL after expiry time has passed`() {
+            fun `should regenerate URL after expiry time has passed`() = runTest {
                 val cache = InMemoryUrlCache()
                 var generationCount = 0
 
@@ -122,7 +124,7 @@ class InMemoryUrlCacheTest {
             }
 
             @Test
-            fun `should clean up expired entries automatically`() {
+            fun `should clean up expired entries automatically`() = runTest {
                 val cache = InMemoryUrlCache()
 
                 // Add entry with 0-hour expiry (expires immediately)
@@ -144,7 +146,7 @@ class InMemoryUrlCacheTest {
             }
 
             @Test
-            fun `should respect 5-minute buffer before expiry`() {
+            fun `should respect 5-minute buffer before expiry`() = runTest {
                 val cache = InMemoryUrlCache()
                 var generationCount = 0
 
@@ -172,7 +174,7 @@ class InMemoryUrlCacheTest {
         inner class `thread safety` {
 
             @Test
-            fun `should handle concurrent requests to same key (thread safety)`() {
+            fun `should handle concurrent requests to same key (thread safety)`() = runTest {
                 val cache = InMemoryUrlCache()
                 val threadCount = 50
                 val latch = CountDownLatch(threadCount)
@@ -190,9 +192,11 @@ class InMemoryUrlCacheTest {
                 repeat(threadCount) {
                     executor.submit {
                         try {
-                            val url = cache.getOrGenerate("concurrent-key:48", 48) {
-                                // This should not be called since entry is already cached
-                                throw IllegalStateException("Generator should not be called - entry is cached")
+                            val url = runBlocking {
+                                cache.getOrGenerate("concurrent-key:48", 48) {
+                                    // This should not be called since entry is already cached
+                                    throw IllegalStateException("Generator should not be called - entry is cached")
+                                }
                             }
                             synchronized(results) {
                                 results.add(url)
@@ -227,7 +231,7 @@ class InMemoryUrlCacheTest {
     inner class `invalidation` {
 
         @Test
-        fun `should invalidate specific cache entry`() {
+        fun `should invalidate specific cache entry`() = runTest {
             val cache = InMemoryUrlCache()
             var generationCount = 0
 
@@ -252,7 +256,7 @@ class InMemoryUrlCacheTest {
         }
 
         @Test
-        fun `should invalidate all entries for a user`() {
+        fun `should invalidate all entries for a user`() = runTest {
             val cache = InMemoryUrlCache()
 
             // Cache multiple URLs for user123
@@ -277,7 +281,7 @@ class InMemoryUrlCacheTest {
         }
 
         @Test
-        fun `should clear entire cache`() {
+        fun `should clear entire cache`() = runTest {
             val cache = InMemoryUrlCache()
 
             // Cache multiple URLs
@@ -302,7 +306,7 @@ class InMemoryUrlCacheTest {
     inner class `statistics` {
 
         @Test
-        fun `should return correct cache size and entries`() {
+        fun `should return correct cache size and entries`() = runTest {
             val cache = InMemoryUrlCache()
 
             // Add entries
@@ -320,7 +324,7 @@ class InMemoryUrlCacheTest {
         }
 
         @Test
-        fun `should exclude expired entries from stats`() {
+        fun `should exclude expired entries from stats`() = runTest {
             val cache = InMemoryUrlCache()
 
             // Add entry with 0-hour expiry (expires immediately)

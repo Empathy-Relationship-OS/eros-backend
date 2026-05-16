@@ -34,7 +34,7 @@ class CacheBackedUrlCacheTest {
     inner class GetOrGenerate {
 
         @Test
-        fun `should generate value on cache miss`() {
+        fun `should generate value on cache miss`() = runTest {
             // Given
             val key = "test-key"
             var generatorCalled = false
@@ -51,7 +51,7 @@ class CacheBackedUrlCacheTest {
         }
 
         @Test
-        fun `should return cached value on cache hit`() {
+        fun `should return cached value on cache hit`() = runTest {
             // Given
             val key = "test-key"
             urlCache.getOrGenerate(key, expiryHours = 1) { "first-value" }
@@ -100,7 +100,7 @@ class CacheBackedUrlCacheTest {
         }
 
         @Test
-        fun `should handle different keys independently`() {
+        fun `should handle different keys independently`() = runTest {
             // When
             val result1 = urlCache.getOrGenerate("key1", expiryHours = 1) { "value1" }
             val result2 = urlCache.getOrGenerate("key2", expiryHours = 1) { "value2" }
@@ -357,7 +357,7 @@ class CacheBackedUrlCacheTest {
     inner class EdgeCases {
 
         @Test
-        fun `should handle empty key`() {
+        fun `should handle empty key`() = runTest {
             // When
             val result = urlCache.getOrGenerate("", expiryHours = 1) { "value" }
 
@@ -366,7 +366,7 @@ class CacheBackedUrlCacheTest {
         }
 
         @Test
-        fun `should handle keys with special characters`() {
+        fun `should handle keys with special characters`() = runTest {
             // Given
             val key = "path/to/file:with:colons_and_underscores.jpg"
 
@@ -378,7 +378,7 @@ class CacheBackedUrlCacheTest {
         }
 
         @Test
-        fun `should handle very long expiry times`() {
+        fun `should handle very long expiry times`() = runTest {
             // Given
             val key = "test-key"
 
@@ -390,7 +390,7 @@ class CacheBackedUrlCacheTest {
         }
 
         @Test
-        fun `should reject zero expiry`() {
+        fun `should reject zero expiry`() = runTest {
             // Given
             val key = "test-key"
 
@@ -402,7 +402,7 @@ class CacheBackedUrlCacheTest {
         }
 
         @Test
-        fun `should handle generator returning empty string`() {
+        fun `should handle generator returning empty string`() = runTest {
             // When
             val result = urlCache.getOrGenerate("key", expiryHours = 1) { "" }
 
@@ -411,7 +411,7 @@ class CacheBackedUrlCacheTest {
         }
 
         @Test
-        fun `should handle generator returning large values`() {
+        fun `should handle generator returning large values`() = runTest {
             // When
             val largeValue = "x".repeat(10000)
             val result = urlCache.getOrGenerate("key", expiryHours = 1) { largeValue }
@@ -425,7 +425,7 @@ class CacheBackedUrlCacheTest {
     inner class RealWorldScenarios {
 
         @Test
-        fun `should handle CloudFront URL caching scenario`() {
+        fun `should handle CloudFront URL caching scenario`() = runTest {
             // Simulate CloudFront signed URL generation
             val objectKey = "photos/user123/profile.jpg"
             val userId = "user123"
@@ -457,7 +457,7 @@ class CacheBackedUrlCacheTest {
         }
 
         @Test
-        fun `should handle multiple users independently`() {
+        fun `should handle multiple users independently`() = runTest {
             // Cache URLs for different users
             urlCache.getOrGenerate("photos/user1/img.jpg", 1) { "url1" }
             urlCache.getOrGenerate("photos/user2/img.jpg", 1) { "url2" }
