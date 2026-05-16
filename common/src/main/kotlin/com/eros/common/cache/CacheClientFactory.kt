@@ -13,12 +13,12 @@ import java.time.Duration
  * Supports multiple backends (Valkey, Redis, In-Memory) and handles:
  * - TLS/SSL for AWS ElastiCache
  * - Connection pooling
- * - Graceful fallback to in-memory cache on failure
+ * - Fail-fast behavior (throws exception if distributed cache fails to connect)
  *
  * Example usage:
  * ```kotlin
  * val config = CacheConfig.fromApplicationConfig(environment.config)
- * val cache = CacheClientFactory.create(config)
+ * val cache = CacheClientFactory.create(config)  // Throws if connection fails
  * ```
  */
 object CacheClientFactory {
@@ -28,13 +28,17 @@ object CacheClientFactory {
     /**
      * Creates a cache instance based on configuration.
      *
-     * Falls back to InMemoryCache if:
+     * Returns InMemoryCache only if:
      * - Cache is disabled (`enabled = false`)
-     * - Distributed backend fails to initialize
-     * - Connection test fails
+     * - Backend is explicitly set to `IN_MEMORY`
+     *
+     * For distributed backends (Valkey/Redis):
+     * - Throws exception if connection fails (fail-fast behavior)
+     * - This prevents silent fallback and ensures configuration issues are caught early
      *
      * @param config Cache configuration
-     * @return Cache implementation (distributed or in-memory fallback)
+     * @return Cache implementation
+     * @throws Exception if distributed cache connection fails
      */
     fun create(config: CacheConfig): Cache {
         if (!config.enabled) {
@@ -59,11 +63,11 @@ object CacheClientFactory {
      * Handles:
      * - TLS/SSL configuration for AWS ElastiCache
      * - Connection timeout settings
-     * - Connection health check
-     * - Automatic fallback to in-memory on failure
+     * - Connection health check (PING command)
      *
      * @param config Cache configuration
-     * @return DistributedCache or InMemoryCache (fallback)
+     * @return DistributedCache
+     * @throws Exception if connection fails or PING fails
      */
     private fun createDistributedCache(config: CacheConfig): Cache {
         return try {

@@ -2,12 +2,13 @@
 
 **Date:** 2026-05-16
 **Status:** ✅ **COMPLETE - Ready for Testing**
+**Versions:** Valkey 9.0.4, Lettuce 6.7.1.RELEASE, kotlin-logging 7.0.0
 
 ---
 
 ## What Was Built
 
-We've successfully implemented a **production-ready, backend-agnostic caching infrastructure** for the Eros Backend. The system supports Valkey (recommended), Redis, and in-memory fallback, with full AWS ElastiCache compatibility.
+We've successfully implemented a **production-ready, backend-agnostic caching infrastructure** for the Eros Backend. The system supports Valkey 9.0.4 (recommended), Redis, and in-memory cache, with full AWS ElastiCache compatibility and fail-fast behavior for reliability.
 
 ---
 
@@ -132,8 +133,15 @@ CACHE_TLS_ENABLED=true
 
 **Disable Cache (Testing):**
 ```env
-CACHE_ENABLED=false  # Falls back to in-memory
+CACHE_ENABLED=false  # Uses in-memory
+# OR
+CACHE_BACKEND=in-memory  # Explicitly use in-memory
 ```
+
+**Important - Fail-Fast Behavior:**
+- If Valkey/Redis is configured but unavailable, the application **will not start**
+- This is intentional - catches configuration errors early
+- For development, use `CACHE_ENABLED=false` or `CACHE_BACKEND=in-memory` if you don't want to run Valkey
 
 ---
 

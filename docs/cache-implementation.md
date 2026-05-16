@@ -2,7 +2,8 @@
 
 **Date:** 2026-05-16
 **Status:** ✅ Implemented
-**Backend:** Valkey (Redis-compatible)
+**Backend:** Valkey 9.0.4 (Redis-compatible)
+**Client:** Lettuce 6.7.1.RELEASE
 
 ---
 
@@ -10,11 +11,12 @@
 
 The Eros Backend now has a comprehensive caching infrastructure that supports:
 
-- ✅ **Multiple backends**: Valkey, Redis, In-Memory
-- ✅ **Local development**: Docker Compose with Valkey
+- ✅ **Multiple backends**: Valkey 9.0.4, Redis, In-Memory
+- ✅ **Local development**: Docker Compose with Valkey 9.0.4-alpine
 - ✅ **Production**: AWS ElastiCache with TLS/SSL
-- ✅ **Graceful degradation**: Automatic fallback to in-memory cache
+- ✅ **Fail-fast behavior**: Explicit errors if distributed cache connection fails
 - ✅ **Zero code changes**: Switch backends via configuration
+- ✅ **Latest stable versions**: Lettuce 6.7.1.RELEASE, Kotlin-logging 7.0.0
 
 ---
 
@@ -47,6 +49,42 @@ Lettuce Client (Valkey/Redis protocol)
 | `InMemoryCache` | Fallback implementation | `common/cache/InMemoryCache.kt` |
 | `CacheBackedUrlCache` | Adapter for UrlCache | `common/cache/CacheBackedUrlCache.kt` |
 | `configureCache()` | Ktor plugin | `app/Cache.kt` |
+
+---
+
+## Fail-Fast Behavior (Important!)
+
+### Design Philosophy
+
+The cache implementation follows a **fail-fast** approach for production reliability:
+
+**✅ What happens when distributed cache connection fails:**
+```kotlin
+// If Valkey/Redis is configured but unreachable:
+// ❌ Does NOT silently fall back to in-memory cache
+// ✅ THROWS exception and prevents application startup
+```
+
+**Why fail-fast is better:**
+1. **Catches configuration errors early** - Missing passwords, wrong hostnames detected immediately
+2. **Prevents production incidents** - No silent degradation that goes unnoticed
+3. **Clear deployment feedback** - Failed deployments alert you to cache issues
+4. **Consistent behavior** - All instances use the same cache backend
+
+**When InMemoryCache is used:**
+```kotlin
+// Only in these explicit cases:
+cache:
+  enabled: false        # ← Explicitly disabled
+  # OR
+  backend: in-memory    # ← Explicitly configured
+```
+
+**For graceful degradation in production:**
+- Use AWS ElastiCache with Multi-AZ failover
+- Configure connection timeout (default: 2000ms)
+- Monitor `/health/cache` endpoint
+- Set up CloudWatch alarms for cache unavailability
 
 ---
 
@@ -462,17 +500,44 @@ Per-user cached profile: ~50 KB
 
 ## Troubleshooting
 
-### Issue: Connection Refused
+### Issue: Application Fails to Start (Connection Refused)
 
 **Symptoms:**
 ```
-Failed to connect to valkey at localhost:6379, falling back to in-memory cache
+Failed to connect to valkey at localhost:6379
+io.lettuce.core.RedisConnectionException: Unable to connect to localhost:6379
+Application startup failed
 ```
 
+**This is expected behavior (fail-fast)!** The application will not start if the configured cache is unavailable.
+
 **Solutions:**
-1. Check Valkey is running: `docker ps | grep valkey`
-2. Check port mapping: `docker port valkey`
-3. Verify password: `docker exec valkey valkey-cli -a devpassword PING`
+1. **Check Valkey is running:**
+   ```bash
+   docker ps | grep valkey
+   # If not running:
+   docker-compose up -d valkey
+   ```
+
+2. **Check port mapping:**
+   ```bash
+   docker port valkey
+   # Should show: 6379/tcp -> 0.0.0.0:6379
+   ```
+
+3. **Verify password:**
+   ```bash
+   docker exec valkey valkey-cli -a devpassword PING
+   # Expected: PONG
+   ```
+
+4. **Temporary workaround (development only):**
+   ```env
+   # Disable cache temporarily
+   CACHE_ENABLED=false
+   # OR use in-memory
+   CACHE_BACKEND=in-memory
+   ```
 
 ### Issue: Authentication Failed
 
@@ -498,12 +563,29 @@ Connection error: SSL handshake failed
 2. Check `CACHE_TLS_ENABLED=true` in environment
 3. Verify security group allows port 6379 from application
 
+### Issue: Want to Test Without Cache
+
+**Solution:**
+```env
+# Option 1: Disable cache entirely
+CACHE_ENABLED=false
+
+# Option 2: Use in-memory cache
+CACHE_BACKEND=in-memory
+```
+
+**Note:** The application will use InMemoryCache in both cases, which is:
+- ✅ Fast (no network overhead)
+- ✅ No external dependencies
+- ❌ Not shared across instances
+- ❌ Lost on application restart
+
 ### Issue: Cache Not Being Used
 
 **Check:**
-1. Verify cache is enabled: `curl http://localhost:8940/health/cache`
+1. Verify cache is enabled and healthy: `curl http://localhost:8940/health/cache`
 2. Check logs for "Cache initialized successfully"
-3. Monitor cache hit/miss rates
+3. Check backend: Should see "backend": "valkey" (not "in-memory")
 4. Verify UrlCache is using CacheBackedUrlCache adapter
 
 ---
