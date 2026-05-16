@@ -35,6 +35,8 @@ dependencies {
     testImplementation(libs.kotlin.test.junit)
     testImplementation(libs.junit.jupiter)
     testImplementation(libs.mockk)
+    testImplementation(libs.testcontainers.junit)
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
     testRuntimeOnly(libs.junit.platform.launcher)
 }
 

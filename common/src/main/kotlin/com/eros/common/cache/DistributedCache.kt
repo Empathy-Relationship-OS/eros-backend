@@ -85,12 +85,13 @@ class DistributedCache(
 
             // Use SCAN for safe pattern deletion (doesn't block server)
             // SCAN is O(N) but doesn't block like KEYS command
-            val cursor = ScanCursor.INITIAL
+            var cursor = ScanCursor.INITIAL
             val keys = mutableListOf<String>()
 
             do {
                 val scanResult = commands.scan(cursor, ScanArgs.Builder.matches(pattern))
                 keys.addAll(scanResult.keys)
+                cursor = ScanCursor.of(scanResult.cursor)
             } while (!scanResult.isFinished)
 
             if (keys.isNotEmpty()) {

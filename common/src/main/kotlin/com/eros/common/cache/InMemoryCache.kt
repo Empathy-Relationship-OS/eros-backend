@@ -60,7 +60,14 @@ class InMemoryCache : Cache {
     }
 
     override suspend fun set(key: String, value: String, ttlSeconds: Long) {
-        val expiresAt = Instant.now().epochSecond + ttlSeconds
+        require(ttlSeconds > 0) { "TTL must be positive, got: $ttlSeconds" }
+
+        val now = Instant.now().epochSecond
+        val expiresAt = try {
+            Math.addExact(now, ttlSeconds)
+        } catch (e: ArithmeticException) {
+            throw IllegalArgumentException("TTL value too large: $ttlSeconds seconds would cause overflow", e)
+        }
         cache[key] = CacheEntry(value, expiresAt)
     }
 

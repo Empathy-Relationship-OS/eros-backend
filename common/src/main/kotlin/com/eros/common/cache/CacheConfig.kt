@@ -1,6 +1,7 @@
 package com.eros.common.cache
 
-import io.ktor.server.config.*
+import io.ktor.server.config.ApplicationConfig
+
 
 /**
  * Backend-agnostic cache configuration.
@@ -98,7 +99,9 @@ data class CacheConfig(
             return CacheConfig(
                 enabled = config.property("cache.enabled").getString().toBoolean(),
                 backend = CacheBackend.valueOf(
-                    config.property("cache.backend").getString().uppercase()
+                    config.property("cache.backend").getString()
+                        .replace("-", "_")
+                        .uppercase()
                 ),
                 host = config.property("cache.host").getString(),
                 port = config.property("cache.port").getString().toInt(),
@@ -174,5 +177,9 @@ enum class CacheBackend {
      * Human-readable backend name.
      */
     val displayName: String
-        get() = name.lowercase().replaceFirstChar { it.uppercase() }
+        get() = when (this) {
+            VALKEY -> "Valkey"
+            REDIS -> "Redis"
+            IN_MEMORY -> "In-memory"
+        }
 }
