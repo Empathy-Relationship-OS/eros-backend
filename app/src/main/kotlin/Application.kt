@@ -10,6 +10,7 @@ fun main(args: Array<String>) {
 fun Application.module() {
     configureExceptionHandling()
     configureDatabase()
+    configureCache()  // Initialize cache (Valkey/Redis/In-Memory)
     configureSerialization()
     configureAdministration()
     configureHTTP()
