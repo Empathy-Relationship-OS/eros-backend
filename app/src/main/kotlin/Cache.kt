@@ -39,30 +39,28 @@ fun Application.configureCache() {
         throw e
     }
 
-    if (!config.enabled) {
+    // Initialize cache based on config
+    val cache = if (!config.enabled) {
         log.info("Cache is disabled (cache.enabled=false)")
-        // Store in-memory cache even when disabled for consistent API
-        attributes.put(CacheKey, InMemoryCache())
-        return
+        InMemoryCache()
+    } else {
+        log.info("Initializing cache with backend: ${config.backend.displayName}")
+        // Create cache client (with automatic fallback to in-memory on failure)
+        CacheClientFactory.create(config)
     }
-
-    log.info("Initializing cache with backend: ${config.backend.displayName}")
-
-    // Create cache client (with automatic fallback to in-memory on failure)
-    val cache = CacheClientFactory.create(config)
 
     // Store cache in application attributes for access by other modules
     attributes.put(CacheKey, cache)
 
     // Register shutdown hook for distributed caches
-    monitor.subscribe(ApplicationStopped) {
-        if (cache is DistributedCache) {
+    if (cache is DistributedCache) {
+        monitor.subscribe(ApplicationStopped) {
             log.info("Shutting down distributed cache...")
             cache.shutdown()
         }
     }
 
-    // Add health check endpoint
+    // Add health check endpoint (always available, even when cache is disabled)
     routing {
         get("/health/cache") {
             val healthy = cache.ping()
@@ -94,7 +92,9 @@ fun Application.configureCache() {
         }
     }
 
-    log.info("Cache initialized successfully (backend: ${config.backend.displayName})")
+    if (config.enabled) {
+        log.info("Cache initialized successfully (backend: ${config.backend.displayName})")
+    }
 }
 
 /**
