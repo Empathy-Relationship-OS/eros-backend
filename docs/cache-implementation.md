@@ -24,7 +24,7 @@ The Eros Backend now has a comprehensive caching infrastructure that supports:
 
 ### Abstraction Layers
 
-```
+```text
 Application Layer
     ↓ uses
 UrlCache (specialized interface for CloudFront signed URLs)
@@ -668,7 +668,7 @@ val signerService = CloudFrontSignerService(s3Config, urlCache)
 - Cache shared across application instances
 - Persists across application restarts
 - Configurable backend (Valkey/Redis)
-- Graceful fallback to in-memory
+- Fail-fast: startup fails if configured distributed cache is unavailable
 
 ---
 
