@@ -96,18 +96,26 @@ class DistributedCache(
 
                 // Use SCAN for safe pattern deletion (doesn't block server)
                 // SCAN is O(N) but doesn't block like KEYS command
+                // Delete keys page-by-page to prevent memory spikes
                 var cursor = ScanCursor.INITIAL
-                val keys = mutableListOf<String>()
+                var totalDeleted = 0L
 
                 do {
                     val scanResult = commands.scan(cursor, ScanArgs.Builder.matches(pattern))
-                    keys.addAll(scanResult.keys)
+
+                    // Delete keys immediately per page (prevents memory accumulation)
+                    if (scanResult.keys.isNotEmpty()) {
+                        // Use unlink (async deletion) instead of del (blocking) for better performance
+                        val deletedCount = commands.unlink(*scanResult.keys.toTypedArray())
+                        totalDeleted += deletedCount
+                        logger.debug { "Deleted $deletedCount keys in this page for pattern: ${redactKeyForLogging(pattern)}" }
+                    }
+
                     cursor = ScanCursor.of(scanResult.cursor)
                 } while (!scanResult.isFinished)
 
-                if (keys.isNotEmpty()) {
-                    commands.del(*keys.toTypedArray())
-                    logger.debug { "Deleted ${keys.size} keys matching pattern: ${redactKeyForLogging(pattern)}" }
+                if (totalDeleted > 0) {
+                    logger.debug { "Deleted total $totalDeleted keys matching pattern: ${redactKeyForLogging(pattern)}" }
                 } else {
                     logger.debug { "No keys found matching pattern: ${redactKeyForLogging(pattern)}" }
                 }
