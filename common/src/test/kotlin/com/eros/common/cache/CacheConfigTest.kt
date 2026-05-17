@@ -1,6 +1,7 @@
 package com.eros.common.cache
 
 import io.ktor.server.config.ApplicationConfig
+import io.ktor.server.config.ApplicationConfigurationException
 import io.ktor.server.config.MapApplicationConfig
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
@@ -239,9 +240,10 @@ class CacheConfigTest {
             )
 
             // When/Then
-            assertThrows<Exception> {
+            val exception = assertThrows<ApplicationConfigurationException> {
                 CacheConfig.fromApplicationConfig(config)
             }
+            assertEquals(exception.message?.contains("cache.host"), true)
         }
     }
 
