@@ -16,6 +16,8 @@ twilio = "9.14.1"
 mockk = "1.13.13"
 aws-sdk = "2.41.34"
 logstash = "7.4"
+lettuce = "7.5.1.RELEASE"
+kotlin-logging = "7.0.0"
 
 [libraries]
 logstash-logback-encoder = {module = "net.logstash.logback:logstash-logback-encoder", version.ref = "logstash"}
@@ -62,6 +64,8 @@ mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
 aws-s3 = { module = "software.amazon.awssdk:s3", version.ref = "aws-sdk" }
 aws-cloudfront = { module = "software.amazon.awssdk:cloudfront", version.ref = "aws-sdk" }
 aws-cloudfront-url-signer = { module = "com.amazonaws:aws-java-sdk-cloudfront", version = "1.12.529" }
+lettuce-core = { module = "io.lettuce:lettuce-core", version.ref = "lettuce" }
+kotlin-logging = { module = "io.github.oshai:kotlin-logging-jvm", version.ref = "kotlin-logging" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }

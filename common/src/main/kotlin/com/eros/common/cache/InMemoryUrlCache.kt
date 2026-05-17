@@ -36,7 +36,7 @@ class InMemoryUrlCache : UrlCache {
      * @param generator Function to generate the URL if not cached
      * @return Signed URL (cached or freshly generated)
      */
-    override fun getOrGenerate(
+    override suspend fun getOrGenerate(
         key: String,
         expiryHours: Long,
         generator: () -> String
@@ -80,7 +80,7 @@ class InMemoryUrlCache : UrlCache {
      *
      * Useful when a user updates their photo and we need to regenerate the URL.
      */
-    override fun invalidate(key: String) {
+    override suspend fun invalidate(key: String) {
         cache.remove(key)
     }
 
@@ -89,7 +89,7 @@ class InMemoryUrlCache : UrlCache {
      *
      * @param userId The user whose URLs should be invalidated
      */
-    override fun invalidateUser(userId: String) {
+    override suspend fun invalidateUser(userId: String) {
         cache.keys.removeIf { it.startsWith("photos/$userId/") }
     }
 
@@ -101,7 +101,7 @@ class InMemoryUrlCache : UrlCache {
      *
      * @param prefix The prefix to match (e.g., "photos/user123/abc.jpg:")
      */
-    override fun invalidateByPrefix(prefix: String) {
+    override suspend fun invalidateByPrefix(prefix: String) {
         cache.keys.removeIf { it.startsWith(prefix) }
     }
 
@@ -110,14 +110,14 @@ class InMemoryUrlCache : UrlCache {
      *
      * Useful for testing or maintenance.
      */
-    override fun clear() {
+    override suspend fun clear() {
         cache.clear()
     }
 
     /**
      * Returns cache statistics for monitoring.
      */
-    override fun getStats(): UrlCache.CacheStats {
+    override suspend fun getStats(): UrlCache.CacheStats {
         cleanExpiredEntries()
         return UrlCache.CacheStats(
             size = cache.size,

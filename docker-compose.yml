@@ -27,6 +27,32 @@ services:
     networks:
       - eros-network
 
+  valkey:
+    image: valkey/valkey:9.0.4-alpine
+    container_name: valkey
+    command: >
+      valkey-server
+      --appendonly yes
+      --requirepass ${CACHE_PASSWORD:-devpassword}
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+    ports:
+      - "${CACHE_PORT:-6379}:6379"
+    volumes:
+      - valkey_data:/data
+    healthcheck:
+      test: ["CMD", "valkey-cli", "-a", "${CACHE_PASSWORD:-devpassword}", "PING"]
+      interval: 3s
+      timeout: 2s
+      retries: 5
+    environment:
+      - VALKEY_REPLICATION_MODE=master
+    env_file:
+      - .env
+    networks:
+      - eros-network
+    restart: unless-stopped
+
   adminer:
     image: adminer:latest
     ports:
@@ -41,8 +67,10 @@ services:
     restart: no
     env_file:
       - .env
+
 volumes:
   postgres_data:
+  valkey_data:
 
 networks:
   eros-network:
