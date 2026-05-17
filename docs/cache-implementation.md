@@ -42,12 +42,12 @@ Lettuce Client (Valkey/Redis protocol)
 
 | Component | Purpose | Location |
 |-----------|---------|----------|
-| `Cache` | Generic cache interface | `common/cache/Cache.kt` |
-| `CacheConfig` | Configuration with TLS support | `common/cache/CacheConfig.kt` |
-| `CacheClientFactory` | Creates cache based on config | `common/cache/CacheClientFactory.kt` |
-| `DistributedCache` | Valkey/Redis implementation | `common/cache/DistributedCache.kt` |
-| `InMemoryCache` | Fallback implementation | `common/cache/InMemoryCache.kt` |
-| `CacheBackedUrlCache` | Adapter for UrlCache | `common/cache/CacheBackedUrlCache.kt` |
+| `Cache` | Generic cache interface | `common/src/main/kotlin/com/eros/common/cache/Cache.kt` |
+| `CacheConfig` | Configuration with TLS support | `common/src/main/kotlin/com/eros/common/cache/CacheConfig.kt` |
+| `CacheClientFactory` | Creates cache based on config | `common/src/main/kotlin/com/eros/common/cache/CacheClientFactory.kt` |
+| `DistributedCache` | Valkey/Redis implementation | `common/src/main/kotlin/com/eros/common/cache/DistributedCache.kt` |
+| `InMemoryCache` | Fallback implementation | `common/src/main/kotlin/com/eros/common/cache/InMemoryCache.kt` |
+| `CacheBackedUrlCache` | Adapter for UrlCache | `common/src/main/kotlin/com/eros/common/cache/CacheBackedUrlCache.kt` |
 | `configureCache()` | Ktor plugin | `app/Cache.kt` |
 
 ---
