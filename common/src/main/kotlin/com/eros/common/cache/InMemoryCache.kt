@@ -82,10 +82,21 @@ class InMemoryCache : Cache {
     override suspend fun deleteByPattern(pattern: String) {
         // Convert glob pattern to regex
         // Example: "user:123:*" -> "user:123:.*"
-        val regexPattern = pattern
-            .replace(".", "\\.")  // Escape dots
-            .replace("*", ".*")   // Convert * to .*
-            .replace("?", ".")    // Convert ? to .
+        // Strategy: Process char-by-char, escape regex metacharacters except glob wildcards
+        val regexPattern = buildString {
+            for (char in pattern) {
+                when (char) {
+                    '*' -> append(".*")  // Glob wildcard: match any characters
+                    '?' -> append(".")   // Glob wildcard: match single character
+                    // Escape regex metacharacters
+                    '.', '+', '^', '$', '(', ')', '[', ']', '{', '}', '|', '\\' -> {
+                        append("\\")
+                        append(char)
+                    }
+                    else -> append(char)  // Regular character, use as-is
+                }
+            }
+        }
         val regex = regexPattern.toRegex()
 
         // Find and delete matching keys
