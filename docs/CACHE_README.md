@@ -68,7 +68,7 @@ CACHE_TLS_ENABLED=true
 
 ## Architecture
 
-```
+```txt
 Application
     ↓ uses
 UrlCache (specialized for CloudFront URLs)
@@ -90,7 +90,7 @@ InMemoryCache (thread-safe, no network)
 
 When you configure Valkey/Redis and it's **not available**, the application **will not start**.
 
-```
+```txt
 ❌ Application startup failed: Unable to connect to valkey at localhost:6379
 ```
 
@@ -161,7 +161,8 @@ curl http://localhost:8940/health/cache
 ### Scenario 2: Application Won't Start
 
 **Error:**
-```
+
+```txt
 Failed to connect to valkey at localhost:6379
 io.lettuce.core.RedisConnectionException
 ```
@@ -355,11 +356,11 @@ Everything else stays the same (same protocol).
 ## Files & Locations
 
 ### Core Implementation
-- `common/cache/Cache.kt` - Generic cache interface
-- `common/cache/DistributedCache.kt` - Valkey/Redis implementation
-- `common/cache/InMemoryCache.kt` - In-memory implementation
-- `common/cache/CacheConfig.kt` - Configuration
-- `common/cache/CacheClientFactory.kt` - Factory
+- `common/src/main/kotlin/com/eros/common/cache/Cache.kt` - Generic cache interface
+- `common/src/main/kotlin/com/eros/common/cache/DistributedCache.kt` - Valkey/Redis implementation
+- `common/src/main/kotlin/com/eros/common/cache/InMemoryCache.kt` - In-memory implementation
+- `common/src/main/kotlin/com/eros/common/cache/CacheConfig.kt` - Configuration
+- `common/src/main/kotlin/com/eros/common/cache/CacheClientFactory.kt` - Factory
 
 ### Configuration
 - `app/src/main/resources/application.yaml` - Cache config section
