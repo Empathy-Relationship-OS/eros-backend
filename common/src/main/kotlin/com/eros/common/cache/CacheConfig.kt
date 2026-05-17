@@ -1,8 +1,6 @@
 package com.eros.common.cache
 
 import io.ktor.server.config.ApplicationConfig
-import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
 
 
 /**
@@ -67,10 +65,41 @@ data class CacheConfig(
     fun buildUri(): String {
         val protocol = if (tls.enabled) "rediss" else "redis"
         val auth = password?.let {
-            val encoded = URLEncoder.encode(it, StandardCharsets.UTF_8)
+            val encoded = percentEncode(it)
             ":$encoded@"
         } ?: ""
         return "$protocol://$auth$host:$port/$database"
+    }
+
+    /**
+     * Percent-encodes a string per RFC 3986.
+     *
+     * Encodes all characters except:
+     * - Unreserved characters: A-Z, a-z, 0-9, -, ., _, ~
+     *
+     * This is more conservative than URLEncoder which is designed for
+     * form-encoding (application/x-www-form-urlencoded) and encodes
+     * spaces as '+' instead of '%20'.
+     *
+     * @param value The string to encode
+     * @return Percent-encoded string suitable for URI components
+     */
+    private fun percentEncode(value: String): String {
+        return buildString(value.length * 2) {
+            for (char in value) {
+                when {
+                    char.isLetterOrDigit() -> append(char)
+                    char in "-._~" -> append(char)
+                    else -> {
+                        // Percent-encode as UTF-8 bytes
+                        for (byte in char.toString().toByteArray(Charsets.UTF_8)) {
+                            append('%')
+                            append(String.format("%02X", byte.toInt() and 0xFF))
+                        }
+                    }
+                }
+            }
+        }
     }
 
     companion object {
