@@ -3,6 +3,7 @@ package com.eros.common.cache
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.lettuce.core.ClientOptions
 import io.lettuce.core.RedisClient
+import io.lettuce.core.RedisURI
 import io.lettuce.core.SocketOptions
 import io.lettuce.core.SslOptions
 import java.time.Duration
@@ -73,18 +74,30 @@ object CacheClientFactory {
         return try {
             logger.info {
                 "Connecting to ${config.backend.displayName} at ${config.host}:${config.port} " +
-                "(TLS: ${config.tls.enabled}, Database: ${config.database})"
+                "(TLS: ${config.tls.enabled}, Verify Peer: ${config.tls.verifyPeer}, Database: ${config.database})"
             }
 
-            // Build connection URI (handles redis:// or rediss:// protocol)
-            val uri = config.buildUri()
+            // Build connection URI with proper TLS peer verification
+            val uriBuilder = RedisURI.Builder.redis(config.host, config.port)
+                .withDatabase(config.database)
+
+            // Apply password if configured
+            config.password?.let { uriBuilder.withPassword(it.toCharArray()) }
+
+            // Apply TLS settings (including peer verification)
+            if (config.tls.enabled) {
+                uriBuilder.withSsl(true)
+                uriBuilder.withVerifyPeer(config.tls.verifyPeer)
+            }
+
+            val uri = uriBuilder.build()
 
             // Create Lettuce client (works for both Valkey and Redis - protocol compatible)
             val client = RedisClient.create(uri)
 
             // Configure client options
             val clientOptions = buildClientOptions(config)
-            client.setOptions(clientOptions)
+            client.options = clientOptions
 
             // Test connection with PING
             testConnection(client, config)
