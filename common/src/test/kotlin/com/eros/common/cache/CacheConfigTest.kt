@@ -289,7 +289,7 @@ class CacheConfigTest {
             val uri = config.buildUri()
 
             // Then
-            assertEquals("redis://my-password@localhost:6379/0", uri)
+            assertEquals("redis://:my-password@localhost:6379/0", uri)
         }
 
         @Test
@@ -311,7 +311,7 @@ class CacheConfigTest {
             val uri = config.buildUri()
 
             // Then
-            assertEquals("rediss://aws-password@master.cache.amazonaws.com:6379/0", uri)
+            assertEquals("rediss://:aws-password@master.cache.amazonaws.com:6379/0", uri)
         }
 
         @Test
@@ -356,6 +356,28 @@ class CacheConfigTest {
 
             // Then
             assertEquals("redis://localhost:6380/0", uri)
+        }
+
+        @Test
+        fun `should percent-encode special characters in password`() {
+            // Given
+            val config = CacheConfig(
+                enabled = true,
+                backend = CacheBackend.VALKEY,
+                host = "localhost",
+                port = 6379,
+                password = "p@ssw0rd:sp3c!al#chars",
+                database = 0,
+                pool = CacheConfig.PoolConfig(50, 10, 5),
+                timeoutMs = 2000,
+                tls = CacheConfig.TlsConfig(enabled = false)
+            )
+
+            // When
+            val uri = config.buildUri()
+
+            // Then
+            assertEquals("redis://:p%40ssw0rd%3Asp3c%21al%23chars@localhost:6379/0", uri)
         }
     }
 

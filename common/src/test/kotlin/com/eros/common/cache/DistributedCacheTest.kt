@@ -54,7 +54,7 @@ class DistributedCacheTest {
 
     @BeforeEach
     fun setup() {
-        val uri = "redis://$TEST_PASSWORD@${valkeyContainer.host}:${valkeyContainer.firstMappedPort}/0"
+        val uri = "redis://:$TEST_PASSWORD@${valkeyContainer.host}:${valkeyContainer.firstMappedPort}/0"
         redisClient = RedisClient.create(uri)
         cache = DistributedCache(redisClient, CacheBackend.VALKEY)
 

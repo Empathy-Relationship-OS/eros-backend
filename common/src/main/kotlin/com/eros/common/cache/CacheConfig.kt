@@ -1,6 +1,8 @@
 package com.eros.common.cache
 
 import io.ktor.server.config.ApplicationConfig
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 
 
 /**
@@ -57,14 +59,17 @@ data class CacheConfig(
      *
      * Examples:
      * - Local: `redis://localhost:6379/0`
-     * - Local with password: `redis://devpassword@localhost:6379/0`
-     * - AWS ElastiCache: `rediss://auth-token@master.xxx.cache.amazonaws.com:6379/0`
+     * - Local with password: `redis://:devpassword@localhost:6379/0`
+     * - AWS ElastiCache: `rediss://:auth-token@master.xxx.cache.amazonaws.com:6379/0`
      *
      * @return Redis protocol URI
      */
     fun buildUri(): String {
         val protocol = if (tls.enabled) "rediss" else "redis"
-        val auth = password?.let { "$it@" } ?: ""
+        val auth = password?.let {
+            val encoded = URLEncoder.encode(it, StandardCharsets.UTF_8)
+            ":$encoded@"
+        } ?: ""
         return "$protocol://$auth$host:$port/$database"
     }
 
