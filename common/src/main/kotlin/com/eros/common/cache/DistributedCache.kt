@@ -6,6 +6,7 @@ import io.lettuce.core.ScanArgs
 import io.lettuce.core.ScanCursor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.security.MessageDigest
 
 /**
  * Distributed cache implementation using Lettuce client.
@@ -34,6 +35,17 @@ class DistributedCache(
 
     companion object {
         private val logger = KotlinLogging.logger {}
+
+        /**
+         * Redacts sensitive key/pattern data for logging by computing a SHA-256 hash.
+         * Returns a truncated hash representation to prevent log injection while maintaining debuggability.
+         */
+        private fun redactKeyForLogging(key: String): String {
+            val digest = MessageDigest.getInstance("SHA-256")
+            val hashBytes = digest.digest(key.toByteArray())
+            val hashHex = hashBytes.joinToString("") { "%02x".format(it) }
+            return "[REDACTED:${hashHex.take(12)}]"
+        }
     }
 
     override suspend fun get(key: String): String? = withContext(Dispatchers.IO) {
@@ -42,7 +54,7 @@ class DistributedCache(
                 connection.sync().get(key)
             }
         } catch (e: Exception) {
-            logger.warn(e) { "Failed to get key: $key" }
+            logger.warn(e) { "Failed to get key: ${redactKeyForLogging(key)}" }
             null
         }
     }
@@ -53,7 +65,7 @@ class DistributedCache(
                 connection.sync().setex(key, ttlSeconds, value)
             }
         } catch (e: Exception) {
-            logger.error(e) { "Failed to set key: $key with TTL: $ttlSeconds" }
+            logger.error(e) { "Failed to set key: ${redactKeyForLogging(key)} with TTL: $ttlSeconds" }
         }
     }
 
@@ -63,7 +75,7 @@ class DistributedCache(
                 connection.sync().set(key, value)
             }
         } catch (e: Exception) {
-            logger.error(e) { "Failed to set key: $key" }
+            logger.error(e) { "Failed to set key: ${redactKeyForLogging(key)}" }
         }
     }
 
@@ -73,7 +85,7 @@ class DistributedCache(
                 connection.sync().del(key)
             }
         } catch (e: Exception) {
-            logger.error(e) { "Failed to delete key: $key" }
+            logger.error(e) { "Failed to delete key: ${redactKeyForLogging(key)}" }
         }
     }
 
@@ -95,13 +107,13 @@ class DistributedCache(
 
                 if (keys.isNotEmpty()) {
                     commands.del(*keys.toTypedArray())
-                    logger.debug { "Deleted ${keys.size} keys matching pattern: $pattern" }
+                    logger.debug { "Deleted ${keys.size} keys matching pattern: ${redactKeyForLogging(pattern)}" }
                 } else {
-                    logger.debug { "No keys found matching pattern: $pattern" }
+                    logger.debug { "No keys found matching pattern: ${redactKeyForLogging(pattern)}" }
                 }
             }
         } catch (e: Exception) {
-            logger.error(e) { "Failed to delete by pattern: $pattern" }
+            logger.error(e) { "Failed to delete by pattern: ${redactKeyForLogging(pattern)}" }
         }
     }
 
@@ -117,7 +129,7 @@ class DistributedCache(
                 }
             }
         } catch (e: Exception) {
-            logger.warn(e) { "Failed to get TTL for key: $key" }
+            logger.warn(e) { "Failed to get TTL for key: ${redactKeyForLogging(key)}" }
             null
         }
     }
