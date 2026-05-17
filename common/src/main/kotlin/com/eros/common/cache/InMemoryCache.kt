@@ -52,7 +52,7 @@ class InMemoryCache : Cache {
 
         // Check expiry
         if (entry.isExpired()) {
-            cache.remove(key)
+            cache.remove(key, entry)
             return null
         }
 
@@ -97,7 +97,7 @@ class InMemoryCache : Cache {
         val entry = cache[key] ?: return null
 
         if (entry.isExpired()) {
-            cache.remove(key)
+            cache.remove(key, entry)
             return null
         }
 
@@ -131,10 +131,8 @@ class InMemoryCache : Cache {
      * Could also be called periodically as a cleanup task.
      */
     private fun cleanupExpiredEntries() {
-        val expiredKeys = cache.entries
+        cache.entries
             .filter { it.value.isExpired() }
-            .map { it.key }
-
-        expiredKeys.forEach { cache.remove(it) }
+            .forEach { cache.remove(it.key, it.value) }
     }
 }
