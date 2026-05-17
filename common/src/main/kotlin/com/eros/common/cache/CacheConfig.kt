@@ -191,13 +191,18 @@ enum class CacheBackend {
      * In-memory - Local JVM cache (ConcurrentHashMap-based).
      *
      * No external dependencies required, but not distributed across instances.
-     * Automatically used as fallback if distributed cache connection fails.
+     *
+     * Note: The runtime behavior is fail-fast on distributed cache connection
+     * failures. In-memory cache is NOT used as an automatic fallback. It is only
+     * used when explicitly configured (via `cache.backend=in-memory`) or when
+     * caching is disabled (`cache.enabled=false`).
      *
      * Use for:
      * - Local development without Docker
      * - Testing
      * - Single-instance deployments
-     * - Automatic fallback when distributed cache is unavailable
+     *
+     * See CacheClientFactory for cache initialization behavior.
      */
     IN_MEMORY;
 
