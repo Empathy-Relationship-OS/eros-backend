@@ -24,7 +24,7 @@ cache:
   backend: ${CACHE_BACKEND:valkey}
   host: ${CACHE_HOST:localhost}
   port: ${CACHE_PORT:6379}
-  password: ${CACHE_PASSWORD:}
+  password: ${CACHE_PASSWORD:devpassword}
   database: ${CACHE_DATABASE:0}
   tls:
     enabled: ${CACHE_TLS_ENABLED:false}

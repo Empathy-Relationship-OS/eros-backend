@@ -41,7 +41,7 @@ services:
     volumes:
       - valkey_data:/data
     healthcheck:
-      test: ["CMD", "valkey-cli", "--raw", "incr", "ping"]
+      test: ["CMD", "valkey-cli", "-a", "${CACHE_PASSWORD:-devpassword}", "PING"]
       interval: 3s
       timeout: 2s
       retries: 5
