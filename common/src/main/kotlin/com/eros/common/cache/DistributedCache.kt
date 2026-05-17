@@ -38,41 +38,40 @@ class DistributedCache(
 
     override suspend fun get(key: String): String? = withContext(Dispatchers.IO) {
         try {
-            val connection = client.connect()
-            val result = connection.sync().get(key)
-            connection.close()
-            result
+            client.connect().use { connection ->
+                connection.sync().get(key)
+            }
         } catch (e: Exception) {
             logger.warn(e) { "Failed to get key: $key" }
             null
         }
     }
 
-    override suspend fun set(key: String, value: String, ttlSeconds: Long) = withContext(Dispatchers.IO) {
+    override suspend fun set(key: String, value: String, ttlSeconds: Long): Unit = withContext(Dispatchers.IO) {
         try {
-            val connection = client.connect()
-            connection.sync().setex(key, ttlSeconds, value)
-            connection.close()
+            client.connect().use { connection ->
+                connection.sync().setex(key, ttlSeconds, value)
+            }
         } catch (e: Exception) {
             logger.error(e) { "Failed to set key: $key with TTL: $ttlSeconds" }
         }
     }
 
-    override suspend fun set(key: String, value: String) = withContext(Dispatchers.IO) {
+    override suspend fun set(key: String, value: String): Unit = withContext(Dispatchers.IO) {
         try {
-            val connection = client.connect()
-            connection.sync().set(key, value)
-            connection.close()
+            client.connect().use { connection ->
+                connection.sync().set(key, value)
+            }
         } catch (e: Exception) {
             logger.error(e) { "Failed to set key: $key" }
         }
     }
 
-    override suspend fun delete(key: String) = withContext(Dispatchers.IO) {
+    override suspend fun delete(key: String): Unit = withContext(Dispatchers.IO) {
         try {
-            val connection = client.connect()
-            connection.sync().del(key)
-            connection.close()
+            client.connect().use { connection ->
+                connection.sync().del(key)
+            }
         } catch (e: Exception) {
             logger.error(e) { "Failed to delete key: $key" }
         }
@@ -80,28 +79,27 @@ class DistributedCache(
 
     override suspend fun deleteByPattern(pattern: String) = withContext(Dispatchers.IO) {
         try {
-            val connection = client.connect()
-            val commands = connection.sync()
+            client.connect().use { connection ->
+                val commands = connection.sync()
 
-            // Use SCAN for safe pattern deletion (doesn't block server)
-            // SCAN is O(N) but doesn't block like KEYS command
-            var cursor = ScanCursor.INITIAL
-            val keys = mutableListOf<String>()
+                // Use SCAN for safe pattern deletion (doesn't block server)
+                // SCAN is O(N) but doesn't block like KEYS command
+                var cursor = ScanCursor.INITIAL
+                val keys = mutableListOf<String>()
 
-            do {
-                val scanResult = commands.scan(cursor, ScanArgs.Builder.matches(pattern))
-                keys.addAll(scanResult.keys)
-                cursor = ScanCursor.of(scanResult.cursor)
-            } while (!scanResult.isFinished)
+                do {
+                    val scanResult = commands.scan(cursor, ScanArgs.Builder.matches(pattern))
+                    keys.addAll(scanResult.keys)
+                    cursor = ScanCursor.of(scanResult.cursor)
+                } while (!scanResult.isFinished)
 
-            if (keys.isNotEmpty()) {
-                commands.del(*keys.toTypedArray())
-                logger.debug { "Deleted ${keys.size} keys matching pattern: $pattern" }
-            } else {
-                logger.debug { "No keys found matching pattern: $pattern" }
+                if (keys.isNotEmpty()) {
+                    commands.del(*keys.toTypedArray())
+                    logger.debug { "Deleted ${keys.size} keys matching pattern: $pattern" }
+                } else {
+                    logger.debug { "No keys found matching pattern: $pattern" }
+                }
             }
-
-            connection.close()
         } catch (e: Exception) {
             logger.error(e) { "Failed to delete by pattern: $pattern" }
         }
@@ -109,14 +107,14 @@ class DistributedCache(
 
     override suspend fun ttl(key: String): Long? = withContext(Dispatchers.IO) {
         try {
-            val connection = client.connect()
-            val ttl = connection.sync().ttl(key)
-            connection.close()
+            client.connect().use { connection ->
+                val ttl = connection.sync().ttl(key)
 
-            // Redis/Valkey returns -2 if key doesn't exist, -1 if no expiry
-            when {
-                ttl < 0 -> null
-                else -> ttl
+                // Redis/Valkey returns -2 if key doesn't exist, -1 if no expiry
+                when {
+                    ttl < 0 -> null
+                    else -> ttl
+                }
             }
         } catch (e: Exception) {
             logger.warn(e) { "Failed to get TTL for key: $key" }
@@ -126,10 +124,9 @@ class DistributedCache(
 
     override suspend fun ping(): Boolean = withContext(Dispatchers.IO) {
         try {
-            val connection = client.connect()
-            val result = connection.sync().ping()
-            connection.close()
-            result == "PONG"
+            client.connect().use { connection ->
+                connection.sync().ping() == "PONG"
+            }
         } catch (e: Exception) {
             logger.warn(e) { "Ping failed" }
             false
@@ -138,9 +135,9 @@ class DistributedCache(
 
     override suspend fun clear() = withContext(Dispatchers.IO) {
         try {
-            val connection = client.connect()
-            connection.sync().flushdb()
-            connection.close()
+            client.connect().use { connection ->
+                connection.sync().flushdb()
+            }
             logger.warn { "Cache cleared (FLUSHDB executed)" }
         } catch (e: Exception) {
             logger.error(e) { "Failed to clear cache" }
@@ -149,20 +146,20 @@ class DistributedCache(
 
     override suspend fun getStats(): Cache.CacheStats = withContext(Dispatchers.IO) {
         try {
-            val connection = client.connect()
-            val info = connection.sync().info() //"stats", "keyspace"
-            connection.close()
+            client.connect().use { connection ->
+                val info = connection.sync().info() //"stats", "keyspace"
 
-            // Parse INFO response for statistics
-            val keyCount = parseInfoKeyCount(info)
-            val memoryUsed = parseInfoMemoryUsed(info)
+                // Parse INFO response for statistics
+                val keyCount = parseInfoKeyCount(info)
+                val memoryUsed = parseInfoMemoryUsed(info)
 
-            Cache.CacheStats(
-                backend = backend.name.lowercase(),
-                connected = true,
-                keyCount = keyCount,
-                memoryUsedBytes = memoryUsed
-            )
+                Cache.CacheStats(
+                    backend = backend.name.lowercase(),
+                    connected = true,
+                    keyCount = keyCount,
+                    memoryUsedBytes = memoryUsed
+                )
+            }
         } catch (e: Exception) {
             logger.error(e) { "Failed to get stats" }
             Cache.CacheStats(
