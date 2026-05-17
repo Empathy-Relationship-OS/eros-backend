@@ -71,6 +71,7 @@ object CacheClientFactory {
      * @throws Exception if connection fails or PING fails
      */
     private fun createDistributedCache(config: CacheConfig): Cache {
+        var client: RedisClient? = null
         return try {
             logger.info {
                 "Connecting to ${config.backend.displayName} at ${config.host}:${config.port} " +
@@ -93,7 +94,7 @@ object CacheClientFactory {
             val uri = uriBuilder.build()
 
             // Create Lettuce client (works for both Valkey and Redis - protocol compatible)
-            val client = RedisClient.create(uri)
+            client = RedisClient.create(uri)
 
             // Configure client options
             val clientOptions = buildClientOptions(config)
@@ -110,6 +111,8 @@ object CacheClientFactory {
             DistributedCache(client, config.backend)
 
         } catch (e: Exception) {
+            // Clean up client if connection or test failed
+            client?.shutdown()
             logger.error(e) {
                 "Failed to connect to ${config.backend.displayName} at ${config.host}:${config.port}"
             }

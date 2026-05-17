@@ -45,7 +45,8 @@ fun Application.configureCache() {
         InMemoryCache()
     } else {
         log.info("Initializing cache with backend: ${config.backend.displayName}")
-        // Create cache client (with automatic fallback to in-memory on failure)
+        // Create cache client (fail-fast: throws on connection failure, no automatic fallback)
+        // To use in-memory fallback, catch exceptions here or set backend=IN_MEMORY in config
         CacheClientFactory.create(config)
     }
 
