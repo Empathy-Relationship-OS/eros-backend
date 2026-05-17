@@ -1,11 +1,13 @@
 package com.eros.common.cache
 
 import io.lettuce.core.RedisClient
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
@@ -477,10 +479,12 @@ class DistributedCacheTest {
             val iterations = 50
 
             // When - multiple coroutines writing concurrently
-            val jobs = List(10) { threadId ->
-                launch {
-                    repeat(iterations) { i ->
-                        cache.set("key-$threadId-$i", "value-$threadId-$i")
+            val jobs = withContext(Dispatchers.Default) {
+                List(10) { threadId ->
+                    launch {
+                        repeat(iterations) { i ->
+                            cache.set("key-$threadId-$i", "value-$threadId-$i")
+                        }
                     }
                 }
             }
@@ -502,20 +506,24 @@ class DistributedCacheTest {
             cache.set("shared-key", "initial-value")
 
             // When - concurrent reads and writes
-            val writeJobs = List(5) { threadId ->
-                launch {
-                    repeat(20) { i ->
-                        cache.set("shared-key", "value-$threadId-$i")
+            val (writeJobs, readJobs) = withContext(Dispatchers.Default) {
+                val writes = List(5) { threadId ->
+                    launch {
+                        repeat(20) { i ->
+                            cache.set("shared-key", "value-$threadId-$i")
+                        }
                     }
                 }
-            }
 
-            val readJobs = List(5) {
-                launch {
-                    repeat(20) {
-                        cache.get("shared-key")
+                val reads = List(5) {
+                    launch {
+                        repeat(20) {
+                            cache.get("shared-key")
+                        }
                     }
                 }
+
+                writes to reads
             }
 
             (writeJobs + readJobs).joinAll()
@@ -532,11 +540,13 @@ class DistributedCacheTest {
             }
 
             // When - concurrent deletes
-            val jobs = List(10) { threadId ->
-                launch {
-                    repeat(10) { i ->
-                        val keyIndex = threadId * 10 + i
-                        cache.delete("key-$keyIndex")
+            val jobs = withContext(Dispatchers.Default) {
+                List(10) { threadId ->
+                    launch {
+                        repeat(10) { i ->
+                            val keyIndex = threadId * 10 + i
+                            cache.delete("key-$keyIndex")
+                        }
                     }
                 }
             }
