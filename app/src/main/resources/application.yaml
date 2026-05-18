@@ -19,6 +19,22 @@ database:
   maxLifetime: ${DB_MAX_LIFETIME:600000}
   connectionTimeout: ${DB_CONNECTION_TIMEOUT:30000}
 
+cache:
+  enabled: ${CACHE_ENABLED:true}
+  backend: ${CACHE_BACKEND:valkey}
+  host: ${CACHE_HOST:localhost}
+  port: ${CACHE_PORT:6379}
+  password: ${CACHE_PASSWORD:devpassword}
+  database: ${CACHE_DATABASE:0}
+  tls:
+    enabled: ${CACHE_TLS_ENABLED:false}
+    verifyPeer: ${CACHE_TLS_VERIFY_PEER:true}
+  pool:
+    maxTotal: ${CACHE_POOL_MAX_TOTAL:50}
+    maxIdle: ${CACHE_POOL_MAX_IDLE:10}
+    minIdle: ${CACHE_POOL_MIN_IDLE:5}
+  timeoutMs: ${CACHE_TIMEOUT_MS:2000}
+
 twilio:
   accountSid: ${TWILIO_ACCOUNT_SID:dev}
   authToken: ${TWILIO_AUTH_TOKEN:dev}
@@ -33,6 +49,11 @@ aws:
   s3BucketName: ${AWS_S3_BUCKET_NAME:eros-photos}
   cdnBaseUrl: ${AWS_CDN_BASE_URL:}
   presignedUrlTtlMinutes: ${AWS_PRESIGNED_URL_TTL_MINUTES:15}
+
+  # CloudFront Configuration (for signed URLs)
+  cloudFrontDistributionDomain: ${CLOUDFRONT_DISTRIBUTION_DOMAIN:}
+  cloudFrontKeyPairId: ${CLOUDFRONT_KEY_PAIR_ID:}
+  cloudFrontPrivateKeyPath: ${CLOUDFRONT_PRIVATE_KEY_PATH:}
 
 stripe:
   secretKey: ${STRIPE_SECRET_KEY}

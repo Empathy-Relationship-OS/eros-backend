@@ -2,10 +2,20 @@ package com.eros.users.service
 
 import com.eros.common.errors.ConflictException
 import com.eros.common.errors.ForbiddenException
-import com.eros.users.models.*
 import com.eros.common.errors.NotFoundException
 import com.eros.database.dbQuery
 import com.eros.users.models.AdminUpdateUserRequest
+import com.eros.users.models.Badge
+import com.eros.users.models.CreateUserRequest
+import com.eros.users.models.ProfileStatus
+import com.eros.users.models.ProfileStatusUpdateRequest
+import com.eros.users.models.PublicProfile
+import com.eros.users.models.Role
+import com.eros.users.models.UpdateUserRequest
+import com.eros.users.models.User
+import com.eros.users.models.UserInterest
+import com.eros.users.models.UserMatchProfileData
+import com.eros.users.models.ValidationStatus
 import com.eros.users.repository.UserRepository
 import com.eros.users.table.badgeHelper
 import com.google.firebase.auth.FirebaseAuth
@@ -249,15 +259,28 @@ class UserService(
     }
 
     /**
-     * Get and return a users full PUBLIC profile.
+     * Get and return a users full PUBLIC profile with CloudFront signed URLs.
+     *
+     * Generates time-limited CloudFront signed URLs for all photos (48-hour expiry)
+     * to ensure secure CDN-based access instead of direct S3 URLs.
      *
      * @param requestingUserId Firebase user ID of the user.
      * @param targetUserId Firebase user ID of the other user to get their profile.
+     * @param photoExpiryHours How long the photo URLs should be valid (default: 48h)
      * @return [PublicProfile] if user is found.
      *
      * @throws NotFoundException if either user profile is not found.
      */
-    suspend fun getPublicProfile(requestingUserId: String, targetUserId: String): PublicProfile {
+    suspend fun getPublicProfile(
+        requestingUserId: String,
+        targetUserId: String,
+        photoExpiryHours: Long = 48 // Default: 48 hours for public profile access
+    ): PublicProfile {
+        // Validate photoExpiryHours before any URL signing operations
+        require(photoExpiryHours > 0) {
+            "photoExpiryHours must be positive for targetUserId=$targetUserId (got $photoExpiryHours)"
+        }
+
         val (targetUser, principalUser) = dbQuery {
             val targetUser = userRepository.findById(targetUserId)
                 ?: throw NotFoundException("Target User ($targetUserId) profile not found.")
@@ -267,9 +290,19 @@ class UserService(
             targetUser to principalUser
         }
         val media = photoService.getUserMedia(targetUserId)
+
+        // Generate CloudFront signed URLs for all photos
+        val mediaWithSignedUrls = media.copy(
+            media = media.media.map { photo ->
+                photo.copy(
+                    mediaUrl = photoService.generateAccessUrl(photo.mediaUrl, photoExpiryHours),
+                )
+            }
+        )
+
         val qas = qaService.getAllUserQAs(targetUserId)
         val sharedInterests = getSharedInterests(principalUser.interests, targetUser.interests)
-        return PublicProfile.from(targetUser, media, sharedInterests, qas)
+        return PublicProfile.from(targetUser, mediaWithSignedUrls, sharedInterests, qas)
     }
 
 
@@ -333,25 +366,36 @@ class UserService(
     }
 
     /**
-     * Gets lightweight user profile data for matching purposes.
+     * Gets lightweight user profile data for matching purposes, with time-limited photo access.
      *
      * This method is designed for cross-module communication, allowing the matching
      * module to retrieve minimal user profile data without directly accessing user repositories.
      *
      * @param userId Firebase UID of the user
+     * @param photoExpiryHours How long the photo URL should be valid (default: 48h for daily batches)
      * @return UserMatchProfileData containing basic profile info, or null if user not found
      */
-    suspend fun getUserMatchProfileData(userId: String): UserMatchProfileData? {
+    suspend fun getUserMatchProfileData(
+        userId: String,
+        photoExpiryHours: Long = 48 // Default: 48 hours for daily batch matches
+    ): UserMatchProfileData? {
         val user = dbQuery { userRepository.findById(userId) } ?: return null
         val photos = photoService.getUserMedia(userId).media
-        val thumbnailUrl = photos.firstOrNull { it.isPrimary }?.thumbnailUrl
-            ?: photos.firstOrNull()?.thumbnailUrl
+        val primaryPhoto = photos.firstOrNull { it.isPrimary }
+
+        // Generate time-limited access URL for thumbnail
+        val thumbnailUrl = primaryPhoto?.let { photo ->
+            photoService.generateAccessUrl(
+                mediaUrl = photo.mediaUrl,
+                expiryHours = photoExpiryHours
+            )
+        }
 
         return UserMatchProfileData(
             userId = user.userId,
             name = user.firstName,
             age = user.getAge(),
-            thumbnailUrl = thumbnailUrl,
+            thumbnailUrl = thumbnailUrl, // CloudFront signed URL with expiration
             badges = user.badges?.map { it.name }?.toSet()
         )
     }

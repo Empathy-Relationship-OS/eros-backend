@@ -1,5 +1,6 @@
 package com.eros.users.service
 
+import com.eros.common.TestFixtures
 import com.eros.common.config.S3Config
 import com.eros.users.models.ConfirmUploadRequest
 import com.eros.users.models.MediaType
@@ -45,7 +46,10 @@ class PhotoServiceTest {
         secretAccessKey        = "test-secret",
         bucketName             = "test-bucket",
         cdnBaseUrl             = null,
-        presignedUrlTtlMinutes = 15L
+        presignedUrlTtlMinutes = 15L,
+        cloudFrontKeyPairId    = null,
+        cloudFrontPrivateKeyPath = null,
+        cloudFrontDistributionDomain = null
     )
 
     private val service = PhotoService(
@@ -517,6 +521,94 @@ class PhotoServiceTest {
             val config = s3Config.copy(cdnBaseUrl = "https://cdn.example.com/")
             val url = config.publicUrlFor("photos/uid/abc.jpg")
             assertEquals("https://cdn.example.com/photos/uid/abc.jpg", url)
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // CloudFront cache integration
+    // -------------------------------------------------------------------------
+
+    @Nested
+    inner class `CloudFront cache integration` {
+
+        @Test
+        fun `should generate access URL using CloudFront signer`() = runTest {
+            // Given: PhotoService with CloudFront enabled
+            val cloudFrontConfig = s3Config.copy(
+                cloudFrontDistributionDomain = "d123test.cloudfront.net",
+                cloudFrontKeyPairId = "APKATEST123",
+                cloudFrontPrivateKeyPath = TestFixtures.createTestPrivateKeyFile()
+            )
+
+            val service = PhotoService(
+                photoRepository = mockRepository,
+                s3Config = cloudFrontConfig,
+                s3Client = mockS3Client,
+                s3Presigner = mockS3Presigner
+            )
+
+            // When: Generate access URL for an S3 URL
+            val mediaUrl = "https://test-bucket.s3.eu-west-2.amazonaws.com/photos/user123/abc.jpg"
+            val accessUrl = service.generateAccessUrl(mediaUrl, 48)
+
+            // Then: Should return CloudFront signed URL
+            assertTrue(accessUrl.startsWith("https://d123test.cloudfront.net/photos/user123/abc.jpg"),
+                "Should return CloudFront signed URL")
+            assertTrue(accessUrl.contains("Expires="),
+                "Should contain expiry parameter")
+            assertTrue(accessUrl.contains("Signature="),
+                "Should contain signature")
+        }
+
+        @Test
+        fun `should throw exception when CloudFront not configured`() = runTest {
+            // Given: PhotoService WITHOUT CloudFront
+            val nonCloudFrontConfig = s3Config.copy(
+                cloudFrontDistributionDomain = null,
+                cloudFrontKeyPairId = null,
+                cloudFrontPrivateKeyPath = null
+            )
+
+            val service = PhotoService(
+                photoRepository = mockRepository,
+                s3Config = nonCloudFrontConfig,
+                s3Client = mockS3Client,
+                s3Presigner = mockS3Presigner
+            )
+
+            // When/Then: Should throw exception
+            val exception = assertThrows<IllegalStateException> {
+                service.generateAccessUrl("photos/user123/abc.jpg", 48)
+            }
+
+            assertTrue(exception.message!!.contains("CloudFront signed URLs are not configured"),
+                "Should indicate CloudFront is not configured")
+        }
+
+        @Test
+        fun `should cache generated URLs for repeated calls`() = runTest {
+            // Given: PhotoService with CloudFront enabled
+            val cloudFrontConfig = s3Config.copy(
+                cloudFrontDistributionDomain = "d123test.cloudfront.net",
+                cloudFrontKeyPairId = "APKATEST123",
+                cloudFrontPrivateKeyPath = TestFixtures.createTestPrivateKeyFile()
+            )
+
+            val service = PhotoService(
+                photoRepository = mockRepository,
+                s3Config = cloudFrontConfig,
+                s3Client = mockS3Client,
+                s3Presigner = mockS3Presigner
+            )
+
+            val mediaUrl = "https://test-bucket.s3.eu-west-2.amazonaws.com/photos/user123/abc.jpg"
+
+            // When: Generate URL twice
+            val url1 = service.generateAccessUrl(mediaUrl, 48)
+            val url2 = service.generateAccessUrl(mediaUrl, 48)
+
+            // Then: Should return same cached URL
+            assertEquals(url1, url2, "Should return same cached URL for repeated calls")
         }
     }
 }

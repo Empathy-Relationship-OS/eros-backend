@@ -21,6 +21,41 @@ dependencies {
     // AWS S3 (S3Config uses AWS SDK types)
     implementation(libs.aws.s3)
 
+    // AWS CloudFront for signed URLs
+    implementation(libs.aws.cloudfront)
+    implementation(libs.aws.cloudfront.url.signer)
+
+    // Cache - Lettuce (Redis/Valkey client with TLS support)
+    implementation(libs.lettuce.core)
+
+    // Kotlin logging
+    implementation(libs.kotlin.logging)
+
     // Testing
     testImplementation(libs.kotlin.test.junit)
+    testImplementation(libs.junit.jupiter)
+    testImplementation(libs.mockk)
+    testImplementation(libs.testcontainers.junit)
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
+    testRuntimeOnly(libs.junit.platform.launcher)
+}
+
+tasks.test {
+    useJUnitPlatform()
+}
+
+// Expose test classes for other modules to use test fixtures
+configurations {
+    create("testClasses") {
+        extendsFrom(configurations["testImplementation"])
+    }
+}
+
+tasks.register<Jar>("testJar") {
+    archiveClassifier.set("test")
+    from(sourceSets.test.get().output)
+}
+
+artifacts {
+    add("testClasses", tasks.named<Jar>("testJar"))
 }

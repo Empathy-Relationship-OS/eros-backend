@@ -738,6 +738,110 @@ class MatchRepositoryImplTest {
     }
 
     // -------------------------------------------------------------------------
+    // findServedUnactedMatches function tests
+    // -------------------------------------------------------------------------
+
+    @Nested
+    inner class `findServedUnactedMatches function` {
+
+        @Test
+        fun `should return matches ordered by servedAt ascending`() = runTest {
+            // Need to create an additional test user
+            transaction {
+                createTestUser("user4")
+            }
+
+            val servedAt1 = fixedInstant.plusSeconds(1000)
+            val servedAt2 = fixedInstant.plusSeconds(2000)
+            val servedAt3 = fixedInstant.plusSeconds(3000)
+
+            // Create in reverse order to ensure database ordering is not relied upon
+            createMatch("user1", "user3", servedAt = servedAt3, liked = null)
+            createMatch("user1", "user2", servedAt = servedAt1, liked = null)
+            createMatch("user1", "user4", servedAt = servedAt2, liked = null)
+
+            val matches = dbQuery {
+                repository.findServedUnactedMatches("user1", 10)
+            }
+
+            assertEquals(3, matches.size)
+            assertEquals(servedAt1, matches[0].servedAt)
+            assertEquals(servedAt2, matches[1].servedAt)
+            assertEquals(servedAt3, matches[2].servedAt)
+        }
+
+        @Test
+        fun `should use matchId as secondary sort when servedAt is same`() = runTest {
+            val servedAt = fixedInstant.plusSeconds(1000)
+
+            // Create multiple matches with same servedAt
+            val match1 = createMatch("user1", "user2", servedAt = servedAt, liked = null)
+            val match2 = createMatch("user1", "user3", servedAt = servedAt, liked = null)
+
+            val matches = dbQuery {
+                repository.findServedUnactedMatches("user1", 10)
+            }
+
+            assertEquals(2, matches.size)
+            // Should be ordered by matchId ascending as secondary sort
+            assertEquals(match1.matchId, matches[0].matchId)
+            assertEquals(match2.matchId, matches[1].matchId)
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // findUnservedMatches ordering tests
+    // -------------------------------------------------------------------------
+
+    @Nested
+    inner class `findUnservedMatches ordering` {
+
+        @Test
+        fun `should return matches ordered by createdAt ascending`() = runTest {
+            // Need to create an additional test user
+            transaction {
+                createTestUser("user4")
+            }
+
+            val createdAt1 = fixedInstant.plusSeconds(1000)
+            val createdAt2 = fixedInstant.plusSeconds(2000)
+            val createdAt3 = fixedInstant.plusSeconds(3000)
+
+            // Create in reverse order
+            createMatch("user1", "user3", servedAt = null, createdAt = createdAt3, updatedAt = createdAt3)
+            createMatch("user1", "user2", servedAt = null, createdAt = createdAt1, updatedAt = createdAt1)
+            createMatch("user1", "user4", servedAt = null, createdAt = createdAt2, updatedAt = createdAt2)
+
+            val matches = dbQuery {
+                repository.findUnservedMatches("user1", 10)
+            }
+
+            assertEquals(3, matches.size)
+            assertEquals(createdAt1, matches[0].createdAt)
+            assertEquals(createdAt2, matches[1].createdAt)
+            assertEquals(createdAt3, matches[2].createdAt)
+        }
+
+        @Test
+        fun `should use matchId as secondary sort when createdAt is same`() = runTest {
+            val createdAt = fixedInstant.plusSeconds(1000)
+
+            // Create multiple matches with same createdAt
+            val match1 = createMatch("user1", "user2", servedAt = null, createdAt = createdAt, updatedAt = createdAt)
+            val match2 = createMatch("user1", "user3", servedAt = null, createdAt = createdAt, updatedAt = createdAt)
+
+            val matches = dbQuery {
+                repository.findUnservedMatches("user1", 10)
+            }
+
+            assertEquals(2, matches.size)
+            // Should be ordered by matchId ascending as secondary sort
+            assertEquals(match1.matchId, matches[0].matchId)
+            assertEquals(match2.matchId, matches[1].matchId)
+        }
+    }
+
+    // -------------------------------------------------------------------------
     // Integration tests
     // -------------------------------------------------------------------------
 

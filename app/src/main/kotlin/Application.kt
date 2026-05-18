@@ -11,6 +11,7 @@ fun Application.module() {
     configureStripe()
     configureExceptionHandling()
     configureDatabase()
+    configureCache()  // Initialize cache (Valkey/Redis/In-Memory)
     configureSerialization()
     configureAdministration()
     configureHTTP()

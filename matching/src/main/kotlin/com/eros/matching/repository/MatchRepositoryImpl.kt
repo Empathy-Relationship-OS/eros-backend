@@ -70,6 +70,7 @@ class MatchRepositoryImpl(
                 (Matches.user1Id eq userId) and
                 (Matches.servedAt.isNull())
             }
+            .orderBy(Matches.createdAt to SortOrder.ASC, Matches.matchId to SortOrder.ASC)
             .limit(limit)
             .map { it.toDomain() }
     }
@@ -128,6 +129,18 @@ class MatchRepositoryImpl(
                 (Matches.servedAt greaterEq twentyFourHoursAgo)
             }
             .orderBy(Matches.servedAt to SortOrder.DESC)
+            .map { it.toDomain() }
+    }
+
+    override suspend fun findServedUnactedMatches(userId: String, limit: Int): List<Match> {
+        return Matches.selectAll()
+            .where {
+                (Matches.user1Id eq userId) and
+                (Matches.servedAt.isNotNull()) and
+                (Matches.liked.isNull())
+            }
+            .orderBy(Matches.servedAt to SortOrder.ASC, Matches.matchId to SortOrder.ASC)
+            .limit(limit)
             .map { it.toDomain() }
     }
 }
