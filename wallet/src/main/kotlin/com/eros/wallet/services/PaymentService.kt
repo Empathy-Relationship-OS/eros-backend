@@ -57,17 +57,17 @@ class PaymentService(
             existing.status.toString()
         )
 
-        val (wallet, transaction) = dbQuery {
+        val (wallet, transaction, refundable) = dbQuery {
             val wallet = walletService.getWallet(userId)
                 ?: throw NotFoundException("Wallet not found")
 
             val transaction = transactionService.getTransaction(refundTokenRequest.transactionId)
                 ?: throw NotFoundException("Transaction not found")
 
-            wallet to transaction
+            val refundable = transactionService.isRefundable(transaction, userId)
+            Triple(wallet, transaction, refundable)
         }
 
-        val refundable = dbQuery {transactionService.isRefundable(transaction, userId)}
         if (!refundable) {
             // Create failed refund in its own transaction
             dbQuery {
