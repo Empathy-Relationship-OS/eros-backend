@@ -54,3 +54,8 @@ aws:
   cloudFrontDistributionDomain: ${CLOUDFRONT_DISTRIBUTION_DOMAIN:}
   cloudFrontKeyPairId: ${CLOUDFRONT_KEY_PAIR_ID:}
   cloudFrontPrivateKeyPath: ${CLOUDFRONT_PRIVATE_KEY_PATH:}
+
+stripe:
+  secretKey: ${STRIPE_SECRET_KEY}
+  publishableKey: ${STRIPE_PUBLISHABLE_KEY}
+  webhookSecret: ${WEBHOOK_SECRET_KEY}

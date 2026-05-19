@@ -2,12 +2,12 @@ package com.eros.users.repository
 
 import com.eros.common.errors.BadRequestException
 import com.eros.common.errors.ConflictException
+import com.eros.common.errors.NotFoundException
 import com.eros.database.repository.BaseDAOImpl
 import com.eros.users.models.*
 import com.eros.users.table.Cities
 import com.eros.users.table.UserCitiesPreference
 import com.eros.users.table.UserPreferences
-import io.ktor.server.plugins.NotFoundException
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
@@ -182,7 +182,7 @@ class PreferenceRepositoryImpl(
      */
     override suspend fun delete(id: String): Int {
         // Delete the UserCitiesPreference records.
-        UserCitiesPreference.deleteWhere { UserPreferences.userId eq id }
+        UserCitiesPreference.deleteWhere { UserCitiesPreference.userId eq id }
         // Delete the UserPreference record.
         return UserPreferences.deleteWhere { UserPreferences.userId eq id }
     }

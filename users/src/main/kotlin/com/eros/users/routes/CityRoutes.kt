@@ -24,7 +24,7 @@ fun Route.cityRoutes(cityService: CityService) {
         }
 
         get("/{id}") {
-            val id = call.parameters["id"]?.toLong()
+            val id = call.parameters["id"]?.toLongOrNull()
                 ?: throw BadRequestException("Invalid city ID provided.")
 
             val city = cityService.findByCityId(id)
@@ -54,7 +54,7 @@ fun Route.cityRoutes(cityService: CityService) {
         // Protected endpoints - only ADMIN, EMPLOYEE
         requireRoles("ADMIN", "EMPLOYEE")
         patch("/{id}") {
-            val id = call.parameters["id"]?.toLong()
+            val id = call.parameters["id"]?.toLongOrNull()
                 ?: throw BadRequestException("Invalid city ID provided.")
 
             val request = call.receive<UpdateCityRequest>()
@@ -72,7 +72,7 @@ fun Route.cityRoutes(cityService: CityService) {
         }
 
         delete("/{id}"){
-            val id = call.parameters["id"]?.toLong()
+            val id = call.parameters["id"]?.toLongOrNull()
                 ?: throw BadRequestException("Invalid city ID provided.")
 
             val deleted = cityService.deleteCity(id)

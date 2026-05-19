@@ -105,7 +105,7 @@ fun Route.qaRoutes(qaService : QAService, profileAccessControl: ProfileAccessCon
             val targetUserId = call.parameters["id"]
                 ?: throw BadRequestException("User ID is required")
 
-            if (principal.uid != targetUserId) throw UnauthorizedException("User does not have access to delete $targetUserId QA.")
+            if (principal.uid != targetUserId) throw ForbiddenException("User does not have access to delete $targetUserId QA.")
 
             val deleted = qaService.deleteAllUserQA(targetUserId)
 
@@ -118,7 +118,7 @@ fun Route.qaRoutes(qaService : QAService, profileAccessControl: ProfileAccessCon
             val principal = call.requireFirebasePrincipal()
             val request = call.receive<UserQACollectionDTO>()
 
-            if (principal.uid != request.userId) throw UnauthorizedException("User doesn't have access to update ${request.userId} QA collection.")
+            if (principal.uid != request.userId) throw ForbiddenException("User doesn't have access to update ${request.userId} QA collection.")
 
             val updated = qaService.createUserQACollection(request)
             call.respond(HttpStatusCode.OK, updated.toDTO())

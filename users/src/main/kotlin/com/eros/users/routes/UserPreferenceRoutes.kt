@@ -100,11 +100,6 @@ fun Route.userPreferenceRoutes(userPreferenceService: PreferenceService) {
         delete("/me") {
             val principal = call.requireFirebasePrincipal()
 
-            // Check if preferences exist
-            if (!userPreferenceService.doesExist(principal.uid)) {
-                throw NotFoundException("User preferences not found.")
-            }
-
             // Delete the preferences.
             val deleted = userPreferenceService.delete(principal.uid)
 

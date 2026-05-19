@@ -132,6 +132,7 @@ class UserService(
      * @param request UpdateUserRequest containing fields to update
      * @return The updated User, or null if user not found
      * @throws IllegalArgumentException if input validation fails
+     * @throws NotFoundException if no user with id of [userId] is found
      */
     suspend fun updateUser(userId: String, request: UpdateUserRequest): User? = dbQuery {
         val existing = userRepository.findById(userId) ?: throw NotFoundException("User $userId not found.")
@@ -223,6 +224,7 @@ class UserService(
      * @param request AdminUpdateUserRequest containing admin-level fields to update
      * @return The updated User, or null if user not found
      * @throws IllegalArgumentException if input validation fails
+     * @throws NotFoundException if no user with id of [userId] is found
      */
     suspend fun adminUpdateUser(userId: String, request: AdminUpdateUserRequest): User? = dbQuery {
         val existing = userRepository.findById(userId) ?: throw NotFoundException("User $userId not found.")

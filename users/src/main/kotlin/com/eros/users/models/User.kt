@@ -4,6 +4,8 @@ import com.eros.common.serializers.LocalDateSerializer
 import kotlinx.serialization.Serializable
 import java.time.Instant
 import java.time.LocalDate
+import java.time.Clock
+import java.time.ZoneId
 
 /**
  * User domain model representing a complete user profile
