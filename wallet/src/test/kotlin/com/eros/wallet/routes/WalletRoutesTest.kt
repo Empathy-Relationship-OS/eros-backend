@@ -1,16 +1,9 @@
 package com.eros.wallet.routes
 
-import io.ktor.client.call.body
-import io.ktor.client.request.*
-import io.ktor.http.*
-import io.ktor.server.testing.*
-import io.mockk.coEvery
-import org.junit.jupiter.api.Nested
-import org.junit.jupiter.api.Test
-import kotlin.test.assertEquals
 import com.eros.auth.firebase.FirebaseUserPrincipal
 import com.eros.common.DateActivity
 import com.eros.common.errors.BadRequestException
+import com.eros.common.errors.ForbiddenException
 import com.eros.common.plugins.configureExceptionHandling
 import com.eros.wallet.models.PurchaseRequest
 import com.eros.wallet.models.PurchaseResponse
@@ -22,12 +15,22 @@ import com.eros.wallet.models.TransactionType
 import com.eros.wallet.models.WalletResponse
 import com.eros.wallet.models.WalletWithPending
 import com.eros.wallet.models.createTestPurchase
+import com.eros.wallet.models.createTestWallet
 import com.eros.wallet.models.transaction
 import com.eros.wallet.services.PaymentService
+import com.eros.wallet.services.WalletService
 import com.google.firebase.auth.FirebaseToken
+import io.ktor.client.call.body
 import io.ktor.client.request.HttpRequestBuilder
+import io.ktor.client.request.get
 import io.ktor.client.request.header
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
+import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.install
 import io.ktor.server.auth.Authentication
@@ -35,14 +38,20 @@ import io.ktor.server.auth.authenticate
 import io.ktor.server.auth.bearer
 import io.ktor.server.routing.routing
 import io.ktor.server.testing.ApplicationTestBuilder
+import io.ktor.server.testing.testApplication
+import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.serialization.json.Json
+import org.junit.jupiter.api.Nested
+import org.junit.jupiter.api.Test
+import kotlin.test.assertEquals
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation as ClientContentNegotiation
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation as ServerContentNegotiation
 
 class WalletRoutesTest {
 
     private val mockPaymentService = mockk<PaymentService>()
+    private val mockWalletService = mockk<WalletService>()
 
     // -------------------------------------------------------------------------
     // GET /wallet/balance
@@ -490,6 +499,168 @@ class WalletRoutesTest {
         }
     }
 
+    // -------------------------------------------------------------------------
+    // POST /wallet/admin/ensure/{userId}
+    // -------------------------------------------------------------------------
+
+    @Nested
+    inner class `POST admin ensure wallet` {
+
+        @Test
+        fun `test simple endpoint access`() = testApplication {
+            setupAdminTestApp()
+            val client = configuredClient()
+
+            val newWallet = createTestWallet(userId = "test-id")
+            coEvery { mockWalletService.createWallet("test-id", "GBP") } returns newWallet
+
+            val response = client.post("/wallet/admin/ensure/test-id") {
+                setAuthenticatedUser("admin-id")
+            }
+
+            val body = response.bodyAsText()
+            assertEquals(
+                HttpStatusCode.Created,
+                response.status,
+                "Expected 201 Created but got ${response.status}. Response body: $body"
+            )
+        }
+
+        @Test
+        fun `returns 201 when wallet is created successfully`() = testApplication {
+            setupAdminTestApp()
+            val client = configuredClient()
+
+            val newWallet = createTestWallet(userId = "target-user-id")
+            coEvery { mockWalletService.createWallet("target-user-id", "GBP") } returns newWallet
+
+            val response = client.post("/wallet/admin/ensure/target-user-id") {
+                setAuthenticatedUser("admin-user-id")
+            }
+
+            val responseBody = response.bodyAsText()
+            assertEquals(HttpStatusCode.Created, response.status, "Expected 201 but got ${response.status}. Body: $responseBody")
+            val body = response.body<WalletResponse>()
+            assertEquals(newWallet.tokenBalance, body.balance)
+            assertEquals(newWallet.currency, body.currency)
+        }
+
+        @Test
+        fun `returns 200 when wallet already exists`() = testApplication {
+            setupAdminTestApp()
+            val client = configuredClient()
+
+            val existingWallet = createTestWallet(userId = "target-user-id", tokenBalance = 100.toBigDecimal())
+            coEvery { mockWalletService.createWallet("target-user-id", "GBP") } throws ForbiddenException("Wallet already exists")
+            coEvery { mockWalletService.getWallet("target-user-id") } returns existingWallet
+
+            val response = client.post("/wallet/admin/ensure/target-user-id") {
+                setAuthenticatedUser("admin-user-id")
+            }
+
+            assertEquals(HttpStatusCode.OK, response.status)
+            val body = response.body<WalletResponse>()
+            assertEquals(100.toBigDecimal(), body.balance)
+        }
+
+        @Test
+        fun `creates wallet with custom currency when specified`() = testApplication {
+            setupAdminTestApp()
+            val client = configuredClient()
+
+            val newWallet = createTestWallet(userId = "target-user-id", currency = "USD")
+            coEvery { mockWalletService.createWallet("target-user-id", "USD") } returns newWallet
+
+            val response = client.post("/wallet/admin/ensure/target-user-id?currency=USD") {
+                setAuthenticatedUser("admin-user-id")
+            }
+
+            assertEquals(HttpStatusCode.Created, response.status)
+            val body = response.body<WalletResponse>()
+            assertEquals("USD", body.currency)
+        }
+
+        @Test
+        fun `returns 400 when currency format is invalid`() = testApplication {
+            setupAdminTestApp()
+            val client = configuredClient()
+
+            val response = client.post("/wallet/admin/ensure/target-user-id?currency=invalid") {
+                setAuthenticatedUser("admin-user-id")
+            }
+
+            assertEquals(HttpStatusCode.BadRequest, response.status)
+        }
+
+        @Test
+        fun `returns 400 when currency is not uppercase`() = testApplication {
+            setupAdminTestApp()
+            val client = configuredClient()
+
+            val response = client.post("/wallet/admin/ensure/target-user-id?currency=usd") {
+                setAuthenticatedUser("admin-user-id")
+            }
+
+            assertEquals(HttpStatusCode.BadRequest, response.status)
+        }
+
+        @Test
+        fun `returns 403 when user is not admin or employee`() = testApplication {
+            setupAdminTestApp(role = "USER")
+            val client = configuredClient()
+
+            val response = client.post("/wallet/admin/ensure/target-user-id") {
+                setAuthenticatedUser("regular-user-id")
+            }
+
+            assertEquals(HttpStatusCode.Forbidden, response.status)
+        }
+
+        @Test
+        fun `returns 401 when not authenticated`() = testApplication {
+            setupAdminTestApp()
+            val client = configuredClient()
+
+            val response = client.post("/wallet/admin/ensure/target-user-id")
+
+            assertEquals(HttpStatusCode.Unauthorized, response.status)
+        }
+
+        @Test
+        fun `allows EMPLOYEE role to create wallets`() = testApplication {
+            setupAdminTestApp(role = "EMPLOYEE")
+            val client = configuredClient()
+
+            val newWallet = createTestWallet(userId = "target-user-id")
+            coEvery { mockWalletService.createWallet("target-user-id", "GBP") } returns newWallet
+
+            val response = client.post("/wallet/admin/ensure/target-user-id") {
+                setAuthenticatedUser("employee-user-id")
+            }
+
+            assertEquals(HttpStatusCode.Created, response.status)
+        }
+
+        @Test
+        fun `returns 404 when wallet retrieval fails after existence check`() = testApplication {
+            setupAdminTestApp()
+            val client = configuredClient()
+
+            coEvery { mockWalletService.createWallet("target-user-id", "GBP") } throws ForbiddenException("Wallet already exists")
+            coEvery { mockWalletService.getWallet("target-user-id") } returns null
+
+            val response = client.post("/wallet/admin/ensure/target-user-id") {
+                setAuthenticatedUser("admin-user-id")
+            }
+
+            assertEquals(HttpStatusCode.NotFound, response.status)
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Helper Methods
+    // -------------------------------------------------------------------------
+
     /**
      * Creates a configured HTTP client for tests with JSON content negotiation.
      * Each test should create its own client instance to ensure proper serialization.
@@ -543,7 +714,48 @@ class WalletRoutesTest {
         }
     }
 
+    private fun ApplicationTestBuilder.setupAdminTestApp(role: String = "ADMIN") {
+        application {
+            configureExceptionHandling()
+            // Install server-side content negotiation
+            install(ServerContentNegotiation) {
+                json(Json {
+                    ignoreUnknownKeys = true
+                    prettyPrint = true
+                })
+            }
+
+            // Install authentication
+            install(Authentication) {
+                bearer("firebase-auth") {
+                    realm = "test-realm"
+                    authenticate { credential ->
+                        val userId = credential.token.removePrefix("user-")
+                        val mockToken = mockk<FirebaseToken>(relaxed = true) {
+                            coEvery { uid } returns userId
+                        }
+                        FirebaseUserPrincipal(
+                            uid = userId,
+                            email = "$userId@example.com",
+                            phoneNumber = null,
+                            emailVerified = true,
+                            token = mockToken,
+                            role = role  // Use the role parameter from setupAdminTestApp
+                        )
+                    }
+                }
+            }
+
+            routing {
+                authenticate("firebase-auth") {
+                    walletAdminRoutes(mockWalletService)
+                }
+            }
+        }
+    }
+
     private fun HttpRequestBuilder.setAuthenticatedUser(userId: String) {
+        // For admin tests, ignore the role parameter and just use simple format
         header(HttpHeaders.Authorization, "Bearer user-$userId")
     }
 
