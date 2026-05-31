@@ -22,6 +22,7 @@ import com.eros.users.routes.userPhotoRoutes
 import com.eros.users.routes.userPreferenceRoutes
 import com.eros.users.routes.userProfileRoutes
 import com.eros.users.service.CityService
+import com.eros.services.UserOnboardingService
 import com.eros.users.service.PhotoService
 import com.eros.users.service.PreferenceService
 import com.eros.users.service.QAService
@@ -84,6 +85,9 @@ fun Application.configureRouting() {
     val preferenceService = PreferenceService(preferenceRepositoryImpl, userService)
     val transactionService = TransactionService(transactionRepository)
     val walletService = WalletService(walletRepository, transactionService)
+
+    // Coordinator services (app-level composition)
+    val userOnboardingService = UserOnboardingService(userService, walletService)
     val stripeService = StripeService()
     val paymentService = PaymentService(walletService,transactionService, stripeService)
     val webhookHandler = StripeWebhookHandler(walletService, transactionService)
@@ -111,21 +115,8 @@ fun Application.configureRouting() {
         // All routes require Firebase authentication
         authenticate("firebase-auth") {
             // User profile routes (handles role requirements internally)
-            // Pass wallet creation callback to handle wallet creation on user signup
-            userProfileRoutes(userService, profileAccessControl) { userId ->
-                // Create wallet for the new user
-                // TODO: Implement location-based currency determination
-                //       - Add country/location field to CreateUserRequest or derive from city/coordinates
-                //       - Create currency resolver service that maps country -> currency code
-                //       - Pass user's country to determine appropriate currency (GBP, USD, EUR, etc.)
-                //       - Consider supporting multi-currency wallets in the future
-                try {
-                    walletService.createWallet(userId = userId, currency = "GBP")
-                } catch (e: Exception) {
-                    // Exception is caught and logged in UserRoutes, just propagate
-                    throw e
-                }
-            }
+            // Uses UserOnboardingService for user creation to coordinate wallet setup
+            userProfileRoutes(userOnboardingService, userService, profileAccessControl)
 
             // Photo management routes (all require roles)
             userPhotoRoutes(photoService)

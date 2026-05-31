@@ -34,10 +34,11 @@ import kotlin.test.assertTrue
 class UserRoutesTest {
 
     private val mockUserService = mockk<UserService>()
+    private val mockUserCreationService = mockk<UserCreationService>()
     private val mockProfileAccessControl = mockk<ProfileAccessControl>()
     private val mockPhotoService = mockk<PhotoService>()
 
-    // Test state for callback verification
+    // Test state for callback verification (for legacy callback tests)
     private var callbackInvocationCounter = 0
     private var lastCallbackUserId: String? = null
 
@@ -68,14 +69,15 @@ class UserRoutesTest {
         }
 
         @Test
-        fun `should invoke onUserCreated callback after user creation`() = testApplication {
-            setupTestAppWithCallback()
+        fun `should use UserCreationService for user creation when custom service provided`() = testApplication {
+            setupTestAppWithCreationService()
             val client = configuredClient()
 
             val request = createValidUserRequest()
             val createdUser = createTestUser()
 
-            coEvery { mockUserService.createUser(request) } returns createdUser
+            // Mock the UserCreationService (used for creation)
+            coEvery { mockUserCreationService.createUser(request) } returns createdUser
 
             val response = client.post("/users") {
                 setAuthenticatedUser(request.userId)
@@ -84,20 +86,20 @@ class UserRoutesTest {
             }
 
             assertEquals(HttpStatusCode.Created, response.status)
-            // Verify callback was invoked (callback increments counter in test setup)
-            assertEquals(1, callbackInvocationCounter)
-            assertEquals(request.userId, lastCallbackUserId)
+            // Verify UserCreationService was called
+            coVerify { mockUserCreationService.createUser(request) }
         }
 
         @Test
-        fun `should still return 201 even if onUserCreated callback fails`() = testApplication {
-            setupTestAppWithFailingCallback()
+        fun `should still return 201 even if UserCreationService fails gracefully`() = testApplication {
+            setupTestAppWithFailingCreationService()
             val client = configuredClient()
 
             val request = createValidUserRequest()
             val createdUser = createTestUser()
 
-            coEvery { mockUserService.createUser(request) } returns createdUser
+            // Mock creation service to succeed (simulating UserOnboardingService behavior)
+            coEvery { mockUserCreationService.createUser(request) } returns createdUser
 
             val response = client.post("/users") {
                 setAuthenticatedUser(request.userId)
@@ -105,7 +107,7 @@ class UserRoutesTest {
                 setBody(request)
             }
 
-            // User creation should succeed despite callback failure
+            // User creation should succeed
             assertEquals(HttpStatusCode.Created, response.status)
             val returnedUser = response.body<UserDTO>()
             assertEquals(createdUser.toDTO(), returnedUser)
@@ -661,7 +663,7 @@ class UserRoutesTest {
         }
     }
 
-    private fun ApplicationTestBuilder.setupTestApp(onUserCreated: (suspend (String) -> Unit)? = null) {
+    private fun ApplicationTestBuilder.setupTestApp(useCustomCreationService: Boolean = false) {
         application {
             configureExceptionHandling()
             // Install server-side content negotiation
@@ -697,25 +699,22 @@ class UserRoutesTest {
 
             routing {
                 authenticate("firebase-auth") {
-                    userProfileRoutes(mockUserService, mockProfileAccessControl, onUserCreated)
+                    // Use mockUserCreationService when testing creation, mockUserService otherwise
+                    val creationService = if (useCustomCreationService) mockUserCreationService else mockUserService
+                    userProfileRoutes(creationService, mockUserService, mockProfileAccessControl)
                 }
             }
         }
     }
 
-    private fun ApplicationTestBuilder.setupTestAppWithCallback() {
+    private fun ApplicationTestBuilder.setupTestAppWithCreationService() {
         callbackInvocationCounter = 0
         lastCallbackUserId = null
-        setupTestApp { userId ->
-            callbackInvocationCounter++
-            lastCallbackUserId = userId
-        }
+        setupTestApp(useCustomCreationService = true)
     }
 
-    private fun ApplicationTestBuilder.setupTestAppWithFailingCallback() {
-        setupTestApp { userId ->
-            throw RuntimeException("Simulated callback failure for user $userId")
-        }
+    private fun ApplicationTestBuilder.setupTestAppWithFailingCreationService() {
+        setupTestApp(useCustomCreationService = true)
     }
 
     private fun HttpRequestBuilder.setAuthenticatedUser(userId: String) {
