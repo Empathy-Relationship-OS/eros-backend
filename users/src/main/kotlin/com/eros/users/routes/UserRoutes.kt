@@ -45,8 +45,14 @@ data class UserExistsResponse(
  * All other routes require ADMIN, USER, or EMPLOYEE role.
  *
  * @param userService Service for user data operations
+ * @param profileAccessControl Service for checking profile access permissions
+ * @param onUserCreated Optional callback invoked after user creation (for wallet creation, etc.)
  */
-fun Route.userProfileRoutes(userService: UserService, profileAccessControl: ProfileAccessControl) {
+fun Route.userProfileRoutes(
+    userService: UserService,
+    profileAccessControl: ProfileAccessControl,
+    onUserCreated: (suspend (userId: String) -> Unit)? = null
+) {
     route("/users") {
         /**
          * POST /users
@@ -77,6 +83,16 @@ fun Route.userProfileRoutes(userService: UserService, profileAccessControl: Prof
             } catch (e: Exception) {
                 // Log but don't fail - claims can be synced later or retried
                 call.application.log.error("Failed to set Firebase custom claims for user ${user.userId}", e)
+            }
+
+            // Invoke post-creation callback (e.g., for wallet creation)
+            onUserCreated?.let { callback ->
+                try {
+                    callback(user.userId)
+                } catch (e: Exception) {
+                    // Log the error but don't fail user creation
+                    call.application.log.warn("Post-user-creation callback failed for user ${user.userId}: ${e.message}", e)
+                }
             }
 
             call.respond(HttpStatusCode.Created, user.toDTO())

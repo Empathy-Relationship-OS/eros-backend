@@ -37,6 +37,10 @@ class UserRoutesTest {
     private val mockProfileAccessControl = mockk<ProfileAccessControl>()
     private val mockPhotoService = mockk<PhotoService>()
 
+    // Test state for callback verification
+    private var callbackInvocationCounter = 0
+    private var lastCallbackUserId: String? = null
+
 
     @Nested
     inner class `POST users` {
@@ -61,6 +65,50 @@ class UserRoutesTest {
             val returnedUser = response.body<UserDTO>()
             assertEquals(createdUser.toDTO(), returnedUser)
             coVerify { mockUserService.createUser(request) }
+        }
+
+        @Test
+        fun `should invoke onUserCreated callback after user creation`() = testApplication {
+            setupTestAppWithCallback()
+            val client = configuredClient()
+
+            val request = createValidUserRequest()
+            val createdUser = createTestUser()
+
+            coEvery { mockUserService.createUser(request) } returns createdUser
+
+            val response = client.post("/users") {
+                setAuthenticatedUser(request.userId)
+                contentType(ContentType.Application.Json)
+                setBody(request)
+            }
+
+            assertEquals(HttpStatusCode.Created, response.status)
+            // Verify callback was invoked (callback increments counter in test setup)
+            assertEquals(1, callbackInvocationCounter)
+            assertEquals(request.userId, lastCallbackUserId)
+        }
+
+        @Test
+        fun `should still return 201 even if onUserCreated callback fails`() = testApplication {
+            setupTestAppWithFailingCallback()
+            val client = configuredClient()
+
+            val request = createValidUserRequest()
+            val createdUser = createTestUser()
+
+            coEvery { mockUserService.createUser(request) } returns createdUser
+
+            val response = client.post("/users") {
+                setAuthenticatedUser(request.userId)
+                contentType(ContentType.Application.Json)
+                setBody(request)
+            }
+
+            // User creation should succeed despite callback failure
+            assertEquals(HttpStatusCode.Created, response.status)
+            val returnedUser = response.body<UserDTO>()
+            assertEquals(createdUser.toDTO(), returnedUser)
         }
 
         @Test
@@ -613,7 +661,7 @@ class UserRoutesTest {
         }
     }
 
-    private fun ApplicationTestBuilder.setupTestApp() {
+    private fun ApplicationTestBuilder.setupTestApp(onUserCreated: (suspend (String) -> Unit)? = null) {
         application {
             configureExceptionHandling()
             // Install server-side content negotiation
@@ -649,9 +697,24 @@ class UserRoutesTest {
 
             routing {
                 authenticate("firebase-auth") {
-                    userProfileRoutes(mockUserService, mockProfileAccessControl)
+                    userProfileRoutes(mockUserService, mockProfileAccessControl, onUserCreated)
                 }
             }
+        }
+    }
+
+    private fun ApplicationTestBuilder.setupTestAppWithCallback() {
+        callbackInvocationCounter = 0
+        lastCallbackUserId = null
+        setupTestApp { userId ->
+            callbackInvocationCounter++
+            lastCallbackUserId = userId
+        }
+    }
+
+    private fun ApplicationTestBuilder.setupTestAppWithFailingCallback() {
+        setupTestApp { userId ->
+            throw RuntimeException("Simulated callback failure for user $userId")
         }
     }
 

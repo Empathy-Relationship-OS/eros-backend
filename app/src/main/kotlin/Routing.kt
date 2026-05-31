@@ -29,6 +29,7 @@ import com.eros.users.service.UserService
 import com.eros.wallet.repository.TransactionRepositoryImpl
 import com.eros.wallet.repository.WalletRepositoryImpl
 import com.eros.wallet.routes.paymentRoutes
+import com.eros.wallet.routes.walletAdminRoutes
 import com.eros.wallet.routes.webhookRoute
 import com.eros.wallet.services.PaymentService
 import com.eros.wallet.services.TransactionService
@@ -110,7 +111,21 @@ fun Application.configureRouting() {
         // All routes require Firebase authentication
         authenticate("firebase-auth") {
             // User profile routes (handles role requirements internally)
-            userProfileRoutes(userService, profileAccessControl)
+            // Pass wallet creation callback to handle wallet creation on user signup
+            userProfileRoutes(userService, profileAccessControl) { userId ->
+                // Create wallet for the new user
+                // TODO: Implement location-based currency determination
+                //       - Add country/location field to CreateUserRequest or derive from city/coordinates
+                //       - Create currency resolver service that maps country -> currency code
+                //       - Pass user's country to determine appropriate currency (GBP, USD, EUR, etc.)
+                //       - Consider supporting multi-currency wallets in the future
+                try {
+                    walletService.createWallet(userId = userId, currency = "GBP")
+                } catch (e: Exception) {
+                    // Exception is caught and logged in UserRoutes, just propagate
+                    throw e
+                }
+            }
 
             // Photo management routes (all require roles)
             userPhotoRoutes(photoService)
@@ -124,6 +139,9 @@ fun Application.configureRouting() {
             questionRoutes(qaService)
 
             paymentRoutes(paymentService)
+
+            // Admin wallet management routes
+            walletAdminRoutes(walletService)
 
             matchRoutes(matchService)
 
