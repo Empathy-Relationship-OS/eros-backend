@@ -17,6 +17,7 @@ import com.eros.users.models.UserInterest
 import com.eros.users.models.UserMatchProfileData
 import com.eros.users.models.ValidationStatus
 import com.eros.users.repository.UserRepository
+import com.eros.users.routes.UserCreationService
 import com.eros.users.table.badgeHelper
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.Dispatchers
@@ -37,7 +38,7 @@ class UserService(
     private val photoService: PhotoService,
     private val qaService: QAService,
     private val clock: Clock = Clock.systemUTC()
-) {
+) : UserCreationService {
 
     /**
      * Creates a new user profile.
@@ -49,7 +50,7 @@ class UserService(
      * @throws IllegalArgumentException if input validation fails
      * @throws ConflictException if user already exists
      */
-    suspend fun createUser(request: CreateUserRequest): User = dbQuery {
+    override suspend fun createUser(request: CreateUserRequest): User = dbQuery {
         // Check if user already exists
         if (userRepository.doesExist(request.userId)) {
             throw ConflictException("User with ID ${request.userId} already exists")

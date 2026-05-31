@@ -22,6 +22,7 @@ import com.eros.users.routes.userPhotoRoutes
 import com.eros.users.routes.userPreferenceRoutes
 import com.eros.users.routes.userProfileRoutes
 import com.eros.users.service.CityService
+import com.eros.services.UserOnboardingService
 import com.eros.users.service.PhotoService
 import com.eros.users.service.PreferenceService
 import com.eros.users.service.QAService
@@ -29,6 +30,7 @@ import com.eros.users.service.UserService
 import com.eros.wallet.repository.TransactionRepositoryImpl
 import com.eros.wallet.repository.WalletRepositoryImpl
 import com.eros.wallet.routes.paymentRoutes
+import com.eros.wallet.routes.walletAdminRoutes
 import com.eros.wallet.routes.webhookRoute
 import com.eros.wallet.services.PaymentService
 import com.eros.wallet.services.TransactionService
@@ -83,6 +85,9 @@ fun Application.configureRouting() {
     val preferenceService = PreferenceService(preferenceRepositoryImpl, userService)
     val transactionService = TransactionService(transactionRepository)
     val walletService = WalletService(walletRepository, transactionService)
+
+    // Coordinator services (app-level composition)
+    val userOnboardingService = UserOnboardingService(userService, walletService)
     val stripeService = StripeService()
     val paymentService = PaymentService(walletService,transactionService, stripeService)
     val webhookHandler = StripeWebhookHandler(walletService, transactionService)
@@ -110,7 +115,8 @@ fun Application.configureRouting() {
         // All routes require Firebase authentication
         authenticate("firebase-auth") {
             // User profile routes (handles role requirements internally)
-            userProfileRoutes(userService, profileAccessControl)
+            // Uses UserOnboardingService for user creation to coordinate wallet setup
+            userProfileRoutes(userOnboardingService, userService, profileAccessControl)
 
             // Photo management routes (all require roles)
             userPhotoRoutes(photoService)
@@ -124,6 +130,9 @@ fun Application.configureRouting() {
             questionRoutes(qaService)
 
             paymentRoutes(paymentService)
+
+            // Admin wallet management routes
+            walletAdminRoutes(walletService)
 
             matchRoutes(matchService)
 

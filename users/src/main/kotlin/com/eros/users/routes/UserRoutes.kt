@@ -11,6 +11,7 @@ import com.eros.users.models.CreateUserRequest
 import com.eros.users.models.ProfileStatus
 import com.eros.users.models.ProfileStatusUpdateRequest
 import com.eros.users.models.UpdateUserRequest
+import com.eros.users.models.User
 import com.eros.users.models.toDTO
 import com.eros.users.models.toVisibilityDTO
 import com.eros.users.service.UserService
@@ -37,6 +38,20 @@ data class UserExistsResponse(
 )
 
 /**
+ * Interface for user creation operations.
+ *
+ * This interface allows UserRoutes to depend on an abstraction for user creation,
+ * enabling different implementations (direct UserService or coordinated UserOnboardingService).
+ *
+ * Implementations:
+ * - UserService: Direct user creation (implements this interface)
+ * - UserOnboardingService: Coordinates user creation with wallet setup (production)
+ */
+interface UserCreationService {
+    suspend fun createUser(request: CreateUserRequest): User
+}
+
+/**
  * Configure user routes.
  *
  * These routes handle user profile CRUD operations.
@@ -44,9 +59,15 @@ data class UserExistsResponse(
  * User creation (POST /users) and existence check (GET /users/exists) do not require a role.
  * All other routes require ADMIN, USER, or EMPLOYEE role.
  *
- * @param userService Service for user data operations
+ * @param userCreationService Service for creating users (UserOnboardingService in production)
+ * @param userService Service for user data operations (read, update, delete)
+ * @param profileAccessControl Service for checking profile access permissions
  */
-fun Route.userProfileRoutes(userService: UserService, profileAccessControl: ProfileAccessControl) {
+fun Route.userProfileRoutes(
+    userCreationService: UserCreationService,
+    userService: UserService,
+    profileAccessControl: ProfileAccessControl
+) {
     route("/users") {
         /**
          * POST /users
@@ -67,8 +88,10 @@ fun Route.userProfileRoutes(userService: UserService, profileAccessControl: Prof
             if (request.userId != principal.uid)
                 throw ForbiddenException("Cannot create profile for another user")
 
-            // Create user in database - ConflictException will be thrown if user already exists
-            val user = userService.createUser(request)
+            // Create user in database with associated resources (wallet, etc.)
+            // UserOnboardingService coordinates creation of user + wallet
+            // ConflictException will be thrown if user already exists
+            val user = userCreationService.createUser(request)
 
             // Sync Firebase custom claims
             try {
