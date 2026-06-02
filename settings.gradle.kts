@@ -10,5 +10,6 @@ include(
     "marketing",
     "notifications",
     "users",
-    "wallet"
+    "wallet",
+    "venues"
 )

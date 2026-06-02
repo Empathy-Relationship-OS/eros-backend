@@ -3,6 +3,8 @@ package com.eros.users.models;
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import org.testcontainers.shaded.org.bouncycastle.oer.its.ieee1609dot2.basetypes.Longitude
+import java.time.Instant
 import kotlin.test.assertEquals
 
 class CityTest {
@@ -170,5 +172,12 @@ class CityTest {
         }
 
     }
-
 }
+
+private val fixedInstant = Instant.parse("2024-01-15T10:00:00Z")
+fun createTestCity(cityId: Long = 1L,
+                   cityName: String = "Test city name",
+                   longitude: Double = 1.03,
+                   latitude: Double = -5.01,
+                   createdAt : Instant = fixedInstant,
+                   updatedAt : Instant = fixedInstant) : City = City(cityId, cityName, longitude, latitude, createdAt , updatedAt)
